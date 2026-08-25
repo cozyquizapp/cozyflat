@@ -26,6 +26,15 @@ const roomMeta: Record<string, { icon: string; line: string; className: string }
 };
 const day = 86400000;
 const levelNames = ["Nestling", "Anpacker:in", "Rudelprofi", "Zuhause-Held:in", "Cozy-Legende"];
+const choreCategoryArt: Record<string, { image: string; tone: string }> = {
+  Putzen: { image: "/chore-putzen.png", tone: "sage" },
+  Hausflur: { image: "/chore-putzen.png", tone: "sage" },
+  Küche: { image: "/chore-kueche.png", tone: "peach" },
+  Einkauf: { image: "/chore-kueche.png", tone: "peach" },
+  Wäsche: { image: "/chore-waesche.png", tone: "rose" },
+  Aufräumen: { image: "/chore-waesche.png", tone: "rose" },
+  Müll: { image: "/chore-putzen.png", tone: "sage" },
+};
 
 function levelFor(points: number) {
   const step = 100;
@@ -107,7 +116,6 @@ export default function Home() {
   const [progressOpen, setProgressOpen] = useState(false);
   const [reminderPerson, setReminderPerson] = useState<"Johannes" | "Sonja">("Johannes");
   const [showReminderCard, setShowReminderCard] = useState(false);
-  const [allChoresOpen, setAllChoresOpen] = useState(false);
   const [plantsOpen, setPlantsOpen] = useState(false);
   const [mobileView, setMobileView] = useState<'today'|'chores'|'plants'|'level'>('today');
   const [splashVisible, setSplashVisible] = useState(true);
@@ -324,16 +332,16 @@ export default function Home() {
       <section className="chores-section" id="aufgaben">
         <div className="section-head"><div><p className="eyebrow">EURE HAUSIS</p><h2>Was sonst noch ansteht</h2><p>Alles darf auch spontan erledigt werden – Besuch wartet schließlich nicht auf den Rhythmus.</p></div><button className="add-hausi" onClick={()=>{setEditingChore(null);setChoreModal(true)}}><span>＋</span> Hausi</button></div>
         {todayChores.length > 0 && <section className="today-chores" aria-labelledby="today-chores-title"><div className="today-chores-head"><div><p className="eyebrow">HEUTE WICHTIG</p><h3 id="today-chores-title">Eure kleine Tagesauswahl</h3></div><span>{todayChores.length} für heute</span></div><div>{todayChores.slice(0,5).map((chore) => <article className="quick-chore" key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{chore.scheduleMode === 'flexible' ? 'Staubis Tagesvorschlag' : choreTiming(chore,now)} · {'!'.repeat(chore.priority)} · +{chore.points} XP</small></div><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}><img src={avatarFor[person]} alt="" />{choreBusy === chore.id ? '…' : `Erledigt als ${person}`}</button></article>)}</div>{todayChores.length > 5 && <small className="today-more">Danach sind noch {todayChores.length - 5} fest eingeplant – eins nach dem anderen.</small>}</section>}
-        <button className="all-chores-toggle" onClick={()=>setAllChoresOpen(open=>!open)} aria-expanded={allChoresOpen}><span>Alle Hausis nach Kategorie</span><b>{allChoresOpen ? 'einklappen ↑' : 'anzeigen ↓'}</b></button>
-        {allChoresOpen && <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
+        <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
           const categoryChores = chores.filter((chore) => chore.category === category);
           const dueChores = categoryChores.filter((chore) => !chore.paused && chore.scheduleMode === 'scheduled' && choreNext(chore)! <= now);
           const laterChores = categoryChores.filter((chore) => !dueChores.includes(chore));
+          const art = choreCategoryArt[category] ?? { image: '/chore-putzen.png', tone: 'sage' };
           const renderChore = (chore: Chore) => { const next = choreNext(chore); const isDue = Boolean(next && next <= now);
             return <article className={`chore-card ${isDue ? 'is-due' : ''} priority-${chore.priority} ${chore.paused ? 'is-paused' : ''}`} key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{choreTiming(chore,now)} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch nie abgehakt'}</small></div><strong>{'!'.repeat(chore.priority)} · +{chore.points}</strong><button className="edit-chore" onClick={()=>{setEditingChore(chore);setChoreModal(true)}} aria-label={`${chore.name} bearbeiten`}>✎</button><button className="finish-chore" onClick={() => finishChore(chore)} disabled={chore.paused || choreBusy === chore.id}>{chore.paused ? 'Pausiert' : choreBusy === chore.id ? '…' : <><img src={avatarFor[person]} alt="" />Jetzt erledigt</>}</button></article>;
           };
-          return <details className="chore-group" key={category}><summary className="chore-group-preview"><span className="chore-preview-icon">{categoryChores[0]?.icon ?? '✨'}</span><span><small>{dueChores.length ? `${dueChores.length} jetzt wichtig` : 'Flexibel einplanbar'}</small><b>{category}</b></span><span className="chore-preview-strip" aria-hidden="true">{categoryChores.slice(0,3).map((item)=><i key={item.id}>{item.icon}</i>)}</span><em>{categoryChores.length}</em><strong>⌄</strong></summary><div className="chore-group-content"><div>{dueChores.map(renderChore)}</div>{laterChores.length > 0 && <details className="later-chores"><summary>{laterChores.length} weitere Hausis <span>anzeigen ↓</span></summary><div>{laterChores.map(renderChore)}</div></details>}</div></details>;
-        })}</div>}
+          return <details className={`chore-group tone-${art.tone}`} key={category}><summary className="chore-group-preview" style={{backgroundImage:`linear-gradient(90deg,rgba(18,48,35,.88) 0%,rgba(18,48,35,.56) 48%,rgba(18,48,35,.08) 100%), url(${art.image})`}}><span className="chore-preview-icon">{categoryChores[0]?.icon ?? '✨'}</span><span><small>{dueChores.length ? `${dueChores.length} jetzt wichtig` : 'Flexibel einplanbar'}</small><b>{category}</b></span><em>{categoryChores.length}</em><strong>⌄</strong></summary><div className="chore-group-content"><div>{[...dueChores,...laterChores].map(renderChore)}</div></div></details>;
+        })}</div>
       </section>
       <section className={`plant-section plant-menu ${plantsOpen ? 'is-open' : ''}`} id="pflanzen">
         <div className="section-head">
