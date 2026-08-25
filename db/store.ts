@@ -29,6 +29,10 @@ async function ready() {
     db.prepare('CREATE INDEX IF NOT EXISTS idx_chore_events_completed_at ON chore_events(completed_at)'),
   ]);
   try { await db.prepare('ALTER TABLE chores ADD COLUMN paused INTEGER NOT NULL DEFAULT 0').run(); } catch {}
+  try { await db.prepare("ALTER TABLE chores ADD COLUMN schedule_mode TEXT NOT NULL DEFAULT 'flexible'").run(); } catch {}
+  try { await db.prepare('ALTER TABLE chores ADD COLUMN cadence_hours INTEGER NOT NULL DEFAULT 24').run(); } catch {}
+  try { await db.prepare('ALTER TABLE chores ADD COLUMN priority INTEGER NOT NULL DEFAULT 2').run(); } catch {}
+  try { await db.prepare('ALTER TABLE chores ADD COLUMN due_time TEXT').run(); } catch {}
   const count = await db.prepare('SELECT COUNT(*) AS count FROM plants').first<{count:number}>();
   if (!count?.count) {
     const now = new Date();
@@ -64,6 +68,10 @@ async function ready() {
       db.prepare('INSERT INTO chores (name, category, icon, interval_days, points) VALUES (?, ?, ?, ?, ?)').bind('Restmüll rausbringen','Müll','⚫',7,8),
       db.prepare('INSERT INTO chores (name, category, icon, interval_days, points) VALUES (?, ?, ?, ?, ?)').bind('Bettwäsche wechseln','Wäsche','🛏️',14,15),
     ]);
+  }
+  const kitchenUpdate = await db.prepare("INSERT OR IGNORE INTO app_meta (key, value) VALUES ('kitchen-essentials-v3', ?)").bind(new Date().toISOString()).run();
+  if (kitchenUpdate.meta.changes) {
+    await db.prepare('INSERT INTO chores (name, category, icon, interval_days, points) VALUES (?, ?, ?, ?, ?)').bind('Spülmaschine einräumen','Küche','🥣',1,5).run();
   }
   return db;
 }
@@ -114,9 +122,9 @@ export async function addPlant(name:string, room:string, intervalDays:number, pe
 
 export async function removePlant(id:number) { const db = await ready(); await db.prepare('DELETE FROM plants WHERE id = ?').bind(id).run(); }
 
-export type Chore = { id:number; name:string; category:string; icon:string; intervalDays:number; points:number; lastCompletedAt:string|null; lastCompletedBy:string|null; paused:boolean };
-export async function listChores() { const db = await ready(); const result = await db.prepare('SELECT id, name, category, icon, interval_days AS intervalDays, points, last_completed_at AS lastCompletedAt, last_completed_by AS lastCompletedBy, paused FROM chores ORDER BY paused, category, name').all<Omit<Chore,'paused'> & {paused:number}>(); return result.results.map((row) => ({...row, paused:Boolean(row.paused)})); }
+export type Chore = { id:number; name:string; category:string; icon:string; intervalDays:number; points:number; lastCompletedAt:string|null; lastCompletedBy:string|null; paused:boolean; scheduleMode:'flexible'|'scheduled'; cadenceHours:number; priority:number; dueTime:string|null };
+export async function listChores() { const db = await ready(); const result = await db.prepare('SELECT id, name, category, icon, interval_days AS intervalDays, points, last_completed_at AS lastCompletedAt, last_completed_by AS lastCompletedBy, paused, schedule_mode AS scheduleMode, cadence_hours AS cadenceHours, priority, due_time AS dueTime FROM chores ORDER BY paused, priority DESC, category, name').all<Omit<Chore,'paused'> & {paused:number}>(); return result.results.map((row) => ({...row, paused:Boolean(row.paused)})); }
 export async function completeChore(id:number, person:string) { const db = await ready(); const now = new Date().toISOString(); const chore = await db.prepare('SELECT points FROM chores WHERE id = ? AND paused = 0').bind(id).first<{points:number}>(); if (!chore) return null; const results = await db.batch([db.prepare('UPDATE chores SET last_completed_at = ?, last_completed_by = ? WHERE id = ?').bind(now, person,id),db.prepare('INSERT INTO chore_events (chore_id, person, points, completed_at) VALUES (?, ?, ?, ?)').bind(id,person,chore.points,now)]); return Number(results[1].meta.last_row_id); }
 export async function undoChoreCompletion(id:number, eventId:number) { const db = await ready(); const event = await db.prepare('SELECT id FROM chore_events WHERE id = ? AND chore_id = ?').bind(eventId,id).first(); if (!event) return; await db.prepare('DELETE FROM chore_events WHERE id = ?').bind(eventId).run(); const previous = await db.prepare('SELECT person, completed_at AS completedAt FROM chore_events WHERE chore_id = ? ORDER BY id DESC LIMIT 1').bind(id).first<{person:string;completedAt:string}>(); await db.prepare('UPDATE chores SET last_completed_at = ?, last_completed_by = ? WHERE id = ?').bind(previous?.completedAt ?? null, previous?.person ?? null, id).run(); }
-export async function saveChore(input:{id?:number;name:string;category:string;icon:string;intervalDays:number;points:number;paused:boolean}) { const db = await ready(); if (input.id) await db.prepare('UPDATE chores SET name = ?, category = ?, icon = ?, interval_days = ?, points = ?, paused = ? WHERE id = ?').bind(input.name,input.category,input.icon,input.intervalDays,input.points,input.paused?1:0,input.id).run(); else await db.prepare('INSERT INTO chores (name, category, icon, interval_days, points, paused) VALUES (?, ?, ?, ?, ?, ?)').bind(input.name,input.category,input.icon,input.intervalDays,input.points,input.paused?1:0).run(); }
+export async function saveChore(input:{id?:number;name:string;category:string;icon:string;intervalDays:number;points:number;paused:boolean;scheduleMode:'flexible'|'scheduled';cadenceHours:number;priority:number;dueTime:string|null}) { const db = await ready(); if (input.id) await db.prepare('UPDATE chores SET name = ?, category = ?, icon = ?, interval_days = ?, points = ?, paused = ?, schedule_mode = ?, cadence_hours = ?, priority = ?, due_time = ? WHERE id = ?').bind(input.name,input.category,input.icon,input.intervalDays,input.points,input.paused?1:0,input.scheduleMode,input.cadenceHours,input.priority,input.dueTime,input.id).run(); else await db.prepare('INSERT INTO chores (name, category, icon, interval_days, points, paused, schedule_mode, cadence_hours, priority, due_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(input.name,input.category,input.icon,input.intervalDays,input.points,input.paused?1:0,input.scheduleMode,input.cadenceHours,input.priority,input.dueTime).run(); }
 export async function removeChore(id:number) { const db = await ready(); await db.batch([db.prepare('DELETE FROM chore_events WHERE chore_id = ?').bind(id),db.prepare('DELETE FROM chores WHERE id = ?').bind(id)]); }

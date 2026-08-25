@@ -19,6 +19,16 @@
 @keyframes splash-out{0%,72%{opacity:1}100%{opacity:0;visibility:hidden}}
 @media(prefers-reduced-motion:reduce){.app-splash{animation:none}.app-splash>div{display:none}}
 @media(min-width:641px){.app-splash>img{object-fit:cover;object-position:center}}
+
+/* CozyFlat polish: warmer depth, clearer planning and more satisfying actions */
+.hero{position:relative}.hero:before{content:"";position:absolute;z-index:0;inset:22px 12px 0;border:1px solid color-mix(in srgb,var(--profile-accent) 22%,transparent);border-radius:34px;background:linear-gradient(145deg,color-mix(in srgb,var(--profile-wash) 72%,white),rgba(255,255,255,.42));box-shadow:0 22px 70px rgba(23,60,45,.08)}.personal-greeting{position:relative;z-index:1}.summary{position:relative;padding-left:20px;padding-right:20px;border:1px solid var(--line);border-radius:22px;background:rgba(255,255,255,.7);box-shadow:0 14px 38px rgba(23,60,45,.07)}
+.today-chores{background:linear-gradient(145deg,color-mix(in srgb,var(--profile-wash) 82%,white),#fff6e5);box-shadow:0 18px 48px color-mix(in srgb,var(--profile-accent) 15%,transparent)}.quick-chore{transition:transform .18s ease,box-shadow .18s ease}.quick-chore:has(button:active){transform:scale(.985)}.quick-chore button,.finish-chore,.water-button{background:linear-gradient(135deg,var(--profile-accent-deep),var(--green));box-shadow:0 8px 20px color-mix(in srgb,var(--profile-accent) 26%,transparent)}
+.schedule-hint{margin:-4px 0 6px;padding:10px 12px;border-radius:12px;background:#edf4ea;color:#617066;font-size:11px;line-height:1.45}.priority-3{box-shadow:inset 4px 0 0 #c67155}.priority-1{opacity:.9}
+.plant-menu{padding-top:38px}.plant-menu>.section-head{padding:20px 22px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(135deg,#eef5e9,#fff8e9);box-shadow:0 14px 38px rgba(23,60,45,.07)}.plant-menu .section-head p:last-child{margin:7px 0 0;color:#6b796f;font-size:12px}.plant-menu-actions{display:flex;align-items:center;gap:8px}.plant-menu-toggle{min-height:48px;padding:0 17px;border:0;border-radius:999px;background:var(--green);color:white;font-weight:800;cursor:pointer}.plant-menu.is-open>.section-head{margin-bottom:18px}
+.reminder-card>button.dismiss-reminder{position:absolute!important;z-index:2;right:12px!important;top:12px!important;grid-column:auto!important;width:40px!important;height:40px!important;min-height:40px!important;padding:0!important;display:grid!important;place-items:center;border:1px solid rgba(255,255,255,.32)!important;border-radius:50%!important;background:rgba(255,255,255,.14)!important;color:white!important;font-size:23px!important;line-height:1!important}
+@media(max-width:640px){
+  .hero:before{inset:10px 8px 0;border-radius:26px}.summary{margin:14px 16px 0;padding:16px 10px}.plant-menu{padding:28px 16px 54px}.plant-menu>.section-head{padding:16px;align-items:center}.plant-menu-actions{flex-direction:column;align-items:flex-end}.plant-menu-toggle{min-height:44px;padding:0 13px;font-size:11px}.plant-menu .add-button{height:44px;min-height:44px}.reminder-card>button.dismiss-reminder{right:10px!important;top:10px!important;width:42px!important;height:42px!important}.bottom-reminder>div:nth-of-type(2){padding-right:36px}.chore-form .form-pair{grid-template-columns:1fr}.schedule-hint{font-size:12px}
+}
 .modal-backdrop {
   z-index: 70;
 }

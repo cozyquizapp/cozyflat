@@ -25,12 +25,12 @@ export async function GET(request: NextRequest) {
       appUrl: `https://giessrunde-zuhause.hqv8s9bhsp.chatgpt.site/?person=${encodeURIComponent(person)}`,
     }];
   });
-  const choreNudges = ['Staubi hat nachgezählt: Dieses Hausi ist fällig. Sehr verdächtig fällig.','Kurze Rudelansage: Ein Hausi möchte erledigt werden – XP liegen schon bereit.','Gemütlichkeit in Sicht. Es fehlt nur noch dieses eine Hausi. Na los!'];
+  const choreNudges = ['Staubi hat nachgezählt: Dieses Hausi steht wirklich heute an.','Kleine Zuhause-Ansage: Ein geplantes Hausi wartet – XP liegen schon bereit.','Gemütlichkeit in Sicht. Dieses geplante Hausi fehlt noch. Na los!'];
   const choreReminders = chores.flatMap((chore) => {
-    if (chore.paused) return [];
-    const due = chore.lastCompletedAt ? new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * 86400000) : new Date(0); due.setHours(0,0,0,0);
-    if (due.getTime() > today.getTime()) return [];
-    return [{id:`hausi-${chore.id}-${chore.lastCompletedAt?.slice(0,10) ?? 'offen'}`,title:`${chore.icon} ${person}, Hausi-Zeit: ${chore.name}`,notes:`${choreNudges[chore.id % choreNudges.length]}\n\nDiese Erinnerung gehört zu: ${person}\nDanach bitte in CozyFlat abhaken – dein Profil ist beim Öffnen bereits ausgewählt.`,dueDate:new Date().toISOString().slice(0,10),list:'Familie',appUrl:`https://giessrunde-zuhause.hqv8s9bhsp.chatgpt.site/?person=${encodeURIComponent(person)}#aufgaben`}];
+    if (chore.paused || chore.scheduleMode !== 'scheduled') return [];
+    const due = chore.lastCompletedAt ? new Date(new Date(chore.lastCompletedAt).getTime() + chore.cadenceHours * 3600000) : new Date(0);
+    if (due.getTime() > Date.now()) return [];
+    return [{id:`hausi-${chore.id}-${chore.lastCompletedAt?.slice(0,13) ?? 'offen'}`,title:`${chore.icon} ${person}, heute: ${chore.name}`,notes:`${choreNudges[chore.id % choreNudges.length]}${chore.dueTime ? `\nSpätestens bis: ${chore.dueTime} Uhr` : ''}\nPriorität: ${'!'.repeat(chore.priority)}\n\nDiese Erinnerung gehört zu: ${person}\nDanach bitte in CozyFlat abhaken – dein Profil ist beim Öffnen bereits ausgewählt.`,dueDate:new Date().toISOString().slice(0,10),list:'Familie',appUrl:`https://giessrunde-zuhause.hqv8s9bhsp.chatgpt.site/?person=${encodeURIComponent(person)}#aufgaben`}];
   });
   return NextResponse.json({ reminders: [...choreReminders, ...plantReminders], checkedAt: new Date().toISOString() }, { headers: { 'cache-control': 'no-store' } });
 }

@@ -25,7 +25,7 @@ export const appMeta = sqliteTable('app_meta', {
 });
 
 export const chores = sqliteTable('chores', {
-  id: integer('id').primaryKey({ autoIncrement: true }), name: text('name').notNull(), category: text('category').notNull(), icon: text('icon').notNull(), intervalDays: integer('interval_days').notNull(), points: integer('points').notNull(), lastCompletedAt: text('last_completed_at'), lastCompletedBy: text('last_completed_by'),
+  id: integer('id').primaryKey({ autoIncrement: true }), name: text('name').notNull(), category: text('category').notNull(), icon: text('icon').notNull(), intervalDays: integer('interval_days').notNull(), points: integer('points').notNull(), lastCompletedAt: text('last_completed_at'), lastCompletedBy: text('last_completed_by'), paused: integer('paused').notNull().default(0), scheduleMode: text('schedule_mode').notNull().default('flexible'), cadenceHours: integer('cadence_hours').notNull().default(24), priority: integer('priority').notNull().default(2), dueTime: text('due_time'),
 });
 export const choreEvents = sqliteTable('chore_events', {
   id: integer('id').primaryKey({ autoIncrement: true }), choreId: integer('chore_id').notNull(), person: text('person').notNull(), points: integer('points').notNull(), completedAt: text('completed_at').notNull(),
