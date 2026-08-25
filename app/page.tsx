@@ -13,6 +13,7 @@ type Plant = {
 type Stats = { streak: number; scores: Record<"Johannes" | "Sonja", { points: number; waterings: number }> };
 const icons = ["🌿", "🪴", "🌱", "☘️", "🌵", "🍃"];
 const roomOrder = ["Balkon", "Wohnzimmer", "Küche", "Arbeitszimmer"];
+const avatarFor = { Johannes: "/avatar-johannes.png", Sonja: "/avatar-sonja.png" } as const;
 const roomMeta: Record<string, { icon: string; line: string; className: string }> = {
   Balkon: { icon: "☀", line: "Sonne, Kräuter & Sommerluft", className: "balcony" },
   Wohnzimmer: { icon: "⌂", line: "Euer grünes Herzstück", className: "living" },
@@ -125,7 +126,8 @@ export default function Home() {
               onClick={() => setPerson(p)}
               className={person === p ? "active" : ""}
             >
-              {p}
+              <img src={avatarFor[p]} alt="" />
+              <span>{p}</span>
             </button>
           ))}
         </div>
@@ -169,7 +171,7 @@ export default function Home() {
       <section className="scoreboard" aria-label="Familien-Scoreboard">
         <div className="score-title"><span>🔥</span><div><p className="eyebrow">FAMILIEN-STREAK</p><strong>{stats.streak} {stats.streak === 1 ? "Tag" : "Tage"}</strong></div></div>
         {(["Johannes", "Sonja"] as const).map((name, index) => <div className={`score-person ${person === name ? "is-active" : ""}`} key={name}>
-          <span className="score-rank">{index === 0 ? "J" : "S"}</span><div><b>{name}</b><small>{stats.scores[name].waterings}× gegossen</small></div><strong>{stats.scores[name].points} P</strong>
+          <span className="score-rank"><img src={avatarFor[name]} alt="" /></span><div><b>{name}</b><small>{stats.scores[name].waterings}× gegossen</small></div><strong>{stats.scores[name].points} P</strong>
         </div>)}
       </section>
       <section className="plant-section">
