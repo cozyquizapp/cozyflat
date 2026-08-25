@@ -70,6 +70,7 @@ export default function Home() {
   const [choreBusy, setChoreBusy] = useState<number | null>(null);
   const [toast, setToast] = useState("");
   const [reminderGuide, setReminderGuide] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
   const [reminderPerson, setReminderPerson] = useState<"Johannes" | "Sonja">("Johannes");
   const [showReminderCard, setShowReminderCard] = useState(false);
   const emptyScores = { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} };
@@ -125,6 +126,7 @@ export default function Home() {
     setCelebration({ label: chore.name, person, points: chore.points, icon: chore.icon });
     setTimeout(() => setCelebration(null), 2400);
     setToast(`${chore.name}: erledigt. ${person} sammelt ${chore.points} XP fürs Rudel.`); setTimeout(() => setToast(''),2800);
+    if ("vibrate" in navigator) navigator.vibrate(35);
   }
   const todayCount = plants.filter((p) => dateInfo(p).diff <= 0).length;
   const soonCount = plants.filter((p) => {
@@ -188,6 +190,7 @@ export default function Home() {
               Erfolgen, fairen Punkten und einem ziemlich zufriedenen Zuhause.
             </p>
             <div className="staubi-greeting"><img src="/staubi.png" alt="Staubi, euer Hausgeist" /><p><b>Staubi sagt:</b> {openCount ? `${openCount} kleine Runde${openCount === 1 ? "" : "n"}, dann wird’s gemütlich.` : "Saubere Arbeit. Jetzt bitte gemütlich machen."}</p></div>
+            {openCount > 0 && <a className="round-start" href="#aufgaben"><span>Los geht’s</span><b>Runde starten →</b></a>}
           </div>
         </div>
       </section>
@@ -209,7 +212,9 @@ export default function Home() {
           </b>
         </div>
       </section>
-      <section className="level-hub" aria-label="Eure Level und Wochenfortschritt">
+      <div className={`mobile-progress ${progressOpen ? "is-open" : ""}`} id="fortschritt">
+        <button className="progress-toggle" onClick={() => setProgressOpen((open) => !open)} aria-expanded={progressOpen}><span>🔥 Wochenmission</span><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></button>
+        <section className="level-hub" aria-label="Eure Level und Wochenfortschritt">
         <div className="team-quest">
           <div className="quest-heading"><span>🔥</span><div><p className="eyebrow">WOCHENMISSION</p><strong>{stats.streak} {stats.streak === 1 ? "Tag" : "Tage"} gemeinsam dran</strong></div><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></div>
           <div className="quest-track" aria-label={`${weeklyProgress} Prozent der Wochenmission geschafft`}><i style={{width:`${weeklyProgress}%`}} /></div>
@@ -220,20 +225,26 @@ export default function Home() {
             <img src={avatarFor[name]} alt="" /><div><span><b>{name}</b><em>Level {level.level}</em></span><strong>{level.title}</strong><div className="level-track"><i style={{width:`${level.progress}%`}} /></div><small>{level.current}/{level.next} XP bis Level {level.level + 1} · {stats.scores[name].points} XP diese Woche</small></div>
           </article>})}
         </div>
-      </section>
+        </section>
+      </div>
       {showWeeklyRecap && <section className="weekly-recap">
         <p className="eyebrow">SONNTAGS-RÜCKBLICK</p><h2>Das Rudel war fleißig.</h2>
         <div>{(["Johannes", "Sonja"] as const).map((name) => <article key={name}><img src={avatarFor[name]} alt="" /><span><b>{name}</b><small>{stats.scores[name].waterings} Aufgaben erledigt</small></span><strong>{stats.scores[name].points} Punkte</strong></article>)}</div>
         <p>Um Mitternacht startet eine neue Wochenmission. Eure gesammelten XP bleiben in euren Leveln erhalten.</p>
       </section>}
-      <section className="chores-section">
+      <section className="chores-section" id="aufgaben">
         <div className="section-head"><div><p className="eyebrow">HAUSHALTSRUNDE</p><h2>Was sonst noch ansteht</h2><p>Alles darf auch spontan erledigt werden – Besuch wartet schließlich nicht auf den Rhythmus.</p></div></div>
-        <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => <section className="chore-group" key={category}><h3>{category}</h3><div>{chores.filter((chore) => chore.category === category).map((chore) => {
-          const next = chore.lastCompletedAt ? new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) : new Date(0); const isDue = !chore.lastCompletedAt || next <= now;
-          return <article className={`chore-card ${isDue ? 'is-due' : ''}`} key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{isDue ? 'Jetzt fällig' : `wieder ${next.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})}`} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch offen'}</small></div><strong>+{chore.points}</strong><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}>{choreBusy === chore.id ? '…' : 'Erledigt'}</button></article>;
-        })}</div></section>)}</div>
+        <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
+          const categoryChores = chores.filter((chore) => chore.category === category);
+          const dueChores = categoryChores.filter((chore) => !chore.lastCompletedAt || new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) <= now);
+          const laterChores = categoryChores.filter((chore) => !dueChores.includes(chore));
+          const renderChore = (chore: Chore) => { const next = chore.lastCompletedAt ? new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) : new Date(0); const isDue = !chore.lastCompletedAt || next <= now;
+            return <article className={`chore-card ${isDue ? 'is-due' : ''}`} key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{isDue ? 'Jetzt fällig' : `wieder ${next.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})}`} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch offen'}</small></div><strong>+{chore.points}</strong><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}>{choreBusy === chore.id ? '…' : 'Erledigt'}</button></article>;
+          };
+          return <section className="chore-group" key={category}><h3>{category}</h3><div>{dueChores.map(renderChore)}</div>{laterChores.length > 0 && <details className="later-chores"><summary>{laterChores.length} später fällig <span>anzeigen ↓</span></summary><div>{laterChores.map(renderChore)}</div></details>}</section>;
+        })}</div>
       </section>
-      <section className="plant-section">
+      <section className="plant-section" id="pflanzen">
         <div className="section-head">
           <div>
             <p className="eyebrow">EURE PFLANZEN</p>
@@ -407,6 +418,12 @@ export default function Home() {
         <div className="water-burst" aria-hidden="true"><img className="staubi-celebrate" src="/staubi.png" alt="" /><span>{celebration.icon}</span><i></i><i></i><i></i><i></i><i></i></div>
         <strong>Runde geschafft!</strong><p>{celebration.person} hat „{celebration.label}“ erledigt. Das Zuhause atmet auf.</p><b>+{celebration.points} XP</b>
       </div>}
+      <nav className="mobile-nav" aria-label="Hauptnavigation">
+        <a href="#top"><span>⌂</span>Heute</a>
+        <a href="#aufgaben"><span>✓</span>Aufgaben</a>
+        <a href="#pflanzen"><span>☘</span>Pflanzen</a>
+        <a href="#fortschritt"><span>★</span>Level</a>
+      </nav>
     </main>
   );
 }

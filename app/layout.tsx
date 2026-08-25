@@ -8,6 +8,7 @@ import './reminders.css';
 import './chores.css';
 import './personal.css';
 import './gamify.css';
+import './mobile.css';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
