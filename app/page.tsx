@@ -52,7 +52,7 @@ export default function Home() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
-  const [person, setPerson] = useState<"Du" | "Sie">("Du");
+  const [person, setPerson] = useState<"Johannes" | "Sonja">("Johannes");
   const [busy, setBusy] = useState<number | null>(null);
   const [toast, setToast] = useState("");
   const [reminderGuide, setReminderGuide] = useState(false);
@@ -79,7 +79,7 @@ export default function Home() {
     await action({ action: "water", id: plant.id, person });
     setBusy(null);
     setToast(
-      `${plant.name} wurde von ${person === "Du" ? "dir" : "ihr"} gegossen.`,
+      `${plant.name} wurde von ${person} gegossen. Stark – der Pflanzendienst ist zufrieden.`,
     );
     setTimeout(() => setToast(""), 2800);
   }
@@ -112,7 +112,7 @@ export default function Home() {
           <span>Gießrunde</span>
         </a>
         <div className="person-switch" aria-label="Wer benutzt die App?">
-          {(["Du", "Sie"] as const).map((p) => (
+          {(["Johannes", "Sonja"] as const).map((p) => (
             <button
               key={p}
               onClick={() => setPerson(p)}
@@ -126,7 +126,7 @@ export default function Home() {
       <section className="hero" id="top">
         <p className="eyebrow">{dateLabel}</p>
         <h1>
-          Guten Morgen.
+          Hallo {person}.
           <br />
           <em>
             {todayCount === 0
@@ -154,7 +154,7 @@ export default function Home() {
           <span>↗</span>
           <b>
             {todayCount
-              ? "Eine kleine Gießrunde wartet"
+              ? `${person}, die Gießkanne wartet schon ungeduldig`
               : "Alles im grünen Bereich"}
           </b>
         </div>
