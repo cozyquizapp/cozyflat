@@ -56,6 +56,7 @@ export default function Home() {
   const [busy, setBusy] = useState<number | null>(null);
   const [toast, setToast] = useState("");
   const [reminderGuide, setReminderGuide] = useState(false);
+  const [showReminderCard, setShowReminderCard] = useState(false);
   async function refresh() {
     const r = await fetch("/api/plants");
     if (r.ok) setPlants(await r.json());
@@ -63,6 +64,7 @@ export default function Home() {
   }
   useEffect(() => {
     refresh();
+    setShowReminderCard(localStorage.getItem("reminder-card-dismissed") !== "yes");
   }, []);
   async function action(payload: object) {
     const r = await fetch("/api/plants", {
@@ -157,11 +159,6 @@ export default function Home() {
           </b>
         </div>
       </section>
-      <section className="reminder-card">
-        <div className="reminder-symbol" aria-hidden="true">✓</div>
-        <div><p className="eyebrow">APPLE ERINNERUNGEN</p><h2>Gemeinsam nichts vergessen</h2><p>Ein Kurzbefehl trägt fällige Pflanzen automatisch in eure Familienliste ein.</p></div>
-        <button onClick={() => setReminderGuide(true)}>Einrichten</button>
-      </section>
       <section className="plant-section">
         <div className="section-head">
           <div>
@@ -219,6 +216,12 @@ export default function Home() {
           </div>
         )}
       </section>
+      {showReminderCard && <section className="reminder-card bottom-reminder">
+        <button className="dismiss-reminder" onClick={() => { localStorage.setItem("reminder-card-dismissed", "yes"); setShowReminderCard(false); }} aria-label="Apple-Einrichtung ausblenden">×</button>
+        <div className="reminder-symbol" aria-hidden="true">✓</div>
+        <div><p className="eyebrow">APPLE ERINNERUNGEN</p><h2>Gemeinsam nichts vergessen</h2><p>Ein Kurzbefehl trägt fällige Pflanzen automatisch in eure Familienliste ein.</p></div>
+        <button onClick={() => setReminderGuide(true)}>Einrichten</button>
+      </section>}
       <footer>
         <span>☘</span>
         <p>
@@ -226,6 +229,7 @@ export default function Home() {
           <br />
           Mit Liebe gegossen.
         </p>
+        <button className="footer-reminder-link" onClick={() => setReminderGuide(true)}>Erinnerungen einrichten</button>
       </footer>
       {modal && (
         <div
