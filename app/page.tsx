@@ -11,10 +11,10 @@ type Plant = {
   imageKey: string | null;
 };
 type PersonScore = { points: number; waterings: number };
-type Stats = { streak: number; loginStreak: number; loginDays: number; scores: Record<"Johannes" | "Sonja", PersonScore>; totalScores: Record<"Johannes" | "Sonja", PersonScore>; previousWeek: Record<"Johannes" | "Sonja", PersonScore> };
+type Stats = { streak: number; loginStreak: number; loginDays: number; todayTasks:number; nextTaskBonus:number; scores: Record<"Johannes" | "Sonja", PersonScore>; totalScores: Record<"Johannes" | "Sonja", PersonScore>; previousWeek: Record<"Johannes" | "Sonja", PersonScore> };
 type Chore = { id:number; name:string; category:string; icon:string; intervalDays:number; points:number; lastCompletedAt:string|null; lastCompletedBy:string|null; paused:boolean; scheduleMode:'flexible'|'scheduled'; cadenceHours:number; priority:number; dueTime:string|null };
 type GardenPlant = {key:string;name:string;emoji:string;pot:string};
-type GardenData = {weekKey:string;xp:number;candidates:GardenPlant[];collection:Array<{weekKey:string;plantKey:string;chosenBy:string;unlockedAt:string;xpAtUnlock:number;plant:GardenPlant}>;chosenThisWeek:boolean};
+type GardenData = {weekKey:string;xp:number;candidates:GardenPlant[];collection:Array<{weekKey:string;plantKey:string;chosenBy:string;unlockedAt:string;xpAtUnlock:number;room:string;plant:GardenPlant}>;rooms:Array<{name:string;unlocked:boolean;count:number;capacity:number}>;activeRoom:string;chosenThisWeek:boolean};
 const icons = ["🌿", "🪴", "🌱", "☘️", "🌵", "🍃"];
 const roomOrder = ["Balkon", "Wohnzimmer", "Küche", "Arbeitszimmer"];
 const avatarFor = { Johannes: "/avatar-johannes.png", Sonja: "/avatar-sonja.png" } as const;
@@ -110,7 +110,7 @@ export default function Home() {
   const [choreBusy, setChoreBusy] = useState<number | null>(null);
   const [choreModal, setChoreModal] = useState(false);
   const [editingChore, setEditingChore] = useState<Chore | null>(null);
-  const [undoInfo, setUndoInfo] = useState<{chore:Chore;eventId:number}|null>(null);
+  const [undoInfo, setUndoInfo] = useState<{chore:Chore;eventIds:number[]}|null>(null);
   const [toast, setToast] = useState("");
   const [reminderGuide, setReminderGuide] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
@@ -120,16 +120,17 @@ export default function Home() {
   const [mobileView, setMobileView] = useState<'today'|'chores'|'plants'|'level'>('today');
   const [splashVisible, setSplashVisible] = useState(true);
   const emptyScores = { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} };
-  const [stats, setStats] = useState<Stats>({ streak: 0, loginStreak: 0, loginDays: 0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
+  const [stats, setStats] = useState<Stats>({ streak: 0, loginStreak: 0, loginDays: 0, todayTasks:0, nextTaskBonus:0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
   const [celebration, setCelebration] = useState<{ label: string; person: string; points: number; icon: string } | null>(null);
   const [garden, setGarden] = useState<GardenData|null>(null);
   const [gardenBusy, setGardenBusy] = useState(false);
+  const [gardenRoom, setGardenRoom] = useState('Wohnzimmer');
   async function refresh() {
     const [r, s, c, g] = await Promise.all([fetch("/api/plants"), fetch("/api/stats"), fetch("/api/chores"), fetch("/api/garden")]);
     if (r.ok) setPlants(await r.json());
     if (s.ok) setStats(await s.json());
     if (c.ok) setChores(await c.json());
-    if (g.ok) setGarden(await g.json());
+    if (g.ok) { const gardenData=await g.json() as GardenData; setGarden(gardenData); setGardenRoom((current)=>gardenData.rooms.some((room)=>room.name===current&&room.unlocked)?current:gardenData.activeRoom); }
     setLoading(false);
   }
   useEffect(() => {
@@ -177,26 +178,28 @@ export default function Home() {
     if (r.ok) setPlants(await r.json());
     setModal(false);
   }
-  async function finishChore(chore: Chore) {
+  async function finishChore(chore: Chore, together=false) {
     setChoreBusy(chore.id);
-    const r = await fetch('/api/chores', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({id:chore.id,person}) });
-    if (r.ok) { const result = await r.json() as {chores:Chore[];eventId:number|null}; setChores(result.chores); if (result.eventId) { setUndoInfo({chore,eventId:result.eventId}); setTimeout(() => setUndoInfo(null),5000); } }
+    const r = await fetch('/api/chores', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({id:chore.id,person,together}) });
+    let awarded=chore.points; let bonus=0;
+    if (r.ok) { const result = await r.json() as {chores:Chore[];completion:{eventIds:number[];bonus:number;pointsEach:number;together:boolean}|null}; setChores(result.chores); if (result.completion) { awarded=result.completion.pointsEach; bonus=result.completion.bonus; setUndoInfo({chore,eventIds:result.completion.eventIds}); setTimeout(() => setUndoInfo(null),5000); } }
     const s = await fetch('/api/stats'); if (s.ok) setStats(await s.json());
     setChoreBusy(null);
-    setCelebration({ label: chore.name, person, points: chore.points, icon: chore.icon });
+    const completionName=together?'Sonja & Johannes':person;
+    setCelebration({ label: chore.name, person:completionName, points: awarded, icon: chore.icon });
     setTimeout(() => setCelebration(null), 2400);
-    setToast(`${chore.name}: erledigt. ${person} sammelt ${chore.points} XP fürs CozyFlat.`); setTimeout(() => setToast(''),2800);
-    if ("vibrate" in navigator) navigator.vibrate(35);
+    setToast(`${chore.name}: ${together?'gemeinsam ':''}erledigt. ${together?'Ihr bekommt beide':`${person} bekommt`} ${awarded} XP${bonus?` – inklusive ${bonus} Bonus-XP!`:'.'}`); setTimeout(() => setToast(''),3200);
+    if ("vibrate" in navigator) navigator.vibrate([35,45,65]);
   }
   async function undoChore() {
     if (!undoInfo) return;
-    const r = await fetch('/api/chores',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'undo',id:undoInfo.chore.id,eventId:undoInfo.eventId})});
+    const r = await fetch('/api/chores',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'undo',id:undoInfo.chore.id,eventIds:undoInfo.eventIds})});
     if (r.ok) { const result = await r.json() as {chores:Chore[]}; setChores(result.chores); const s = await fetch('/api/stats'); if (s.ok) setStats(await s.json()); setCelebration(null); setToast(`${undoInfo.chore.name} ist wieder offen.`); }
     setUndoInfo(null); setTimeout(() => setToast(''),2200);
   }
   async function chooseGardenPlant(plantKey:string) {
     setGardenBusy(true);
-    const response=await fetch('/api/garden',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({plantKey,person})});
+    const response=await fetch('/api/garden',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({plantKey,person,room:gardenRoom})});
     if(response.ok){setGarden(await response.json());setToast(`${person} hat eure neue Zimmerpflanze ausgesucht. 🌱`);setTimeout(()=>setToast(''),2800)}
     setGardenBusy(false);
   }
@@ -301,14 +304,16 @@ export default function Home() {
       <div className={`mobile-progress ${progressOpen ? "is-open" : ""}`} id="fortschritt">
         <button className="progress-toggle" onClick={() => setProgressOpen((open) => !open)} aria-expanded={progressOpen}><span>★ Level & Wochenmission</span><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></button>
         <section className="plant-room-game" aria-label="Euer gemeinsames Pflanzenzimmer">
-          <div className="garden-game-head"><div><p className="eyebrow">EUER PFLANZENZIMMER</p><h2>Staubis grünes Zuhause</h2><p>Hausis werden XP. XP lässt eure Sammlung wachsen.</p></div><div className="garden-level-pill"><span>Level {gardenLevel}</span><b>{gardenProgress}/100 XP</b></div></div>
-          <div className="plant-room-stage">
+          <div className="garden-game-head"><div><p className="eyebrow">STAUBIS PFLANZENZIMMER</p><h2>Euer Zuhause wächst mit.</h2><p>Jedes Hausi schenkt euren Pflanzen neue Blätter.</p></div><div className="garden-level-pill"><span>Level {gardenLevel}</span><b>{gardenProgress}/100 XP</b></div></div>
+          <nav className="garden-room-tabs" aria-label="Pflanzenräume">{garden?.rooms.map((room)=><button key={room.name} disabled={!room.unlocked} className={gardenRoom===room.name?'active':''} onClick={()=>room.unlocked&&setGardenRoom(room.name)}><span>{room.unlocked?room.name:'🔒 '+room.name}</span><small>{room.count}/{room.capacity}</small></button>)}</nav>
+          <div className={`plant-room-stage room-${gardenRoom.toLowerCase().replace('ü','ue')}`}>
             <img className="plant-room-bg" src="/cozy-garden-room.png" alt="Ein sonniges Pflanzenzimmer mit Holzregal und Staubis Schlafplatz" />
-            <div className="plant-shelf" aria-label="Eure gesammelten Zimmerpflanzen">{garden?.collection.slice(-6).map((item,index)=>{const gained=Math.max(0,(garden.xp-item.xpAtUnlock));const stage=gained>=70?3:gained>=30?2:1;return <article className={`collectible slot-${index} stage-${stage} pot-${item.plant.pot}`} key={item.weekKey}><span>{item.plant.emoji}</span><small>{item.plant.name}<b>{stage===3?'Ausgewachsen':stage===2?'Wächst':'Keimling'}</b></small></article>})}</div>
-            <div className="staubi-home"><img src="/staubi.png" alt="Staubi schläft in seinem Körbchen"/><span>{stats.loginStreak ? `🔥 ${stats.loginStreak}` : 'zzZ'}</span></div>
+            <div className="plant-shelf" aria-label={`Eure Pflanzen im ${gardenRoom}`}>{garden?.collection.filter((item)=>item.room===gardenRoom).slice(-4).map((item,index)=>{const gained=Math.max(0,(garden.xp-item.xpAtUnlock));const stage=gained>=70?3:gained>=30?2:1;const art=['orchid','calathea','alocasia'].includes(item.plantKey)?'/plant-orchid.png':'/plant-monstera.png';return <article className={`collectible slot-${index} stage-${stage} pot-${item.plant.pot}`} key={item.weekKey}><img src={art} alt={item.plant.name}/><small>{item.plant.name}<b>{stage===3?'Ausgewachsen':stage===2?'Wächst':'Keimling'}</b></small></article>})}</div>
+            {garden?.collection.filter((item)=>item.room===gardenRoom).length===0&&<div className="empty-room-hint"><span>🪴</span><b>Hier ist noch Platz für eure erste Pflanze.</b><small>Wählt unten euren Wochenliebling.</small></div>}
+            <div className="staubi-home"><img src="/staubi-cutout.png" alt="Staubi freut sich über euer Pflanzenzimmer"/><span>{stats.loginStreak ? `🔥 ${stats.loginStreak}` : 'zzZ'}</span></div>
           </div>
           <div className="garden-track"><i style={{width:`${gardenProgress}%`}} /></div><div className="garden-meta"><b>Gemeinsam {gardenXp} XP gesammelt</b><span>Noch {100-gardenProgress} XP bis Raum-Level {gardenLevel+1}</span></div>
-          {!garden?.chosenThisWeek && garden && <div className="weekly-plant-choice"><span><small>DIESE WOCHE</small><b>Welche zieht bei euch ein?</b></span><div>{garden.candidates.map((candidate)=><button disabled={gardenBusy} onClick={()=>chooseGardenPlant(candidate.key)} key={candidate.key}><i className={`pot-${candidate.pot}`}>{candidate.emoji}</i><b>{candidate.name}</b><small>Auswählen</small></button>)}</div></div>}
+          {!garden?.chosenThisWeek && garden && <div className="weekly-plant-choice"><span><small>DIESE WOCHE · {gardenRoom.toUpperCase()}</small><b>Welche zieht bei euch ein?</b></span><div>{garden.candidates.map((candidate)=>{const art=['orchid','calathea','alocasia'].includes(candidate.key)?'/plant-orchid.png':'/plant-monstera.png';return <button disabled={gardenBusy} onClick={()=>chooseGardenPlant(candidate.key)} key={candidate.key}><i className={`pot-${candidate.pot}`}><img src={art} alt=""/></i><b>{candidate.name}</b><small>Einziehen lassen</small></button>})}</div></div>}
           {garden?.chosenThisWeek && <div className="next-plant"><span>✨</span><p><b>Wochenpflanze gewählt</b>Nächsten Montag bringt Staubi drei neue Kandidaten mit.</p></div>}
         </section>
         <section className="level-hub" aria-label="Eure Level und Wochenfortschritt">
@@ -331,14 +336,14 @@ export default function Home() {
       </section>}
       <section className="chores-section" id="aufgaben">
         <div className="section-head"><div><p className="eyebrow">EURE HAUSIS</p><h2>Was sonst noch ansteht</h2><p>Alles darf auch spontan erledigt werden – Besuch wartet schließlich nicht auf den Rhythmus.</p></div><button className="add-hausi" onClick={()=>{setEditingChore(null);setChoreModal(true)}}><span>＋</span> Hausi</button></div>
-        {todayChores.length > 0 && <section className="today-chores" aria-labelledby="today-chores-title"><div className="today-chores-head"><div><p className="eyebrow">HEUTE WICHTIG</p><h3 id="today-chores-title">Eure kleine Tagesauswahl</h3></div><span>{todayChores.length} für heute</span></div><div>{todayChores.slice(0,5).map((chore) => <article className="quick-chore" key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{chore.scheduleMode === 'flexible' ? 'Staubis Tagesvorschlag' : choreTiming(chore,now)} · {'!'.repeat(chore.priority)} · +{chore.points} XP</small></div><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}><img src={avatarFor[person]} alt="" />{choreBusy === chore.id ? '…' : `Erledigt als ${person}`}</button></article>)}</div>{todayChores.length > 5 && <small className="today-more">Danach sind noch {todayChores.length - 5} fest eingeplant – eins nach dem anderen.</small>}</section>}
+        {todayChores.length > 0 && <section className="today-chores" aria-labelledby="today-chores-title"><div className="today-chores-head"><div><p className="eyebrow">HEUTE WICHTIG</p><h3 id="today-chores-title">Eure kleine Tagesauswahl</h3><small className="bonus-preview">🔥 {stats.todayTasks} heute geschafft · Nächstes Hausi +{stats.nextTaskBonus} Bonus-XP</small></div><span>{todayChores.length} für heute</span></div><div>{todayChores.slice(0,5).map((chore) => <article className="quick-chore" key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{chore.scheduleMode === 'flexible' ? 'Staubis Tagesvorschlag' : choreTiming(chore,now)} · {'!'.repeat(chore.priority)} · +{chore.points} XP</small></div><div className="completion-choices"><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}><img src={avatarFor[person]} alt="" />{choreBusy === chore.id ? '…' : `Ich`}</button><button className="together-button" onClick={() => finishChore(chore,true)} disabled={choreBusy === chore.id}><span className="duo-avatars"><img src={avatarFor.Johannes} alt=""/><img src={avatarFor.Sonja} alt=""/></span>Gemeinsam</button></div></article>)}</div>{todayChores.length > 5 && <small className="today-more">Danach sind noch {todayChores.length - 5} fest eingeplant – eins nach dem anderen.</small>}</section>}
         <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
           const categoryChores = chores.filter((chore) => chore.category === category);
           const dueChores = categoryChores.filter((chore) => !chore.paused && chore.scheduleMode === 'scheduled' && choreNext(chore)! <= now);
           const laterChores = categoryChores.filter((chore) => !dueChores.includes(chore));
           const art = choreCategoryArt[category] ?? { image: '/chore-putzen.png', tone: 'sage' };
           const renderChore = (chore: Chore) => { const next = choreNext(chore); const isDue = Boolean(next && next <= now);
-            return <article className={`chore-card ${isDue ? 'is-due' : ''} priority-${chore.priority} ${chore.paused ? 'is-paused' : ''}`} key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{choreTiming(chore,now)} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch nie abgehakt'}</small></div><strong>{'!'.repeat(chore.priority)} · +{chore.points}</strong><button className="edit-chore" onClick={()=>{setEditingChore(chore);setChoreModal(true)}} aria-label={`${chore.name} bearbeiten`}>✎</button><button className="finish-chore" onClick={() => finishChore(chore)} disabled={chore.paused || choreBusy === chore.id}>{chore.paused ? 'Pausiert' : choreBusy === chore.id ? '…' : <><img src={avatarFor[person]} alt="" />Jetzt erledigt</>}</button></article>;
+            return <article className={`chore-card ${isDue ? 'is-due' : ''} priority-${chore.priority} ${chore.paused ? 'is-paused' : ''}`} key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{choreTiming(chore,now)} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch nie abgehakt'}</small></div><strong>{'!'.repeat(chore.priority)} · +{chore.points}</strong><button className="edit-chore" onClick={()=>{setEditingChore(chore);setChoreModal(true)}} aria-label={`${chore.name} bearbeiten`}>✎</button><div className="completion-choices"><button className="finish-chore" onClick={() => finishChore(chore)} disabled={chore.paused || choreBusy === chore.id}>{chore.paused ? 'Pausiert' : choreBusy === chore.id ? '…' : <><img src={avatarFor[person]} alt="" />Ich</>}</button><button className="finish-chore together-button" onClick={() => finishChore(chore,true)} disabled={chore.paused || choreBusy === chore.id}><span className="duo-avatars"><img src={avatarFor.Johannes} alt=""/><img src={avatarFor.Sonja} alt=""/></span>Gemeinsam</button></div></article>;
           };
           return <details className={`chore-group tone-${art.tone}`} key={category}><summary className="chore-group-preview" style={{backgroundImage:`linear-gradient(90deg,rgba(18,48,35,.88) 0%,rgba(18,48,35,.56) 48%,rgba(18,48,35,.08) 100%), url(${art.image})`}}><span className="chore-preview-icon">{categoryChores[0]?.icon ?? '✨'}</span><span><small>{dueChores.length ? `${dueChores.length} jetzt wichtig` : 'Flexibel einplanbar'}</small><b>{category}</b></span><em>{categoryChores.length}</em><strong>⌄</strong></summary><div className="chore-group-content"><div>{[...dueChores,...laterChores].map(renderChore)}</div></div></details>;
         })}</div>
