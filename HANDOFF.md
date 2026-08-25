@@ -70,7 +70,7 @@ Die öffentliche Version ist Sites-Version 28. Sie enthält unter anderem:
 4. Weitere freigestellte Pflanzenillustrationen erstellen, damit die zwölf Pflanzen nicht nur zwei Bildtypen verwenden.
 5. Abschlussanimation weiter ausbauen: XP-Kaskade, sichtbares Pflanzenwachstum und stärkere Staubi-Reaktion.
 6. Paar-Aufgaben als „gemeinsam gestartet“ mit laufendem Status ausbauen. Beide Personen sollen Beteiligung und Fortschritt sehen; derzeit ist „Gemeinsam“ nur eine Abschlussoption.
-7. Pflanzenzimmer als echtes Minigame polieren: Pflanzen, Töpfe, Regale und Staubi müssen räumlich und stilistisch in die jeweilige Zimmerkulisse integriert werden. Keine Emoji-Sticker, weißen Bildkästen oder losgelösten Karten auf dem Hintergrund. Die Bildreferenz dient als Qualitätsmaßstab: warme, glaubwürdige Szene, passende Pflanzengröße und feste Stellflächen im Raum.
+7. Pflanzenzimmer als echtes Minigame polieren: Für jeden Raum zuerst eine leere Regal-/Zimmer-Ausgangslage anlegen; Pflanzen werden danach auf festen, kollisionsfreien Stellflächen in passenden Töpfen platziert. Staubi erhält eigene, sinnvolle Ruhe- und Reaktionspositionen im Raum statt einer freien Überlagerung. Keine Emoji-Sticker, weißen Bildkästen oder losgelösten Karten auf dem Hintergrund. Die Bildreferenz dient als Qualitätsmaßstab: warme, glaubwürdige Szene, passende Pflanzengröße und feste Stellflächen im Raum.
 8. Design-QA auf einem echten iPhone durchführen, besonders Pflanzenzimmer, Kategorien und Bottom-Navigation.
 
 ## Technischer Aufbau
