@@ -53,6 +53,17 @@ async function ready() {
     ];
     await db.batch(rows.map((row) => db.prepare('INSERT INTO chores (name, category, icon, interval_days, points) VALUES (?, ?, ?, ?, ?)').bind(...row)));
   }
+  const essentials = await db.prepare("INSERT OR IGNORE INTO app_meta (key, value) VALUES ('household-essentials-v2', ?)").bind(new Date().toISOString()).run();
+  if (essentials.meta.changes) {
+    await db.batch([
+      db.prepare('INSERT INTO chores (name, category, icon, interval_days, points) VALUES (?, ?, ?, ?, ?)').bind('Einkaufen','Einkauf','🛒',3,12),
+      db.prepare('INSERT INTO chores (name, category, icon, interval_days, points) VALUES (?, ?, ?, ?, ?)').bind('Plastikmüll rausbringen','Müll','🟡',7,8),
+      db.prepare('INSERT INTO chores (name, category, icon, interval_days, points) VALUES (?, ?, ?, ?, ?)').bind('Biomüll rausbringen','Müll','🟤',3,8),
+      db.prepare('INSERT INTO chores (name, category, icon, interval_days, points) VALUES (?, ?, ?, ?, ?)').bind('Papiermüll rausbringen','Müll','🔵',14,10),
+      db.prepare('INSERT INTO chores (name, category, icon, interval_days, points) VALUES (?, ?, ?, ?, ?)').bind('Restmüll rausbringen','Müll','⚫',7,8),
+      db.prepare('INSERT INTO chores (name, category, icon, interval_days, points) VALUES (?, ?, ?, ?, ?)').bind('Bettwäsche wechseln','Wäsche','🛏️',14,15),
+    ]);
+  }
   return db;
 }
 

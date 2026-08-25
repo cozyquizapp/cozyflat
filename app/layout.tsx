@@ -20,22 +20,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Gießrunde – Gemeinsam zuhause anpacken',
+  title: 'CozyFlat – Gemeinsam zuhause anpacken',
   description: 'Eure gemeinsame App für Pflanzen, Haushalt und kleine Erfolgsmomente.',
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [{ url: '/app-icon.png', type: 'image/png' }],
     apple: [{ url: '/app-icon.png', type: 'image/png' }],
   },
-  appleWebApp: { capable: true, title: 'Gießrunde', statusBarStyle: 'default' },
+  appleWebApp: { capable: true, title: 'CozyFlat', statusBarStyle: 'default' },
   openGraph: {
-    title: 'Gießrunde',
+    title: 'CozyFlat',
     description: 'Pflanzen, Haushalt und gemeinsame Level für Sonja und Johannes.',
-    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Gießrunde – gemeinsam zuhause anpacken' }],
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'CozyFlat – gemeinsam zuhause anpacken' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Gießrunde',
+    title: 'CozyFlat',
     description: 'Pflanzen, Haushalt und gemeinsame Level für Sonja und Johannes.',
     images: ['/og.png'],
   },

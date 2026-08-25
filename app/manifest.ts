@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Gießrunde – Unser Zuhause',
-    short_name: 'Gießrunde',
+    name: 'CozyFlat – Unser Zuhause',
+    short_name: 'CozyFlat',
     description: 'Pflanzen und Haushalt gemeinsam im Blick behalten.',
     start_url: '/',
     display: 'standalone',

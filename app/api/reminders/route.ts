@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     return [{
       id: `giessrunde-${plant.id}-${plant.lastWateredAt.slice(0,10)}`,
       title: `💧 ${person}, ${plant.name} braucht dich!`,
-      notes: `${nudges[plant.id % nudges.length]}\n\nDiese Erinnerung gehört zu: ${person}\nStandort: ${plant.room}\nDanach bitte in der Gießrunde als gegossen markieren – dein Profil ist beim Öffnen bereits ausgewählt.\nKennung: giessrunde-${plant.id}`,
+      notes: `${nudges[plant.id % nudges.length]}\n\nDiese Erinnerung gehört zu: ${person}\nStandort: ${plant.room}\nDanach bitte in CozyFlat als gegossen markieren – dein Profil ist beim Öffnen bereits ausgewählt.\nKennung: cozyflat-${plant.id}`,
       dueDate: new Date().toISOString().slice(0,10),
       list: 'Familie',
       appUrl: `https://giessrunde-zuhause.hqv8s9bhsp.chatgpt.site/?person=${encodeURIComponent(person)}`,

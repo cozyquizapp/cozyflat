@@ -149,8 +149,8 @@ export default function Home() {
     <main className={`shell person-${person.toLowerCase()}`}>
       <header className="topbar">
         <a className="brand" href="#top">
-          <span className="brandmark">W</span>
-          <span>Gießrunde</span>
+          <span className="brandmark">CF</span>
+          <span>CozyFlat</span>
         </a>
         <div className="person-switch" aria-label="Wer benutzt die App?">
           {(["Johannes", "Sonja"] as const).map((p) => (
@@ -187,6 +187,7 @@ export default function Home() {
               Eure gemeinsame Runde für Pflanzen und Haushalt — mit kleinen
               Erfolgen, fairen Punkten und einem ziemlich zufriedenen Zuhause.
             </p>
+            <div className="staubi-greeting"><img src="/staubi.png" alt="Staubi, euer Hausgeist" /><p><b>Staubi sagt:</b> {openCount ? `${openCount} kleine Runde${openCount === 1 ? "" : "n"}, dann wird’s gemütlich.` : "Saubere Arbeit. Jetzt bitte gemütlich machen."}</p></div>
           </div>
         </div>
       </section>
@@ -285,7 +286,7 @@ export default function Home() {
                     <span className={`room-count ${dueInRoom ? "has-due" : ""}`}>{dueInRoom ? `${dueInRoom} fällig` : `${roomPlants.length} versorgt`}</span>
                   </header>
                   {duePlants.length > 0 && <div className="plant-grid">{duePlants.map(renderCard)}</div>}
-                  {duePlants.length === 0 && <div className="room-all-done"><span>✓</span><div><b>Hier ist alles versorgt</b><small>Bis zur nächsten Gießrunde könnt ihr euch zurücklehnen.</small></div></div>}
+                  {duePlants.length === 0 && <div className="room-all-done"><span>✓</span><div><b>Hier ist alles versorgt</b><small>Bis zur nächsten Pflanzenrunde könnt ihr euch zurücklehnen.</small></div></div>}
                   {caredPlants.length > 0 && <details className="cared-plants">
                     <summary><span><b>{caredPlants.length} versorgt</b><small>{caredPlants.map((plant) => plant.name).join(" · ")}</small></span><i>anzeigen</i></summary>
                     <div className="plant-grid">{caredPlants.map(renderCard)}</div>
@@ -380,7 +381,7 @@ export default function Home() {
             <button className="close" onClick={() => setReminderGuide(false)} aria-label="Schließen">×</button>
             <p className="eyebrow">EINMALIG AUF EINEM IPHONE</p>
             <h2 id="reminder-title">Familien-Erinnerungen verbinden</h2>
-            <p className="modal-intro">Der Kurzbefehl prüft täglich eure Gießrunde. Fällige Pflanzen landen in der geteilten Liste „Familie“.</p>
+            <p className="modal-intro">Der Kurzbefehl prüft täglich CozyFlat. Fällige Pflanzen landen in der geteilten Liste „Familie“.</p>
             <fieldset className="reminder-person-picker">
               <legend>Für wen ist dieser Kurzbefehl?</legend>
               {(["Johannes", "Sonja"] as const).map((name) => <button type="button" className={reminderPerson === name ? "active" : ""} onClick={() => setReminderPerson(name)} key={name}><img src={avatarFor[name]} alt="" /><span><b>{name}</b><small>{reminderPerson === name ? "ausgewählt" : "dieses Profil wählen"}</small></span><i>✓</i></button>)}
@@ -403,7 +404,7 @@ export default function Home() {
         </div>
       )}
       {celebration && <div className="water-celebration" role="status" aria-live="polite">
-        <div className="water-burst" aria-hidden="true"><span>{celebration.icon}</span><i></i><i></i><i></i><i></i><i></i></div>
+        <div className="water-burst" aria-hidden="true"><img className="staubi-celebrate" src="/staubi.png" alt="" /><span>{celebration.icon}</span><i></i><i></i><i></i><i></i><i></i></div>
         <strong>Runde geschafft!</strong><p>{celebration.person} hat „{celebration.label}“ erledigt. Das Zuhause atmet auf.</p><b>+{celebration.points} XP</b>
       </div>}
     </main>
