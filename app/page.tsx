@@ -181,16 +181,16 @@ export default function Home() {
                   : openCount === 1
                     ? todayCount === 1
                       ? "Eine Pflanze hat Durst."
-                      : "Eine Haushaltsrunde wartet."
-                  : `${openCount} Dinge warten auf euch.`}
+                      : "Ein Hausi wartet."
+                  : `${openCount} Hausis warten auf euch.`}
               </em>
             </h1>
             <p className="intro">
-              Eure gemeinsame Runde für Pflanzen und Haushalt — mit kleinen
+              Eure gemeinsamen Hausis und Pflanzen — mit kleinen
               Erfolgen, fairen Punkten und einem ziemlich zufriedenen Zuhause.
             </p>
-            <div className="staubi-greeting"><img src="/staubi.png" alt="Staubi, euer Hausgeist" /><p><b>Staubi sagt:</b> {openCount ? `${openCount} kleine Runde${openCount === 1 ? "" : "n"}, dann wird’s gemütlich.` : "Saubere Arbeit. Jetzt bitte gemütlich machen."}</p></div>
-            {openCount > 0 && <a className="round-start" href="#aufgaben"><span>Los geht’s</span><b>Runde starten →</b></a>}
+            <div className="staubi-greeting"><img src="/staubi.png" alt="Staubi, euer Hausgeist" /><p><b>Staubi sagt:</b> {openCount ? `${openCount} kleine Hausi${openCount === 1 ? "" : "s"}, dann wird’s gemütlich.` : "Saubere Arbeit. Jetzt bitte gemütlich machen."}</p></div>
+            {openCount > 0 && <a className="round-start" href="#aufgaben"><span>Los geht’s</span><b>Hausis starten →</b></a>}
           </div>
         </div>
       </section>
@@ -233,7 +233,7 @@ export default function Home() {
         <p>Um Mitternacht startet eine neue Wochenmission. Eure gesammelten XP bleiben in euren Leveln erhalten.</p>
       </section>}
       <section className="chores-section" id="aufgaben">
-        <div className="section-head"><div><p className="eyebrow">HAUSHALTSRUNDE</p><h2>Was sonst noch ansteht</h2><p>Alles darf auch spontan erledigt werden – Besuch wartet schließlich nicht auf den Rhythmus.</p></div></div>
+        <div className="section-head"><div><p className="eyebrow">EURE HAUSIS</p><h2>Was sonst noch ansteht</h2><p>Alles darf auch spontan erledigt werden – Besuch wartet schließlich nicht auf den Rhythmus.</p></div></div>
         <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
           const categoryChores = chores.filter((chore) => chore.category === category);
           const dueChores = categoryChores.filter((chore) => !chore.lastCompletedAt || new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) <= now);
@@ -416,7 +416,7 @@ export default function Home() {
       )}
       {celebration && <div className="water-celebration" role="status" aria-live="polite">
         <div className="water-burst" aria-hidden="true"><img className="staubi-celebrate" src="/staubi.png" alt="" /><span>{celebration.icon}</span><i></i><i></i><i></i><i></i><i></i></div>
-        <strong>Runde geschafft!</strong><p>{celebration.person} hat „{celebration.label}“ erledigt. Das Zuhause atmet auf.</p><b>+{celebration.points} XP</b>
+        <strong>Hausi geschafft!</strong><p>{celebration.person} hat „{celebration.label}“ erledigt. Das Zuhause atmet auf.</p><b>+{celebration.points} XP</b>
       </div>}
       <nav className="mobile-nav" aria-label="Hauptnavigation">
         <a href="#top"><span>⌂</span>Heute</a>
