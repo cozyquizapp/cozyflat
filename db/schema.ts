@@ -10,3 +10,11 @@ export const plants = sqliteTable('plants', {
   createdAt: text('created_at').notNull(),
   imageKey: text('image_key'),
 });
+
+export const wateringEvents = sqliteTable('watering_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  plantId: integer('plant_id').notNull(),
+  person: text('person').notNull(),
+  points: integer('points').notNull().default(10),
+  wateredAt: text('watered_at').notNull(),
+});

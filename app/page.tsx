@@ -10,6 +10,7 @@ type Plant = {
   lastWateredBy: string;
   imageKey: string | null;
 };
+type Stats = { streak: number; scores: Record<"Johannes" | "Sonja", { points: number; waterings: number }> };
 const icons = ["🌿", "🪴", "🌱", "☘️", "🌵", "🍃"];
 const roomOrder = ["Balkon", "Wohnzimmer", "Küche", "Arbeitszimmer"];
 const roomMeta: Record<string, { icon: string; line: string; className: string }> = {
@@ -57,9 +58,12 @@ export default function Home() {
   const [toast, setToast] = useState("");
   const [reminderGuide, setReminderGuide] = useState(false);
   const [showReminderCard, setShowReminderCard] = useState(false);
+  const [stats, setStats] = useState<Stats>({ streak: 0, scores: { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} } });
+  const [celebration, setCelebration] = useState<{ plant: string; person: string } | null>(null);
   async function refresh() {
-    const r = await fetch("/api/plants");
+    const [r, s] = await Promise.all([fetch("/api/plants"), fetch("/api/stats")]);
     if (r.ok) setPlants(await r.json());
+    if (s.ok) setStats(await s.json());
     setLoading(false);
   }
   useEffect(() => {
@@ -77,7 +81,10 @@ export default function Home() {
   async function water(plant: Plant) {
     setBusy(plant.id);
     await action({ action: "water", id: plant.id, person });
+    const s = await fetch("/api/stats"); if (s.ok) setStats(await s.json());
     setBusy(null);
+    setCelebration({ plant: plant.name, person });
+    setTimeout(() => setCelebration(null), 2400);
     setToast(
       `${plant.name} wurde von ${person} gegossen. Stark – der Pflanzendienst ist zufrieden.`,
     );
@@ -158,6 +165,12 @@ export default function Home() {
               : "Alles im grünen Bereich"}
           </b>
         </div>
+      </section>
+      <section className="scoreboard" aria-label="Familien-Scoreboard">
+        <div className="score-title"><span>🔥</span><div><p className="eyebrow">FAMILIEN-STREAK</p><strong>{stats.streak} {stats.streak === 1 ? "Tag" : "Tage"}</strong></div></div>
+        {(["Johannes", "Sonja"] as const).map((name, index) => <div className={`score-person ${person === name ? "is-active" : ""}`} key={name}>
+          <span className="score-rank">{index === 0 ? "J" : "S"}</span><div><b>{name}</b><small>{stats.scores[name].waterings}× gegossen</small></div><strong>{stats.scores[name].points} P</strong>
+        </div>)}
       </section>
       <section className="plant-section">
         <div className="section-head">
@@ -319,6 +332,10 @@ export default function Home() {
           ✓ {toast}
         </div>
       )}
+      {celebration && <div className="water-celebration" role="status" aria-live="polite">
+        <div className="water-burst" aria-hidden="true"><span>💧</span><i></i><i></i><i></i><i></i><i></i></div>
+        <strong>Wasser marsch!</strong><p>{celebration.person} schenkt {celebration.plant} neues Leben.</p><b>+10 Punkte</b>
+      </div>}
     </main>
   );
 }
