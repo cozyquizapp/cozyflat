@@ -10,7 +10,8 @@ type Plant = {
   lastWateredBy: string;
   imageKey: string | null;
 };
-type Stats = { streak: number; scores: Record<"Johannes" | "Sonja", { points: number; waterings: number }> };
+type PersonScore = { points: number; waterings: number };
+type Stats = { streak: number; scores: Record<"Johannes" | "Sonja", PersonScore>; totalScores: Record<"Johannes" | "Sonja", PersonScore>; previousWeek: Record<"Johannes" | "Sonja", PersonScore> };
 const icons = ["🌿", "🪴", "🌱", "☘️", "🌵", "🍃"];
 const roomOrder = ["Balkon", "Wohnzimmer", "Küche", "Arbeitszimmer"];
 const avatarFor = { Johannes: "/avatar-johannes.png", Sonja: "/avatar-sonja.png" } as const;
@@ -59,7 +60,8 @@ export default function Home() {
   const [toast, setToast] = useState("");
   const [reminderGuide, setReminderGuide] = useState(false);
   const [showReminderCard, setShowReminderCard] = useState(false);
-  const [stats, setStats] = useState<Stats>({ streak: 0, scores: { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} } });
+  const emptyScores = { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} };
+  const [stats, setStats] = useState<Stats>({ streak: 0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
   const [celebration, setCelebration] = useState<{ plant: string; person: string } | null>(null);
   async function refresh() {
     const [r, s] = await Promise.all([fetch("/api/plants"), fetch("/api/stats")]);
@@ -112,6 +114,7 @@ export default function Home() {
       month: "long",
     })
     .toUpperCase();
+  const showWeeklyRecap = now.getDay() === 0 && now.getHours() >= 18;
   return (
     <main className="shell">
       <header className="topbar">
@@ -169,11 +172,16 @@ export default function Home() {
         </div>
       </section>
       <section className="scoreboard" aria-label="Familien-Scoreboard">
-        <div className="score-title"><span>🔥</span><div><p className="eyebrow">FAMILIEN-STREAK</p><strong>{stats.streak} {stats.streak === 1 ? "Tag" : "Tage"}</strong></div></div>
+        <div className="score-title"><span>🔥</span><div><p className="eyebrow">DIESE WOCHE</p><strong>{stats.streak} {stats.streak === 1 ? "Tag" : "Tage"} Streak</strong></div></div>
         {(["Johannes", "Sonja"] as const).map((name, index) => <div className={`score-person ${person === name ? "is-active" : ""}`} key={name}>
-          <span className="score-rank"><img src={avatarFor[name]} alt="" /></span><div><b>{name}</b><small>{stats.scores[name].waterings}× gegossen</small></div><strong>{stats.scores[name].points} P</strong>
+          <span className="score-rank"><img src={avatarFor[name]} alt="" /></span><div><b>{name}</b><small>{stats.scores[name].waterings}× diese Woche · {stats.totalScores[name].points} P gesamt</small></div><strong>{stats.scores[name].points} P</strong>
         </div>)}
       </section>
+      {showWeeklyRecap && <section className="weekly-recap">
+        <p className="eyebrow">SONNTAGS-RÜCKBLICK</p><h2>Was für eine Woche, ihr zwei.</h2>
+        <div>{(["Johannes", "Sonja"] as const).map((name) => <article key={name}><img src={avatarFor[name]} alt="" /><span><b>{name}</b><small>{stats.scores[name].waterings} Aufgaben erledigt</small></span><strong>{stats.scores[name].points} Punkte</strong></article>)}</div>
+        <p>Um Mitternacht startet die neue Wochenrunde. Eure Punkte bleiben im Gesamtranking erhalten.</p>
+      </section>}
       <section className="plant-section">
         <div className="section-head">
           <div>

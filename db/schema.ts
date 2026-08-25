@@ -18,3 +18,8 @@ export const wateringEvents = sqliteTable('watering_events', {
   points: integer('points').notNull().default(10),
   wateredAt: text('watered_at').notNull(),
 });
+
+export const appMeta = sqliteTable('app_meta', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+});

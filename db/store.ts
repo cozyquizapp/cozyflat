@@ -23,6 +23,7 @@ async function ready() {
       watered_at TEXT NOT NULL
     )`),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_watering_events_watered_at ON watering_events(watered_at)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)'),
   ]);
   const count = await db.prepare('SELECT COUNT(*) AS count FROM plants').first<{count:number}>();
   if (!count?.count) {
@@ -32,6 +33,14 @@ async function ready() {
       db.prepare('INSERT INTO plants (name, room, interval_days, last_watered_at, last_watered_by, created_at) VALUES (?, ?, ?, ?, ?, ?)').bind('Monstera','Wohnzimmer',7,daysAgo(7),'Du',now.toISOString()),
       db.prepare('INSERT INTO plants (name, room, interval_days, last_watered_at, last_watered_by, created_at) VALUES (?, ?, ?, ?, ?, ?)').bind('Pilea','Küche',7,daysAgo(5),'Sie',now.toISOString()),
       db.prepare('INSERT INTO plants (name, room, interval_days, last_watered_at, last_watered_by, created_at) VALUES (?, ?, ?, ?, ?, ?)').bind('Bogenhanf','Schlafzimmer',14,daysAgo(8),'Du',now.toISOString()),
+    ]);
+  }
+  const baseline = await db.prepare("INSERT OR IGNORE INTO app_meta (key, value) VALUES ('weekly-score-baseline-v1', ?)").bind(new Date().toISOString()).run();
+  if (baseline.meta.changes) {
+    const now = new Date().toISOString();
+    await db.batch([
+      db.prepare('DELETE FROM watering_events'),
+      db.prepare("UPDATE plants SET last_watered_at = ?, last_watered_by = 'Sonja & Johannes' WHERE lower(room) = 'balkon'").bind(now),
     ]);
   }
   return db;
@@ -54,8 +63,15 @@ export async function waterPlant(id:number, person:string) {
 
 export async function getWateringStats() {
   const db = await ready();
-  const scores = await db.prepare(`SELECT person, SUM(points) AS points, COUNT(*) AS waterings
-    FROM watering_events GROUP BY person`).all<{person:string; points:number; waterings:number}>();
+  const now = new Date();
+  const weekStart = new Date(now); weekStart.setUTCHours(0,0,0,0); weekStart.setUTCDate(weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7));
+  const nextWeek = new Date(weekStart); nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
+  const previousWeek = new Date(weekStart); previousWeek.setUTCDate(previousWeek.getUTCDate() - 7);
+  const [scores, weekly, previous] = await Promise.all([
+    db.prepare(`SELECT person, SUM(points) AS points, COUNT(*) AS waterings FROM watering_events GROUP BY person`).all<{person:string; points:number; waterings:number}>(),
+    db.prepare(`SELECT person, SUM(points) AS points, COUNT(*) AS waterings FROM watering_events WHERE watered_at >= ? AND watered_at < ? GROUP BY person`).bind(weekStart.toISOString(), nextWeek.toISOString()).all<{person:string; points:number; waterings:number}>(),
+    db.prepare(`SELECT person, SUM(points) AS points, COUNT(*) AS waterings FROM watering_events WHERE watered_at >= ? AND watered_at < ? GROUP BY person`).bind(previousWeek.toISOString(), weekStart.toISOString()).all<{person:string; points:number; waterings:number}>(),
+  ]);
   const days = await db.prepare(`SELECT DISTINCT substr(watered_at, 1, 10) AS day
     FROM watering_events ORDER BY day DESC`).all<{day:string}>();
   const daySet = new Set(days.results.map((row) => row.day));
@@ -63,8 +79,11 @@ export async function getWateringStats() {
   if (!daySet.has(cursor.toISOString().slice(0,10))) cursor.setDate(cursor.getDate() - 1);
   let streak = 0;
   while (daySet.has(cursor.toISOString().slice(0,10))) { streak++; cursor.setDate(cursor.getDate() - 1); }
-  const byPerson = Object.fromEntries(scores.results.map((row) => [row.person, { points: Number(row.points), waterings: Number(row.waterings) }]));
-  return { streak, scores: { Johannes: byPerson.Johannes ?? {points:0,waterings:0}, Sonja: byPerson.Sonja ?? {points:0,waterings:0} } };
+  const mapScores = (rows: typeof scores.results) => {
+    const mapped = Object.fromEntries(rows.map((row) => [row.person, { points: Number(row.points), waterings: Number(row.waterings) }]));
+    return { Johannes: mapped.Johannes ?? {points:0,waterings:0}, Sonja: mapped.Sonja ?? {points:0,waterings:0} };
+  };
+  return { streak, scores: mapScores(weekly.results), totalScores: mapScores(scores.results), previousWeek: mapScores(previous.results) };
 }
 
 export async function addPlant(name:string, room:string, intervalDays:number, person:string, imageKey:string|null=null) {
