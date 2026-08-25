@@ -75,6 +75,20 @@ function choreTiming(chore: Chore, now: Date) {
   return `Wieder spätestens ${label}${chore.dueTime ? ` · ${chore.dueTime}` : ''}`;
 }
 
+function localDayKey(date: Date) {
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+}
+
+function dailyFlexiblePicks(chores: Chore[], now: Date) {
+  const seed = Number(localDayKey(now).replaceAll('-', ''));
+  return chores
+    .filter((chore) => !chore.paused && chore.scheduleMode === 'flexible')
+    .map((chore) => ({ chore, rank: ((chore.id * 9301 + seed * 49297) % 233280) / 233280 - chore.priority * 0.08 }))
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, 3)
+    .map(({ chore }) => chore);
+}
+
 export default function Home() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [chores, setChores] = useState<Chore[]>([]);
@@ -105,13 +119,7 @@ export default function Home() {
     setLoading(false);
   }
   useEffect(() => {
-    const splashSeen = sessionStorage.getItem("cozyflat-splash-seen");
-    if (splashSeen) setSplashVisible(false);
-    else {
-      sessionStorage.setItem("cozyflat-splash-seen", "yes");
-      const splashTimer = window.setTimeout(() => setSplashVisible(false), 1900);
-      window.setTimeout(() => window.clearTimeout(splashTimer), 2100);
-    }
+    const splashTimer = window.setTimeout(() => setSplashVisible(false), 3000);
     const linkedPerson = new URLSearchParams(location.search).get("person");
     const savedPerson = localStorage.getItem("cozyflat-person");
     if (linkedPerson === "Sonja" || linkedPerson === "Johannes") {
@@ -121,6 +129,7 @@ export default function Home() {
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => undefined);
     refresh();
     setShowReminderCard(localStorage.getItem("reminder-card-dismissed") !== "yes");
+    return () => window.clearTimeout(splashTimer);
   }, []);
   async function action(payload: object) {
     const r = await fetch("/api/plants", {
@@ -179,8 +188,11 @@ export default function Home() {
   }).length;
   const now = new Date();
   const dueChoresToday = chores.filter((chore) => !chore.paused && chore.scheduleMode === 'scheduled' && choreNext(chore)! <= now).sort((a,b)=>b.priority-a.priority);
-  const dueChoreCount = dueChoresToday.length;
-  const openCount = todayCount + dueChoreCount;
+  const flexiblePicks = dailyFlexiblePicks(chores, now);
+  const flexiblePicksOpen = flexiblePicks.filter((chore) => !chore.lastCompletedAt || localDayKey(new Date(chore.lastCompletedAt)) !== localDayKey(now));
+  const todayChores = [...dueChoresToday, ...flexiblePicksOpen];
+  const choreCountToday = todayChores.length;
+  const openCount = todayCount + choreCountToday;
   const weeklyTeamPoints = stats.scores.Johannes.points + stats.scores.Sonja.points;
   const weeklyGoal = 200;
   const weeklyProgress = Math.min(100, Math.round((weeklyTeamPoints / weeklyGoal) * 100));
@@ -231,11 +243,11 @@ export default function Home() {
                     ? todayCount === 1
                       ? "Eine Pflanze hat Durst."
                       : "Ein Hausi wartet."
-                    : todayCount > 0 && dueChoreCount > 0
-                      ? `${todayCount} Pflanzen und ${dueChoreCount} geplante Hausis.`
+                    : todayCount > 0 && choreCountToday > 0
+                      ? `${todayCount} Pflanzen und ${choreCountToday} Hausis für heute.`
                       : todayCount > 0
                         ? `${todayCount} Pflanzen möchten Wasser.`
-                        : `${dueChoreCount} geplante Hausis stehen an.`}
+                        : `${choreCountToday} Hausis für heute stehen an.`}
               </em>
             </h1>
             <p className="intro">
@@ -287,7 +299,7 @@ export default function Home() {
       </section>}
       <section className="chores-section" id="aufgaben">
         <div className="section-head"><div><p className="eyebrow">EURE HAUSIS</p><h2>Was sonst noch ansteht</h2><p>Alles darf auch spontan erledigt werden – Besuch wartet schließlich nicht auf den Rhythmus.</p></div><button className="add-hausi" onClick={()=>{setEditingChore(null);setChoreModal(true)}}><span>＋</span> Hausi</button></div>
-        {dueChoresToday.length > 0 && <section className="today-chores" aria-labelledby="today-chores-title"><div className="today-chores-head"><div><p className="eyebrow">HEUTE WICHTIG</p><h3 id="today-chores-title">Erst mal diese {Math.min(5,dueChoresToday.length)}</h3></div><span>{dueChoresToday.length} geplant</span></div><div>{dueChoresToday.slice(0,5).map((chore) => <article className="quick-chore" key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{choreTiming(chore,now)} · {'!'.repeat(chore.priority)} · +{chore.points} XP</small></div><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}><img src={avatarFor[person]} alt="" />{choreBusy === chore.id ? '…' : `Erledigt als ${person}`}</button></article>)}</div>{dueChoresToday.length > 5 && <small className="today-more">Danach sind noch {dueChoresToday.length - 5} geplant – eins nach dem anderen.</small>}</section>}
+        {todayChores.length > 0 && <section className="today-chores" aria-labelledby="today-chores-title"><div className="today-chores-head"><div><p className="eyebrow">HEUTE WICHTIG</p><h3 id="today-chores-title">Eure kleine Tagesauswahl</h3></div><span>{todayChores.length} für heute</span></div><div>{todayChores.slice(0,5).map((chore) => <article className="quick-chore" key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{chore.scheduleMode === 'flexible' ? 'Staubis Tagesvorschlag' : choreTiming(chore,now)} · {'!'.repeat(chore.priority)} · +{chore.points} XP</small></div><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}><img src={avatarFor[person]} alt="" />{choreBusy === chore.id ? '…' : `Erledigt als ${person}`}</button></article>)}</div>{todayChores.length > 5 && <small className="today-more">Danach sind noch {todayChores.length - 5} fest eingeplant – eins nach dem anderen.</small>}</section>}
         <button className="all-chores-toggle" onClick={()=>setAllChoresOpen(open=>!open)} aria-expanded={allChoresOpen}><span>Alle Hausis nach Kategorie</span><b>{allChoresOpen ? 'einklappen ↑' : 'anzeigen ↓'}</b></button>
         {allChoresOpen && <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
           const categoryChores = chores.filter((chore) => chore.category === category);
