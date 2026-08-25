@@ -13,6 +13,8 @@ type Plant = {
 type PersonScore = { points: number; waterings: number };
 type Stats = { streak: number; loginStreak: number; loginDays: number; scores: Record<"Johannes" | "Sonja", PersonScore>; totalScores: Record<"Johannes" | "Sonja", PersonScore>; previousWeek: Record<"Johannes" | "Sonja", PersonScore> };
 type Chore = { id:number; name:string; category:string; icon:string; intervalDays:number; points:number; lastCompletedAt:string|null; lastCompletedBy:string|null; paused:boolean; scheduleMode:'flexible'|'scheduled'; cadenceHours:number; priority:number; dueTime:string|null };
+type GardenPlant = {key:string;name:string;emoji:string;pot:string};
+type GardenData = {weekKey:string;xp:number;candidates:GardenPlant[];collection:Array<{weekKey:string;plantKey:string;chosenBy:string;unlockedAt:string;xpAtUnlock:number;plant:GardenPlant}>;chosenThisWeek:boolean};
 const icons = ["🌿", "🪴", "🌱", "☘️", "🌵", "🍃"];
 const roomOrder = ["Balkon", "Wohnzimmer", "Küche", "Arbeitszimmer"];
 const avatarFor = { Johannes: "/avatar-johannes.png", Sonja: "/avatar-sonja.png" } as const;
@@ -112,11 +114,14 @@ export default function Home() {
   const emptyScores = { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} };
   const [stats, setStats] = useState<Stats>({ streak: 0, loginStreak: 0, loginDays: 0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
   const [celebration, setCelebration] = useState<{ label: string; person: string; points: number; icon: string } | null>(null);
+  const [garden, setGarden] = useState<GardenData|null>(null);
+  const [gardenBusy, setGardenBusy] = useState(false);
   async function refresh() {
-    const [r, s, c] = await Promise.all([fetch("/api/plants"), fetch("/api/stats"), fetch("/api/chores")]);
+    const [r, s, c, g] = await Promise.all([fetch("/api/plants"), fetch("/api/stats"), fetch("/api/chores"), fetch("/api/garden")]);
     if (r.ok) setPlants(await r.json());
     if (s.ok) setStats(await s.json());
     if (c.ok) setChores(await c.json());
+    if (g.ok) setGarden(await g.json());
     setLoading(false);
   }
   useEffect(() => {
@@ -181,6 +186,12 @@ export default function Home() {
     if (r.ok) { const result = await r.json() as {chores:Chore[]}; setChores(result.chores); const s = await fetch('/api/stats'); if (s.ok) setStats(await s.json()); setCelebration(null); setToast(`${undoInfo.chore.name} ist wieder offen.`); }
     setUndoInfo(null); setTimeout(() => setToast(''),2200);
   }
+  async function chooseGardenPlant(plantKey:string) {
+    setGardenBusy(true);
+    const response=await fetch('/api/garden',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({plantKey,person})});
+    if(response.ok){setGarden(await response.json());setToast(`${person} hat eure neue Zimmerpflanze ausgesucht. 🌱`);setTimeout(()=>setToast(''),2800)}
+    setGardenBusy(false);
+  }
   async function saveChoreForm(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); const data = new FormData(e.currentTarget);
     const payload = {action:'save',id:editingChore?.id,name:data.get('name'),category:data.get('category'),icon:data.get('icon'),cadenceHours:Number(data.get('cadenceHours')),priority:Number(data.get('priority')),dueTime:data.get('dueTime'),scheduleMode:data.get('scheduleMode'),points:Number(data.get('points')),paused:data.get('paused') === 'on'};
@@ -237,14 +248,12 @@ export default function Home() {
           ))}
         </div>
       </header>
-      <section className="hero" id="top">
+      <section className="hero daily-hero" id="top">
         <div className="personal-greeting">
-          <img className="greeting-avatar" src={avatarFor[person]} alt={`Porträt von ${person}`} />
           <div className="greeting-copy">
-            <p className="eyebrow">{dateLabel}</p>
+            <div className="daily-kicker"><img className="greeting-avatar" src={avatarFor[person]} alt={`Porträt von ${person}`} /><span><small>{dateLabel}</small><b>Heute bei euch</b></span></div>
             <h1>
-              Hallo {person}.
-              <br />
+              Hallo {person},
               <em>
                 {openCount === 0
                   ? "Alles ist versorgt."
@@ -253,18 +262,13 @@ export default function Home() {
                       ? "Eine Pflanze hat Durst."
                       : "Ein Hausi wartet."
                     : todayCount > 0 && choreCountToday > 0
-                      ? `${todayCount} Pflanzen und ${choreCountToday} Hausis für heute.`
+                      ? `${todayCount === 1 ? 'Eine Pflanze' : `${todayCount} Pflanzen`} und ${choreCountToday === 1 ? 'ein Hausi' : `${choreCountToday} Hausis`} für heute.`
                       : todayCount > 0
                         ? `${todayCount} Pflanzen möchten Wasser.`
                         : `${choreCountToday} Hausis für heute stehen an.`}
               </em>
             </h1>
-            <p className="intro">
-              Eure gemeinsamen Hausis und Pflanzen — mit kleinen
-              Erfolgen, fairen Punkten und einem ziemlich zufriedenen Zuhause.
-            </p>
-            <div className="staubi-greeting"><img src="/staubi.png" alt="Staubi, euer Hausgeist" /><p><b>Staubi sagt:</b> {openCount ? "Ein bisschen was steht an – sucht euch einfach den nächsten guten Schritt aus." : "Heute ist alles entspannt. Jetzt bitte gemütlich machen."}</p></div>
-            {openCount > 0 && <a className="round-start" href="#aufgaben"><span>Los geht’s</span><b>Hausis starten →</b></a>}
+            <div className="daily-bottom"><div className="staubi-greeting"><img src="/staubi.png" alt="Staubi, euer Hausgeist" /><p><b>{openCount ? 'Staubi hat schon mal geschnuppert:' : 'Staubi rollt sich ein:'}</b> {openCount ? `${openCount} gute Gelegenheiten für XP. Welche schnappt ihr euch?` : "Nichts drängt. Das Nest ist heute offiziell freigegeben."}</p></div>{openCount > 0 && <a className="round-start" href="#aufgaben"><span>Erstes Hausi</span><b>Auswählen <i>→</i></b></a>}</div>
           </div>
         </div>
       </section>
@@ -288,9 +292,16 @@ export default function Home() {
       </section>
       <div className={`mobile-progress ${progressOpen ? "is-open" : ""}`} id="fortschritt">
         <button className="progress-toggle" onClick={() => setProgressOpen((open) => !open)} aria-expanded={progressOpen}><span>★ Level & Wochenmission</span><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></button>
-        <section className="cozy-garden" aria-label="Euer gemeinsamer CozyGarden">
-          <div className="garden-scene" aria-hidden="true"><span>{gardenEmoji}</span><i>✨</i><b>☀️</b></div>
-          <div className="garden-copy"><p className="eyebrow">EUER GEMEINSAMER GARTEN</p><h2>CozyGarden · Level {gardenLevel}</h2><p>Jedes Hausi schenkt ihm Wachstum. Jeder gemeinsame App-Tag hält ihn lebendig.</p><div className="garden-track"><i style={{width:`${gardenProgress}%`}} /></div><small><b>🔥 {stats.loginStreak} Tage Login-Streak</b><span>{gardenProgress}/100 XP bis zur nächsten Gartenstufe</span></small></div>
+        <section className="plant-room-game" aria-label="Euer gemeinsames Pflanzenzimmer">
+          <div className="garden-game-head"><div><p className="eyebrow">EUER PFLANZENZIMMER</p><h2>Staubis grünes Zuhause</h2><p>Hausis werden XP. XP lässt eure Sammlung wachsen.</p></div><div className="garden-level-pill"><span>Level {gardenLevel}</span><b>{gardenProgress}/100 XP</b></div></div>
+          <div className="plant-room-stage">
+            <img className="plant-room-bg" src="/cozy-garden-room.png" alt="Ein sonniges Pflanzenzimmer mit Holzregal und Staubis Schlafplatz" />
+            <div className="plant-shelf" aria-label="Eure gesammelten Zimmerpflanzen">{garden?.collection.slice(-6).map((item,index)=>{const gained=Math.max(0,(garden.xp-item.xpAtUnlock));const stage=gained>=70?3:gained>=30?2:1;return <article className={`collectible slot-${index} stage-${stage} pot-${item.plant.pot}`} key={item.weekKey}><span>{item.plant.emoji}</span><small>{item.plant.name}<b>{stage===3?'Ausgewachsen':stage===2?'Wächst':'Keimling'}</b></small></article>})}</div>
+            <div className="staubi-home"><img src="/staubi.png" alt="Staubi schläft in seinem Körbchen"/><span>{stats.loginStreak ? `🔥 ${stats.loginStreak}` : 'zzZ'}</span></div>
+          </div>
+          <div className="garden-track"><i style={{width:`${gardenProgress}%`}} /></div><div className="garden-meta"><b>Gemeinsam {gardenXp} XP gesammelt</b><span>Noch {100-gardenProgress} XP bis Raum-Level {gardenLevel+1}</span></div>
+          {!garden?.chosenThisWeek && garden && <div className="weekly-plant-choice"><span><small>DIESE WOCHE</small><b>Welche zieht bei euch ein?</b></span><div>{garden.candidates.map((candidate)=><button disabled={gardenBusy} onClick={()=>chooseGardenPlant(candidate.key)} key={candidate.key}><i className={`pot-${candidate.pot}`}>{candidate.emoji}</i><b>{candidate.name}</b><small>Auswählen</small></button>)}</div></div>}
+          {garden?.chosenThisWeek && <div className="next-plant"><span>✨</span><p><b>Wochenpflanze gewählt</b>Nächsten Montag bringt Staubi drei neue Kandidaten mit.</p></div>}
         </section>
         <section className="level-hub" aria-label="Eure Level und Wochenfortschritt">
         <div className="team-quest">

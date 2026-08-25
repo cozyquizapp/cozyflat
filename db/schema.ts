@@ -35,3 +35,11 @@ export const appVisits = sqliteTable('app_visits', {
   person: text('person').notNull(),
   visitedAt: text('visited_at').notNull(),
 });
+
+export const gardenCollection = sqliteTable('garden_collection', {
+  weekKey: text('week_key').primaryKey(),
+  plantKey: text('plant_key').notNull(),
+  chosenBy: text('chosen_by').notNull(),
+  unlockedAt: text('unlocked_at').notNull(),
+  xpAtUnlock: integer('xp_at_unlock').notNull().default(0),
+});

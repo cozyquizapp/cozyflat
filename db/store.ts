@@ -28,6 +28,7 @@ async function ready() {
     db.prepare('CREATE TABLE IF NOT EXISTS chore_events (id INTEGER PRIMARY KEY AUTOINCREMENT, chore_id INTEGER NOT NULL, person TEXT NOT NULL, points INTEGER NOT NULL, completed_at TEXT NOT NULL)'),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_chore_events_completed_at ON chore_events(completed_at)'),
     db.prepare('CREATE TABLE IF NOT EXISTS app_visits (day TEXT NOT NULL, person TEXT NOT NULL, visited_at TEXT NOT NULL, PRIMARY KEY(day, person))'),
+    db.prepare('CREATE TABLE IF NOT EXISTS garden_collection (week_key TEXT PRIMARY KEY NOT NULL, plant_key TEXT NOT NULL, chosen_by TEXT NOT NULL, unlocked_at TEXT NOT NULL, xp_at_unlock INTEGER NOT NULL DEFAULT 0)'),
   ]);
   try { await db.prepare('ALTER TABLE chores ADD COLUMN paused INTEGER NOT NULL DEFAULT 0').run(); } catch {}
   try { await db.prepare("ALTER TABLE chores ADD COLUMN schedule_mode TEXT NOT NULL DEFAULT 'flexible'").run(); } catch {}
@@ -128,6 +129,20 @@ export async function registerVisit(person:string, day:string) {
   await db.prepare('INSERT OR IGNORE INTO app_visits (day, person, visited_at) VALUES (?, ?, ?)').bind(day, person, new Date().toISOString()).run();
   return getWateringStats();
 }
+
+const gardenPlants = [
+  {key:'monstera',name:'Momo Monstera',emoji:'🌿',pot:'sage'}, {key:'pilea',name:'Pia Pilea',emoji:'🪴',pot:'rose'},
+  {key:'calathea',name:'Cally Calathea',emoji:'🌱',pot:'cream'}, {key:'fern',name:'Frieda Farn',emoji:'🌿',pot:'terracotta'},
+  {key:'ficus',name:'Fiete Ficus',emoji:'🌳',pot:'sage'}, {key:'alocasia',name:'Alma Alocasia',emoji:'☘️',pot:'rose'},
+  {key:'ivy',name:'Edda Efeu',emoji:'🍃',pot:'cream'}, {key:'palm',name:'Palma',emoji:'🌴',pot:'terracotta'},
+  {key:'cactus',name:'Kalle Kaktus',emoji:'🌵',pot:'sage'}, {key:'orchid',name:'Olli Orchidee',emoji:'🌸',pot:'rose'},
+  {key:'snake',name:'Sanni Bogenhanf',emoji:'🪴',pot:'cream'}, {key:'bonsai',name:'Bo Bonsai',emoji:'🌳',pot:'terracotta'},
+];
+function currentWeekKey() { const d=new Date(); d.setUTCHours(0,0,0,0); d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7)); return d.toISOString().slice(0,10); }
+function weeklyCandidates(weekKey:string) { const seed=Number(weekKey.replaceAll('-','')); const start=seed%gardenPlants.length; return [0,5,9].map((n)=>gardenPlants[(start+n)%gardenPlants.length]); }
+async function totalHouseXp(db:Awaited<ReturnType<typeof ready>>) { const row=await db.prepare(`SELECT COALESCE(SUM(points),0) AS xp FROM (SELECT points FROM watering_events UNION ALL SELECT points FROM chore_events)`).first<{xp:number}>(); return Number(row?.xp??0); }
+export async function getGarden() { const db=await ready(); const weekKey=currentWeekKey(); const rows=await db.prepare('SELECT week_key AS weekKey, plant_key AS plantKey, chosen_by AS chosenBy, unlocked_at AS unlockedAt, xp_at_unlock AS xpAtUnlock FROM garden_collection ORDER BY unlocked_at').all<{weekKey:string;plantKey:string;chosenBy:string;unlockedAt:string;xpAtUnlock:number}>(); const xp=await totalHouseXp(db); return {weekKey,xp,candidates:weeklyCandidates(weekKey),collection:rows.results.map((row)=>({...row,plant:gardenPlants.find((p)=>p.key===row.plantKey)??gardenPlants[0]})),chosenThisWeek:rows.results.some((row)=>row.weekKey===weekKey)}; }
+export async function chooseGardenPlant(plantKey:string, person:string) { const db=await ready(); const weekKey=currentWeekKey(); if(!weeklyCandidates(weekKey).some((p)=>p.key===plantKey)) return getGarden(); const xp=await totalHouseXp(db); await db.prepare('INSERT OR IGNORE INTO garden_collection (week_key, plant_key, chosen_by, unlocked_at, xp_at_unlock) VALUES (?, ?, ?, ?, ?)').bind(weekKey,plantKey,person,new Date().toISOString(),xp).run(); return getGarden(); }
 
 export async function addPlant(name:string, room:string, intervalDays:number, person:string, imageKey:string|null=null) {
   const db = await ready(); const now = new Date().toISOString();
