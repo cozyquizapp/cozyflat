@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listPlants } from '../../../db/store';
+import { listChores, listPlants } from '../../../db/store';
 
 export async function GET(request: NextRequest) {
   const requestedPerson = request.nextUrl.searchParams.get('person');
   const person = requestedPerson === 'Sonja' ? 'Sonja' : 'Johannes';
-  const plants = await listPlants();
+  const [plants, chores] = await Promise.all([listPlants(), listChores()]);
   const today = new Date(); today.setHours(0,0,0,0);
   const nudges = [
     'Sonja & Johannes: Diese Pflanze hat Durst. Sehr. Die Gießkanne kennt den Weg.',
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     'Sonja oder Johannes – wer zuerst gießt, gewinnt Ruhm, Ehre und eine zufriedene Pflanze.',
     'Freundliche Erinnerung mit Nachdruck: Gießen. Jetzt. Die Blätter beobachten euch schon.',
   ];
-  const reminders = plants.flatMap((plant) => {
+  const plantReminders = plants.flatMap((plant) => {
     const due = new Date(new Date(plant.lastWateredAt).getTime() + plant.intervalDays * 86400000); due.setHours(0,0,0,0);
     if (due.getTime() > today.getTime()) return [];
     return [{
@@ -25,5 +25,12 @@ export async function GET(request: NextRequest) {
       appUrl: `https://giessrunde-zuhause.hqv8s9bhsp.chatgpt.site/?person=${encodeURIComponent(person)}`,
     }];
   });
-  return NextResponse.json({ reminders, checkedAt: new Date().toISOString() }, { headers: { 'cache-control': 'no-store' } });
+  const choreNudges = ['Staubi hat nachgezählt: Dieses Hausi ist fällig. Sehr verdächtig fällig.','Kurze Rudelansage: Ein Hausi möchte erledigt werden – XP liegen schon bereit.','Gemütlichkeit in Sicht. Es fehlt nur noch dieses eine Hausi. Na los!'];
+  const choreReminders = chores.flatMap((chore) => {
+    if (chore.paused) return [];
+    const due = chore.lastCompletedAt ? new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * 86400000) : new Date(0); due.setHours(0,0,0,0);
+    if (due.getTime() > today.getTime()) return [];
+    return [{id:`hausi-${chore.id}-${chore.lastCompletedAt?.slice(0,10) ?? 'offen'}`,title:`${chore.icon} ${person}, Hausi-Zeit: ${chore.name}`,notes:`${choreNudges[chore.id % choreNudges.length]}\n\nDiese Erinnerung gehört zu: ${person}\nDanach bitte in CozyFlat abhaken – dein Profil ist beim Öffnen bereits ausgewählt.`,dueDate:new Date().toISOString().slice(0,10),list:'Familie',appUrl:`https://giessrunde-zuhause.hqv8s9bhsp.chatgpt.site/?person=${encodeURIComponent(person)}#aufgaben`}];
+  });
+  return NextResponse.json({ reminders: [...choreReminders, ...plantReminders], checkedAt: new Date().toISOString() }, { headers: { 'cache-control': 'no-store' } });
 }

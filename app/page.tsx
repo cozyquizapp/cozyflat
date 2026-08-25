@@ -12,7 +12,7 @@ type Plant = {
 };
 type PersonScore = { points: number; waterings: number };
 type Stats = { streak: number; scores: Record<"Johannes" | "Sonja", PersonScore>; totalScores: Record<"Johannes" | "Sonja", PersonScore>; previousWeek: Record<"Johannes" | "Sonja", PersonScore> };
-type Chore = { id:number; name:string; category:string; icon:string; intervalDays:number; points:number; lastCompletedAt:string|null; lastCompletedBy:string|null };
+type Chore = { id:number; name:string; category:string; icon:string; intervalDays:number; points:number; lastCompletedAt:string|null; lastCompletedBy:string|null; paused:boolean };
 const icons = ["🌿", "🪴", "🌱", "☘️", "🌵", "🍃"];
 const roomOrder = ["Balkon", "Wohnzimmer", "Küche", "Arbeitszimmer"];
 const avatarFor = { Johannes: "/avatar-johannes.png", Sonja: "/avatar-sonja.png" } as const;
@@ -68,6 +68,9 @@ export default function Home() {
   const [person, setPerson] = useState<"Johannes" | "Sonja">("Johannes");
   const [busy, setBusy] = useState<number | null>(null);
   const [choreBusy, setChoreBusy] = useState<number | null>(null);
+  const [choreModal, setChoreModal] = useState(false);
+  const [editingChore, setEditingChore] = useState<Chore | null>(null);
+  const [undoInfo, setUndoInfo] = useState<{chore:Chore;eventId:number}|null>(null);
   const [toast, setToast] = useState("");
   const [reminderGuide, setReminderGuide] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
@@ -120,7 +123,7 @@ export default function Home() {
   async function finishChore(chore: Chore) {
     setChoreBusy(chore.id);
     const r = await fetch('/api/chores', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({id:chore.id,person}) });
-    if (r.ok) setChores(await r.json());
+    if (r.ok) { const result = await r.json() as {chores:Chore[];eventId:number|null}; setChores(result.chores); if (result.eventId) { setUndoInfo({chore,eventId:result.eventId}); setTimeout(() => setUndoInfo(null),5000); } }
     const s = await fetch('/api/stats'); if (s.ok) setStats(await s.json());
     setChoreBusy(null);
     setCelebration({ label: chore.name, person, points: chore.points, icon: chore.icon });
@@ -128,13 +131,24 @@ export default function Home() {
     setToast(`${chore.name}: erledigt. ${person} sammelt ${chore.points} XP fürs Rudel.`); setTimeout(() => setToast(''),2800);
     if ("vibrate" in navigator) navigator.vibrate(35);
   }
+  async function undoChore() {
+    if (!undoInfo) return;
+    const r = await fetch('/api/chores',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'undo',id:undoInfo.chore.id,eventId:undoInfo.eventId})});
+    if (r.ok) { const result = await r.json() as {chores:Chore[]}; setChores(result.chores); const s = await fetch('/api/stats'); if (s.ok) setStats(await s.json()); setCelebration(null); setToast(`${undoInfo.chore.name} ist wieder offen.`); }
+    setUndoInfo(null); setTimeout(() => setToast(''),2200);
+  }
+  async function saveChoreForm(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault(); const data = new FormData(e.currentTarget);
+    const payload = {action:'save',id:editingChore?.id,name:data.get('name'),category:data.get('category'),icon:data.get('icon'),intervalDays:Number(data.get('intervalDays')),points:Number(data.get('points')),paused:data.get('paused') === 'on'};
+    const r = await fetch('/api/chores',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)}); if (r.ok) { const result = await r.json() as {chores:Chore[]}; setChores(result.chores); setChoreModal(false); setEditingChore(null); setToast(editingChore ? 'Hausi aktualisiert.' : 'Neues Hausi angelegt.'); setTimeout(()=>setToast(''),2200); }
+  }
   const todayCount = plants.filter((p) => dateInfo(p).diff <= 0).length;
   const soonCount = plants.filter((p) => {
     const d = dateInfo(p).diff;
     return d > 0 && d <= 3;
   }).length;
   const now = new Date();
-  const dueChoreCount = chores.filter((chore) => !chore.lastCompletedAt || new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) <= now).length;
+  const dueChoreCount = chores.filter((chore) => !chore.paused && (!chore.lastCompletedAt || new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) <= now)).length;
   const openCount = todayCount + dueChoreCount;
   const weeklyTeamPoints = stats.scores.Johannes.points + stats.scores.Sonja.points;
   const weeklyGoal = 200;
@@ -233,13 +247,13 @@ export default function Home() {
         <p>Um Mitternacht startet eine neue Wochenmission. Eure gesammelten XP bleiben in euren Leveln erhalten.</p>
       </section>}
       <section className="chores-section" id="aufgaben">
-        <div className="section-head"><div><p className="eyebrow">EURE HAUSIS</p><h2>Was sonst noch ansteht</h2><p>Alles darf auch spontan erledigt werden – Besuch wartet schließlich nicht auf den Rhythmus.</p></div></div>
+        <div className="section-head"><div><p className="eyebrow">EURE HAUSIS</p><h2>Was sonst noch ansteht</h2><p>Alles darf auch spontan erledigt werden – Besuch wartet schließlich nicht auf den Rhythmus.</p></div><button className="add-hausi" onClick={()=>{setEditingChore(null);setChoreModal(true)}}><span>＋</span> Hausi</button></div>
         <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
           const categoryChores = chores.filter((chore) => chore.category === category);
-          const dueChores = categoryChores.filter((chore) => !chore.lastCompletedAt || new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) <= now);
+          const dueChores = categoryChores.filter((chore) => !chore.paused && (!chore.lastCompletedAt || new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) <= now));
           const laterChores = categoryChores.filter((chore) => !dueChores.includes(chore));
           const renderChore = (chore: Chore) => { const next = chore.lastCompletedAt ? new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) : new Date(0); const isDue = !chore.lastCompletedAt || next <= now;
-            return <article className={`chore-card ${isDue ? 'is-due' : ''}`} key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{isDue ? 'Jetzt fällig' : `wieder ${next.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})}`} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch offen'}</small></div><strong>+{chore.points}</strong><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}>{choreBusy === chore.id ? '…' : 'Erledigt'}</button></article>;
+            return <article className={`chore-card ${isDue ? 'is-due' : ''} ${chore.paused ? 'is-paused' : ''}`} key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{chore.paused ? 'Pausiert' : isDue ? 'Jetzt fällig' : `wieder ${next.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})}`} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch offen'}</small></div><strong>+{chore.points}</strong><button className="edit-chore" onClick={()=>{setEditingChore(chore);setChoreModal(true)}} aria-label={`${chore.name} bearbeiten`}>✎</button><button className="finish-chore" onClick={() => finishChore(chore)} disabled={chore.paused || choreBusy === chore.id}>{chore.paused ? 'Pausiert' : choreBusy === chore.id ? '…' : 'Erledigt'}</button></article>;
           };
           return <section className="chore-group" key={category}><h3>{category}</h3><div>{dueChores.map(renderChore)}</div>{laterChores.length > 0 && <details className="later-chores"><summary>{laterChores.length} später fällig <span>anzeigen ↓</span></summary><div>{laterChores.map(renderChore)}</div></details>}</section>;
         })}</div>
@@ -310,7 +324,7 @@ export default function Home() {
       {showReminderCard && <section className="reminder-card bottom-reminder">
         <button className="dismiss-reminder" onClick={() => { localStorage.setItem("reminder-card-dismissed", "yes"); setShowReminderCard(false); }} aria-label="Apple-Einrichtung ausblenden">×</button>
         <div className="reminder-symbol" aria-hidden="true">✓</div>
-        <div><p className="eyebrow">APPLE ERINNERUNGEN</p><h2>Gemeinsam nichts vergessen</h2><p>Ein Kurzbefehl trägt fällige Pflanzen automatisch in eure Familienliste ein.</p></div>
+        <div><p className="eyebrow">APPLE ERINNERUNGEN</p><h2>Gemeinsam nichts vergessen</h2><p>Ein Kurzbefehl trägt fällige Hausis und Pflanzen automatisch in eure Familienliste ein.</p></div>
         <button onClick={() => { setReminderPerson(person); setReminderGuide(true); }}>Einrichten</button>
       </section>}
       <footer>
@@ -392,7 +406,7 @@ export default function Home() {
             <button className="close" onClick={() => setReminderGuide(false)} aria-label="Schließen">×</button>
             <p className="eyebrow">EINMALIG AUF EINEM IPHONE</p>
             <h2 id="reminder-title">Familien-Erinnerungen verbinden</h2>
-            <p className="modal-intro">Der Kurzbefehl prüft täglich CozyFlat. Fällige Pflanzen landen in der geteilten Liste „Familie“.</p>
+            <p className="modal-intro">Der Kurzbefehl prüft täglich CozyFlat. Fällige Hausis und Pflanzen landen in der geteilten Liste „Familie“.</p>
             <fieldset className="reminder-person-picker">
               <legend>Für wen ist dieser Kurzbefehl?</legend>
               {(["Johannes", "Sonja"] as const).map((name) => <button type="button" className={reminderPerson === name ? "active" : ""} onClick={() => setReminderPerson(name)} key={name}><img src={avatarFor[name]} alt="" /><span><b>{name}</b><small>{reminderPerson === name ? "ausgewählt" : "dieses Profil wählen"}</small></span><i>✓</i></button>)}
@@ -409,9 +423,10 @@ export default function Home() {
           </section>
         </div>
       )}
+      {choreModal && <div className="modal-backdrop" onMouseDown={(e)=>{if(e.target===e.currentTarget){setChoreModal(false);setEditingChore(null)}}}><section className="modal" role="dialog" aria-modal="true" aria-labelledby="chore-modal-title"><button className="close" onClick={()=>{setChoreModal(false);setEditingChore(null)}} aria-label="Schließen">×</button><p className="eyebrow">{editingChore ? 'HAUSI BEARBEITEN' : 'NEUES HAUSI'}</p><h2 id="chore-modal-title">{editingChore ? editingChore.name : 'Hausi hinzufügen'}</h2><form onSubmit={saveChoreForm} className="chore-form"><label>Name<input name="name" required maxLength={60} defaultValue={editingChore?.name ?? ''} placeholder="z. B. Kühlschrank auswischen" /></label><label>Kategorie<input name="category" required maxLength={40} defaultValue={editingChore?.category ?? 'Sonstiges'} placeholder="z. B. Küche" /></label><div className="form-pair"><label>Symbol<input name="icon" maxLength={4} defaultValue={editingChore?.icon ?? '✨'} /></label><label>XP<input name="points" type="number" min="1" max="100" defaultValue={editingChore?.points ?? 10} /></label></div><label>Wie oft?<select name="intervalDays" defaultValue={editingChore?.intervalDays ?? 7}><option value="1">Täglich</option><option value="3">Alle 3 Tage</option><option value="7">Wöchentlich</option><option value="14">Alle 2 Wochen</option><option value="28">Alle 4 Wochen</option><option value="30">Monatlich</option><option value="90">Alle 3 Monate</option></select></label><label className="pause-check"><input name="paused" type="checkbox" defaultChecked={editingChore?.paused ?? false} /> Hausi pausieren</label><button className="submit-button">{editingChore ? 'Änderungen speichern' : 'Hausi anlegen'}</button>{editingChore && <button type="button" className="danger-button" onClick={async()=>{if(confirm(`${editingChore.name} wirklich löschen?`)){const r=await fetch('/api/chores',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'delete',id:editingChore.id})});if(r.ok){const result=await r.json() as {chores:Chore[]};setChores(result.chores);setChoreModal(false);setEditingChore(null)}}}}>Hausi löschen</button>}</form></section></div>}
       {toast && (
         <div className="toast" role="status">
-          ✓ {toast}
+          ✓ {toast} {undoInfo && <button onClick={undoChore}>Rückgängig</button>}
         </div>
       )}
       {celebration && <div className="water-celebration" role="status" aria-live="polite">
