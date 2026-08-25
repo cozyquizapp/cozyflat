@@ -130,7 +130,7 @@ export default function Home() {
     .toUpperCase();
   const showWeeklyRecap = now.getDay() === 0 && now.getHours() >= 18;
   return (
-    <main className="shell">
+    <main className={`shell person-${person.toLowerCase()}`}>
       <header className="topbar">
         <a className="brand" href="#top">
           <span className="brandmark">W</span>
@@ -150,22 +150,27 @@ export default function Home() {
         </div>
       </header>
       <section className="hero" id="top">
-        <p className="eyebrow">{dateLabel}</p>
-        <h1>
-          Hallo {person}.
-          <br />
-          <em>
-            {todayCount === 0
-              ? "Alles ist versorgt."
-              : todayCount === 1
-                ? "Eine Pflanze hat Durst."
-                : `${todayCount} Pflanzen haben Durst.`}
-          </em>
-        </h1>
-        <p className="intro">
-          Eure gemeinsame Gießrunde — damit jede Pflanze genau dann Wasser
-          bekommt, wenn sie es braucht.
-        </p>
+        <div className="personal-greeting">
+          <img className="greeting-avatar" src={avatarFor[person]} alt={`Porträt von ${person}`} />
+          <div className="greeting-copy">
+            <p className="eyebrow">{dateLabel}</p>
+            <h1>
+              Hallo {person}.
+              <br />
+              <em>
+                {todayCount === 0
+                  ? "Alles ist versorgt."
+                  : todayCount === 1
+                    ? "Eine Pflanze hat Durst."
+                    : `${todayCount} Pflanzen haben Durst.`}
+              </em>
+            </h1>
+            <p className="intro">
+              Eure gemeinsame Gießrunde — damit jede Pflanze genau dann Wasser
+              bekommt, wenn sie es braucht.
+            </p>
+          </div>
+        </div>
       </section>
       <section className="summary" aria-label="Heutige Zusammenfassung">
         <div>
