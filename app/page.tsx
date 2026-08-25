@@ -77,6 +77,7 @@ export default function Home() {
   const [reminderPerson, setReminderPerson] = useState<"Johannes" | "Sonja">("Johannes");
   const [showReminderCard, setShowReminderCard] = useState(false);
   const [allChoresOpen, setAllChoresOpen] = useState(false);
+  const [splashVisible, setSplashVisible] = useState(true);
   const emptyScores = { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} };
   const [stats, setStats] = useState<Stats>({ streak: 0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
   const [celebration, setCelebration] = useState<{ label: string; person: string; points: number; icon: string } | null>(null);
@@ -88,6 +89,13 @@ export default function Home() {
     setLoading(false);
   }
   useEffect(() => {
+    const splashSeen = sessionStorage.getItem("cozyflat-splash-seen");
+    if (splashSeen) setSplashVisible(false);
+    else {
+      sessionStorage.setItem("cozyflat-splash-seen", "yes");
+      const splashTimer = window.setTimeout(() => setSplashVisible(false), 1900);
+      window.setTimeout(() => window.clearTimeout(splashTimer), 2100);
+    }
     const linkedPerson = new URLSearchParams(location.search).get("person");
     const savedPerson = localStorage.getItem("cozyflat-person");
     if (linkedPerson === "Sonja" || linkedPerson === "Johannes") {
@@ -170,6 +178,10 @@ export default function Home() {
   const showWeeklyRecap = now.getDay() === 0 && now.getHours() >= 18;
   return (
     <main className={`shell person-${person.toLowerCase()}`}>
+      {splashVisible && <section className="app-splash" aria-label="CozyFlat wird geladen" aria-live="polite">
+        <img src="/og.png" alt="CozyFlat – Sonja und Johannes packen gemeinsam zuhause an" />
+        <div><img src="/staubi.png" alt="" /><span>Staubi macht CozyFlat gemütlich …</span></div>
+      </section>}
       <header className="topbar">
         <a className="brand" href="#top">
           <span className="brandmark"><img src="/app-icon.png" alt="" /></span>

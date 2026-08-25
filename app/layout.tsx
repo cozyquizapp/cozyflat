@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'CozyFlat',
     description: 'Pflanzen, Haushalt und gemeinsame Level für Sonja und Johannes.',
-    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'CozyFlat – gemeinsam zuhause anpacken' }],
+    images: [{ url: '/og.png', width: 1672, height: 936, alt: 'CozyFlat – gemeinsam zuhause anpacken' }],
   },
   twitter: {
     card: 'summary_large_image',
