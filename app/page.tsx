@@ -23,6 +23,14 @@ const roomMeta: Record<string, { icon: string; line: string; className: string }
   Arbeitszimmer: { icon: "✎", line: "Ruhige Begleiter beim Arbeiten", className: "office" },
 };
 const day = 86400000;
+const levelNames = ["Nestling", "Anpacker:in", "Rudelprofi", "Zuhause-Held:in", "Cozy-Legende"];
+
+function levelFor(points: number) {
+  const step = 100;
+  const level = Math.floor(points / step) + 1;
+  const current = points % step;
+  return { level, current, next: step, progress: current, title: levelNames[Math.min(level - 1, levelNames.length - 1)] };
+}
 
 function dateInfo(plant: Plant) {
   const last = new Date(plant.lastWateredAt);
@@ -66,7 +74,7 @@ export default function Home() {
   const [showReminderCard, setShowReminderCard] = useState(false);
   const emptyScores = { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} };
   const [stats, setStats] = useState<Stats>({ streak: 0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
-  const [celebration, setCelebration] = useState<{ plant: string; person: string } | null>(null);
+  const [celebration, setCelebration] = useState<{ label: string; person: string; points: number; icon: string } | null>(null);
   async function refresh() {
     const [r, s, c] = await Promise.all([fetch("/api/plants"), fetch("/api/stats"), fetch("/api/chores")]);
     if (r.ok) setPlants(await r.json());
@@ -93,7 +101,7 @@ export default function Home() {
     await action({ action: "water", id: plant.id, person });
     const s = await fetch("/api/stats"); if (s.ok) setStats(await s.json());
     setBusy(null);
-    setCelebration({ plant: plant.name, person });
+    setCelebration({ label: plant.name, person, points: 10, icon: "💧" });
     setTimeout(() => setCelebration(null), 2400);
     setToast(
       `${plant.name} wurde von ${person} gegossen. Stark – der Pflanzendienst ist zufrieden.`,
@@ -113,7 +121,10 @@ export default function Home() {
     const r = await fetch('/api/chores', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({id:chore.id,person}) });
     if (r.ok) setChores(await r.json());
     const s = await fetch('/api/stats'); if (s.ok) setStats(await s.json());
-    setChoreBusy(null); setToast(`${chore.name}: ${person} bekommt ${chore.points} Punkte. Stark!`); setTimeout(() => setToast(''),2800);
+    setChoreBusy(null);
+    setCelebration({ label: chore.name, person, points: chore.points, icon: chore.icon });
+    setTimeout(() => setCelebration(null), 2400);
+    setToast(`${chore.name}: erledigt. ${person} sammelt ${chore.points} XP fürs Rudel.`); setTimeout(() => setToast(''),2800);
   }
   const todayCount = plants.filter((p) => dateInfo(p).diff <= 0).length;
   const soonCount = plants.filter((p) => {
@@ -121,6 +132,11 @@ export default function Home() {
     return d > 0 && d <= 3;
   }).length;
   const now = new Date();
+  const dueChoreCount = chores.filter((chore) => !chore.lastCompletedAt || new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) <= now).length;
+  const openCount = todayCount + dueChoreCount;
+  const weeklyTeamPoints = stats.scores.Johannes.points + stats.scores.Sonja.points;
+  const weeklyGoal = 200;
+  const weeklyProgress = Math.min(100, Math.round((weeklyTeamPoints / weeklyGoal) * 100));
   const dateLabel = now
     .toLocaleDateString("de-DE", {
       weekday: "long",
@@ -158,24 +174,26 @@ export default function Home() {
               Hallo {person}.
               <br />
               <em>
-                {todayCount === 0
+                {openCount === 0
                   ? "Alles ist versorgt."
-                  : todayCount === 1
-                    ? "Eine Pflanze hat Durst."
-                    : `${todayCount} Pflanzen haben Durst.`}
+                  : openCount === 1
+                    ? todayCount === 1
+                      ? "Eine Pflanze hat Durst."
+                      : "Eine Haushaltsrunde wartet."
+                  : `${openCount} Dinge warten auf euch.`}
               </em>
             </h1>
             <p className="intro">
-              Eure gemeinsame Gießrunde — damit jede Pflanze genau dann Wasser
-              bekommt, wenn sie es braucht.
+              Eure gemeinsame Runde für Pflanzen und Haushalt — mit kleinen
+              Erfolgen, fairen Punkten und einem ziemlich zufriedenen Zuhause.
             </p>
           </div>
         </div>
       </section>
       <section className="summary" aria-label="Heutige Zusammenfassung">
         <div>
-          <strong>{todayCount}</strong>
-          <span>heute fällig</span>
+          <strong>{openCount}</strong>
+          <span>heute offen</span>
         </div>
         <div>
           <strong>{soonCount}</strong>
@@ -184,22 +202,28 @@ export default function Home() {
         <div className="streak">
           <span>↗</span>
           <b>
-            {todayCount
-              ? `${person}, die Gießkanne wartet schon ungeduldig`
-              : "Alles im grünen Bereich"}
+            {openCount
+              ? `${person}, das Zuhause-Rudel zählt auf dich`
+              : "Alles erledigt – Rudelmodus: gemütlich"}
           </b>
         </div>
       </section>
-      <section className="scoreboard" aria-label="Familien-Scoreboard">
-        <div className="score-title"><span>🔥</span><div><p className="eyebrow">DIESE WOCHE</p><strong>{stats.streak} {stats.streak === 1 ? "Tag" : "Tage"} Streak</strong></div></div>
-        {(["Johannes", "Sonja"] as const).map((name, index) => <div className={`score-person ${person === name ? "is-active" : ""}`} key={name}>
-          <span className="score-rank"><img src={avatarFor[name]} alt="" /></span><div><b>{name}</b><small>{stats.scores[name].waterings}× diese Woche · {stats.totalScores[name].points} P gesamt</small></div><strong>{stats.scores[name].points} P</strong>
-        </div>)}
+      <section className="level-hub" aria-label="Eure Level und Wochenfortschritt">
+        <div className="team-quest">
+          <div className="quest-heading"><span>🔥</span><div><p className="eyebrow">WOCHENMISSION</p><strong>{stats.streak} {stats.streak === 1 ? "Tag" : "Tage"} gemeinsam dran</strong></div><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></div>
+          <div className="quest-track" aria-label={`${weeklyProgress} Prozent der Wochenmission geschafft`}><i style={{width:`${weeklyProgress}%`}} /></div>
+          <small>{weeklyProgress >= 100 ? "Mission geschafft. Das Rudel darf sich feiern!" : `Noch ${weeklyGoal - weeklyTeamPoints} XP bis zum Wochenziel.`}</small>
+        </div>
+        <div className="level-people">
+          {(["Johannes", "Sonja"] as const).map((name) => { const level = levelFor(stats.totalScores[name].points); return <article className={person === name ? "is-active" : ""} key={name}>
+            <img src={avatarFor[name]} alt="" /><div><span><b>{name}</b><em>Level {level.level}</em></span><strong>{level.title}</strong><div className="level-track"><i style={{width:`${level.progress}%`}} /></div><small>{level.current}/{level.next} XP bis Level {level.level + 1} · {stats.scores[name].points} XP diese Woche</small></div>
+          </article>})}
+        </div>
       </section>
       {showWeeklyRecap && <section className="weekly-recap">
-        <p className="eyebrow">SONNTAGS-RÜCKBLICK</p><h2>Was für eine Woche, ihr zwei.</h2>
+        <p className="eyebrow">SONNTAGS-RÜCKBLICK</p><h2>Das Rudel war fleißig.</h2>
         <div>{(["Johannes", "Sonja"] as const).map((name) => <article key={name}><img src={avatarFor[name]} alt="" /><span><b>{name}</b><small>{stats.scores[name].waterings} Aufgaben erledigt</small></span><strong>{stats.scores[name].points} Punkte</strong></article>)}</div>
-        <p>Um Mitternacht startet die neue Wochenrunde. Eure Punkte bleiben im Gesamtranking erhalten.</p>
+        <p>Um Mitternacht startet eine neue Wochenmission. Eure gesammelten XP bleiben in euren Leveln erhalten.</p>
       </section>}
       <section className="chores-section">
         <div className="section-head"><div><p className="eyebrow">HAUSHALTSRUNDE</p><h2>Was sonst noch ansteht</h2><p>Alles darf auch spontan erledigt werden – Besuch wartet schließlich nicht auf den Rhythmus.</p></div></div>
@@ -280,9 +304,9 @@ export default function Home() {
       <footer>
         <span>☘</span>
         <p>
-          Gemeinsam gepflegt.
+          Gemeinsam angepackt.
           <br />
-          Mit Liebe gegossen.
+          Danach gemeinsam gemütlich.
         </p>
         <button className="footer-reminder-link" onClick={() => { setReminderPerson(person); setReminderGuide(true); }}>Erinnerungen einrichten</button>
       </footer>
@@ -379,8 +403,8 @@ export default function Home() {
         </div>
       )}
       {celebration && <div className="water-celebration" role="status" aria-live="polite">
-        <div className="water-burst" aria-hidden="true"><span>💧</span><i></i><i></i><i></i><i></i><i></i></div>
-        <strong>Wasser marsch!</strong><p>{celebration.person} schenkt {celebration.plant} neues Leben.</p><b>+10 Punkte</b>
+        <div className="water-burst" aria-hidden="true"><span>{celebration.icon}</span><i></i><i></i><i></i><i></i><i></i></div>
+        <strong>Runde geschafft!</strong><p>{celebration.person} hat „{celebration.label}“ erledigt. Das Zuhause atmet auf.</p><b>+{celebration.points} XP</b>
       </div>}
     </main>
   );

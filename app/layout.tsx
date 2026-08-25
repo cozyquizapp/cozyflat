@@ -7,6 +7,7 @@ import './weekly.css';
 import './reminders.css';
 import './chores.css';
 import './personal.css';
+import './gamify.css';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -19,8 +20,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Gießrunde – Gemeinsam Pflanzen pflegen',
-  description: 'Euer gemeinsamer, einfacher Gießplan für alle Pflanzen zuhause.',
+  title: 'Gießrunde – Gemeinsam zuhause anpacken',
+  description: 'Eure gemeinsame App für Pflanzen, Haushalt und kleine Erfolgsmomente.',
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [{ url: '/app-icon.png', type: 'image/png' }],
@@ -29,13 +30,13 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: 'Gießrunde', statusBarStyle: 'default' },
   openGraph: {
     title: 'Gießrunde',
-    description: 'Gemeinsam gepflegt. Mit Liebe gegossen.',
-    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Gießrunde – gemeinsamer Gießplan' }],
+    description: 'Pflanzen, Haushalt und gemeinsame Level für Sonja und Johannes.',
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Gießrunde – gemeinsam zuhause anpacken' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Gießrunde',
-    description: 'Gemeinsam gepflegt. Mit Liebe gegossen.',
+    description: 'Pflanzen, Haushalt und gemeinsame Level für Sonja und Johannes.',
     images: ['/og.png'],
   },
 };
