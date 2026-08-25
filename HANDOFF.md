@@ -69,8 +69,9 @@ Die öffentliche Version ist Sites-Version 28. Sie enthält unter anderem:
 3. Eigene Kulissen für Schlafzimmer, Küche und Bad generieren, statt das Wohnzimmer farblich abzuwandeln.
 4. Weitere freigestellte Pflanzenillustrationen erstellen, damit die zwölf Pflanzen nicht nur zwei Bildtypen verwenden.
 5. Abschlussanimation weiter ausbauen: XP-Kaskade, sichtbares Pflanzenwachstum und stärkere Staubi-Reaktion.
-6. Optional Paar-Aufgaben als „gemeinsam gestartet“ mit laufendem Status ausbauen; derzeit ist „Gemeinsam“ eine Abschlussoption.
-7. Design-QA auf einem echten iPhone durchführen, besonders Pflanzenzimmer, Kategorien und Bottom-Navigation.
+6. Paar-Aufgaben als „gemeinsam gestartet“ mit laufendem Status ausbauen. Beide Personen sollen Beteiligung und Fortschritt sehen; derzeit ist „Gemeinsam“ nur eine Abschlussoption.
+7. Pflanzenzimmer als echtes Minigame polieren: Pflanzen, Töpfe, Regale und Staubi müssen räumlich und stilistisch in die jeweilige Zimmerkulisse integriert werden. Keine Emoji-Sticker, weißen Bildkästen oder losgelösten Karten auf dem Hintergrund. Die Bildreferenz dient als Qualitätsmaßstab: warme, glaubwürdige Szene, passende Pflanzengröße und feste Stellflächen im Raum.
+8. Design-QA auf einem echten iPhone durchführen, besonders Pflanzenzimmer, Kategorien und Bottom-Navigation.
 
 ## Technischer Aufbau
 
