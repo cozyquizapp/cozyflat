@@ -20,6 +20,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Gießrunde – Gemeinsam Pflanzen pflegen',
   description: 'Euer gemeinsamer, einfacher Gießplan für alle Pflanzen zuhause.',
+  manifest: '/manifest.webmanifest',
+  icons: {
+    icon: [{ url: '/app-icon.png', type: 'image/png' }],
+    apple: [{ url: '/app-icon.png', type: 'image/png' }],
+  },
   appleWebApp: { capable: true, title: 'Gießrunde', statusBarStyle: 'default' },
   openGraph: {
     title: 'Gießrunde',
