@@ -76,6 +76,7 @@ export default function Home() {
   const [progressOpen, setProgressOpen] = useState(false);
   const [reminderPerson, setReminderPerson] = useState<"Johannes" | "Sonja">("Johannes");
   const [showReminderCard, setShowReminderCard] = useState(false);
+  const [allChoresOpen, setAllChoresOpen] = useState(false);
   const emptyScores = { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} };
   const [stats, setStats] = useState<Stats>({ streak: 0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
   const [celebration, setCelebration] = useState<{ label: string; person: string; points: number; icon: string } | null>(null);
@@ -88,7 +89,12 @@ export default function Home() {
   }
   useEffect(() => {
     const linkedPerson = new URLSearchParams(location.search).get("person");
-    if (linkedPerson === "Sonja" || linkedPerson === "Johannes") setPerson(linkedPerson);
+    const savedPerson = localStorage.getItem("cozyflat-person");
+    if (linkedPerson === "Sonja" || linkedPerson === "Johannes") {
+      setPerson(linkedPerson);
+      localStorage.setItem("cozyflat-person", linkedPerson);
+    } else if (savedPerson === "Sonja" || savedPerson === "Johannes") setPerson(savedPerson);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => undefined);
     refresh();
     setShowReminderCard(localStorage.getItem("reminder-card-dismissed") !== "yes");
   }, []);
@@ -149,6 +155,7 @@ export default function Home() {
   }).length;
   const now = new Date();
   const dueChoreCount = chores.filter((chore) => !chore.paused && (!chore.lastCompletedAt || new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) <= now)).length;
+  const dueChoresToday = chores.filter((chore) => !chore.paused && (!chore.lastCompletedAt || new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) <= now));
   const openCount = todayCount + dueChoreCount;
   const weeklyTeamPoints = stats.scores.Johannes.points + stats.scores.Sonja.points;
   const weeklyGoal = 200;
@@ -172,7 +179,7 @@ export default function Home() {
           {(["Johannes", "Sonja"] as const).map((p) => (
             <button
               key={p}
-              onClick={() => setPerson(p)}
+              onClick={() => { setPerson(p); localStorage.setItem("cozyflat-person", p); }}
               className={person === p ? "active" : ""}
             >
               <img src={avatarFor[p]} alt="" />
@@ -227,7 +234,7 @@ export default function Home() {
         </div>
       </section>
       <div className={`mobile-progress ${progressOpen ? "is-open" : ""}`} id="fortschritt">
-        <button className="progress-toggle" onClick={() => setProgressOpen((open) => !open)} aria-expanded={progressOpen}><span>🔥 Wochenmission</span><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></button>
+        <button className="progress-toggle" onClick={() => setProgressOpen((open) => !open)} aria-expanded={progressOpen}><span>★ Level & Wochenmission</span><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></button>
         <section className="level-hub" aria-label="Eure Level und Wochenfortschritt">
         <div className="team-quest">
           <div className="quest-heading"><span>🔥</span><div><p className="eyebrow">WOCHENMISSION</p><strong>{stats.streak} {stats.streak === 1 ? "Tag" : "Tage"} gemeinsam dran</strong></div><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></div>
@@ -248,15 +255,17 @@ export default function Home() {
       </section>}
       <section className="chores-section" id="aufgaben">
         <div className="section-head"><div><p className="eyebrow">EURE HAUSIS</p><h2>Was sonst noch ansteht</h2><p>Alles darf auch spontan erledigt werden – Besuch wartet schließlich nicht auf den Rhythmus.</p></div><button className="add-hausi" onClick={()=>{setEditingChore(null);setChoreModal(true)}}><span>＋</span> Hausi</button></div>
-        <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
+        {dueChoresToday.length > 0 && <section className="today-chores" aria-labelledby="today-chores-title"><div className="today-chores-head"><div><p className="eyebrow">HEUTE WICHTIG</p><h3 id="today-chores-title">Erst mal diese {Math.min(5,dueChoresToday.length)}</h3></div><span>{dueChoresToday.length} offen</span></div><div>{dueChoresToday.slice(0,5).map((chore) => <article className="quick-chore" key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{chore.category} · +{chore.points} XP</small></div><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}><img src={avatarFor[person]} alt="" />{choreBusy === chore.id ? '…' : `Erledigt als ${person}`}</button></article>)}</div>{dueChoresToday.length > 5 && <small className="today-more">Danach warten noch {dueChoresToday.length - 5} – eins nach dem anderen.</small>}</section>}
+        <button className="all-chores-toggle" onClick={()=>setAllChoresOpen(open=>!open)} aria-expanded={allChoresOpen}><span>Alle Hausis nach Kategorie</span><b>{allChoresOpen ? 'einklappen ↑' : 'anzeigen ↓'}</b></button>
+        {allChoresOpen && <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
           const categoryChores = chores.filter((chore) => chore.category === category);
           const dueChores = categoryChores.filter((chore) => !chore.paused && (!chore.lastCompletedAt || new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) <= now));
           const laterChores = categoryChores.filter((chore) => !dueChores.includes(chore));
           const renderChore = (chore: Chore) => { const next = chore.lastCompletedAt ? new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) : new Date(0); const isDue = !chore.lastCompletedAt || next <= now;
-            return <article className={`chore-card ${isDue ? 'is-due' : ''} ${chore.paused ? 'is-paused' : ''}`} key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{chore.paused ? 'Pausiert' : isDue ? 'Jetzt fällig' : `wieder ${next.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})}`} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch offen'}</small></div><strong>+{chore.points}</strong><button className="edit-chore" onClick={()=>{setEditingChore(chore);setChoreModal(true)}} aria-label={`${chore.name} bearbeiten`}>✎</button><button className="finish-chore" onClick={() => finishChore(chore)} disabled={chore.paused || choreBusy === chore.id}>{chore.paused ? 'Pausiert' : choreBusy === chore.id ? '…' : 'Erledigt'}</button></article>;
+            return <article className={`chore-card ${isDue ? 'is-due' : ''} ${chore.paused ? 'is-paused' : ''}`} key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{chore.paused ? 'Pausiert' : isDue ? 'Jetzt fällig' : `wieder ${next.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})}`} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch offen'}</small></div><strong>+{chore.points}</strong><button className="edit-chore" onClick={()=>{setEditingChore(chore);setChoreModal(true)}} aria-label={`${chore.name} bearbeiten`}>✎</button><button className="finish-chore" onClick={() => finishChore(chore)} disabled={chore.paused || choreBusy === chore.id}>{chore.paused ? 'Pausiert' : choreBusy === chore.id ? '…' : <><img src={avatarFor[person]} alt="" />Erledigt</>}</button></article>;
           };
           return <section className="chore-group" key={category}><h3>{category}</h3><div>{dueChores.map(renderChore)}</div>{laterChores.length > 0 && <details className="later-chores"><summary>{laterChores.length} später fällig <span>anzeigen ↓</span></summary><div>{laterChores.map(renderChore)}</div></details>}</section>;
-        })}</div>
+        })}</div>}
       </section>
       <section className="plant-section" id="pflanzen">
         <div className="section-head">
@@ -437,7 +446,7 @@ export default function Home() {
         <a href="#top"><span>⌂</span>Heute</a>
         <a href="#aufgaben"><span>✓</span>Aufgaben</a>
         <a href="#pflanzen"><span>☘</span>Pflanzen</a>
-        <a href="#fortschritt"><span>★</span>Level</a>
+        <a href="#fortschritt" onClick={() => setProgressOpen(true)}><span>★</span>Level</a>
       </nav>
     </main>
   );
