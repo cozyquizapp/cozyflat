@@ -1,7 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { listPlants } from '../../../db/store';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const requestedPerson = request.nextUrl.searchParams.get('person');
+  const person = requestedPerson === 'Sonja' ? 'Sonja' : 'Johannes';
   const plants = await listPlants();
   const today = new Date(); today.setHours(0,0,0,0);
   const nudges = [
@@ -16,11 +18,11 @@ export async function GET() {
     if (due.getTime() > today.getTime()) return [];
     return [{
       id: `giessrunde-${plant.id}-${plant.lastWateredAt.slice(0,10)}`,
-      title: `💧 ${plant.name} gießen – los geht’s, ihr zwei!`,
-      notes: `${nudges[plant.id % nudges.length]}\n\nStandort: ${plant.room}\nDanach bitte in der Gießrunde als gegossen markieren.\nKennung: giessrunde-${plant.id}`,
+      title: `💧 ${person}, ${plant.name} braucht dich!`,
+      notes: `${nudges[plant.id % nudges.length]}\n\nDiese Erinnerung gehört zu: ${person}\nStandort: ${plant.room}\nDanach bitte in der Gießrunde als gegossen markieren – dein Profil ist beim Öffnen bereits ausgewählt.\nKennung: giessrunde-${plant.id}`,
       dueDate: new Date().toISOString().slice(0,10),
       list: 'Familie',
-      appUrl: 'https://giessrunde-zuhause.hqv8s9bhsp.chatgpt.site/',
+      appUrl: `https://giessrunde-zuhause.hqv8s9bhsp.chatgpt.site/?person=${encodeURIComponent(person)}`,
     }];
   });
   return NextResponse.json({ reminders, checkedAt: new Date().toISOString() }, { headers: { 'cache-control': 'no-store' } });

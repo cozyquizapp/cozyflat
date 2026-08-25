@@ -59,6 +59,7 @@ export default function Home() {
   const [busy, setBusy] = useState<number | null>(null);
   const [toast, setToast] = useState("");
   const [reminderGuide, setReminderGuide] = useState(false);
+  const [reminderPerson, setReminderPerson] = useState<"Johannes" | "Sonja">("Johannes");
   const [showReminderCard, setShowReminderCard] = useState(false);
   const emptyScores = { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} };
   const [stats, setStats] = useState<Stats>({ streak: 0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
@@ -70,6 +71,8 @@ export default function Home() {
     setLoading(false);
   }
   useEffect(() => {
+    const linkedPerson = new URLSearchParams(location.search).get("person");
+    if (linkedPerson === "Sonja" || linkedPerson === "Johannes") setPerson(linkedPerson);
     refresh();
     setShowReminderCard(localStorage.getItem("reminder-card-dismissed") !== "yes");
   }, []);
@@ -249,7 +252,7 @@ export default function Home() {
         <button className="dismiss-reminder" onClick={() => { localStorage.setItem("reminder-card-dismissed", "yes"); setShowReminderCard(false); }} aria-label="Apple-Einrichtung ausblenden">×</button>
         <div className="reminder-symbol" aria-hidden="true">✓</div>
         <div><p className="eyebrow">APPLE ERINNERUNGEN</p><h2>Gemeinsam nichts vergessen</h2><p>Ein Kurzbefehl trägt fällige Pflanzen automatisch in eure Familienliste ein.</p></div>
-        <button onClick={() => setReminderGuide(true)}>Einrichten</button>
+        <button onClick={() => { setReminderPerson(person); setReminderGuide(true); }}>Einrichten</button>
       </section>}
       <footer>
         <span>☘</span>
@@ -258,7 +261,7 @@ export default function Home() {
           <br />
           Mit Liebe gegossen.
         </p>
-        <button className="footer-reminder-link" onClick={() => setReminderGuide(true)}>Erinnerungen einrichten</button>
+        <button className="footer-reminder-link" onClick={() => { setReminderPerson(person); setReminderGuide(true); }}>Erinnerungen einrichten</button>
       </footer>
       {modal && (
         <div
@@ -331,6 +334,10 @@ export default function Home() {
             <p className="eyebrow">EINMALIG AUF EINEM IPHONE</p>
             <h2 id="reminder-title">Familien-Erinnerungen verbinden</h2>
             <p className="modal-intro">Der Kurzbefehl prüft täglich eure Gießrunde. Fällige Pflanzen landen in der geteilten Liste „Familie“.</p>
+            <fieldset className="reminder-person-picker">
+              <legend>Für wen ist dieser Kurzbefehl?</legend>
+              {(["Johannes", "Sonja"] as const).map((name) => <button type="button" className={reminderPerson === name ? "active" : ""} onClick={() => setReminderPerson(name)} key={name}><img src={avatarFor[name]} alt="" /><span><b>{name}</b><small>{reminderPerson === name ? "ausgewählt" : "dieses Profil wählen"}</small></span><i>✓</i></button>)}
+            </fieldset>
             <ol className="shortcut-steps">
               <li><b>Gemeinsame Liste prüfen</b><span>Öffnet „Erinnerungen“ und stellt sicher, dass eure geteilte Liste „Familie“ heißt.</span></li>
               <li><b>Kurzbefehl erstellen</b><span>Öffnet „Kurzbefehle“, tippt auf ＋ und fügt „Inhalt von URL abrufen“ ein.</span></li>
@@ -338,8 +345,8 @@ export default function Home() {
               <li><b>Erinnerungen hinzufügen</b><span>Wiederholt jeden Eintrag und nutzt „Neue Erinnerung“ mit „title“ für die Liste „Familie“. Vorher nach einer offenen Erinnerung mit demselben Titel suchen, damit nichts doppelt erscheint.</span></li>
               <li><b>Täglich ausführen</b><span>Unter „Automation“ → „Tageszeit“ den Kurzbefehl jeden Morgen automatisch starten.</span></li>
             </ol>
-            <button className="copy-url" onClick={async () => { await navigator.clipboard.writeText(`${location.origin}/api/reminders`); setToast('Adresse für den Kurzbefehl kopiert.'); setTimeout(() => setToast(''), 2800); }}>Adresse kopieren</button>
-            <code className="shortcut-url">{typeof window !== 'undefined' ? `${location.origin}/api/reminders` : '/api/reminders'}</code>
+            <button className="copy-url" onClick={async () => { await navigator.clipboard.writeText(`${location.origin}/api/reminders?person=${encodeURIComponent(reminderPerson)}`); setToast(`Adresse für ${reminderPerson} kopiert.`); setTimeout(() => setToast(''), 2800); }}>Adresse für {reminderPerson} kopieren</button>
+            <code className="shortcut-url">{typeof window !== 'undefined' ? `${location.origin}/api/reminders?person=${encodeURIComponent(reminderPerson)}` : `/api/reminders?person=${reminderPerson}`}</code>
           </section>
         </div>
       )}
