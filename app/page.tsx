@@ -11,7 +11,7 @@ type Plant = {
   imageKey: string | null;
 };
 type PersonScore = { points: number; waterings: number };
-type Stats = { streak: number; scores: Record<"Johannes" | "Sonja", PersonScore>; totalScores: Record<"Johannes" | "Sonja", PersonScore>; previousWeek: Record<"Johannes" | "Sonja", PersonScore> };
+type Stats = { streak: number; loginStreak: number; loginDays: number; scores: Record<"Johannes" | "Sonja", PersonScore>; totalScores: Record<"Johannes" | "Sonja", PersonScore>; previousWeek: Record<"Johannes" | "Sonja", PersonScore> };
 type Chore = { id:number; name:string; category:string; icon:string; intervalDays:number; points:number; lastCompletedAt:string|null; lastCompletedBy:string|null; paused:boolean; scheduleMode:'flexible'|'scheduled'; cadenceHours:number; priority:number; dueTime:string|null };
 const icons = ["🌿", "🪴", "🌱", "☘️", "🌵", "🍃"];
 const roomOrder = ["Balkon", "Wohnzimmer", "Küche", "Arbeitszimmer"];
@@ -107,9 +107,10 @@ export default function Home() {
   const [showReminderCard, setShowReminderCard] = useState(false);
   const [allChoresOpen, setAllChoresOpen] = useState(false);
   const [plantsOpen, setPlantsOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<'today'|'chores'|'plants'|'level'>('today');
   const [splashVisible, setSplashVisible] = useState(true);
   const emptyScores = { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} };
-  const [stats, setStats] = useState<Stats>({ streak: 0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
+  const [stats, setStats] = useState<Stats>({ streak: 0, loginStreak: 0, loginDays: 0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
   const [celebration, setCelebration] = useState<{ label: string; person: string; points: number; icon: string } | null>(null);
   async function refresh() {
     const [r, s, c] = await Promise.all([fetch("/api/plants"), fetch("/api/stats"), fetch("/api/chores")]);
@@ -131,6 +132,10 @@ export default function Home() {
     setShowReminderCard(localStorage.getItem("reminder-card-dismissed") !== "yes");
     return () => window.clearTimeout(splashTimer);
   }, []);
+  useEffect(() => {
+    const day = localDayKey(new Date()).split('-').map((part, index) => index ? part.padStart(2,'0') : part).join('-');
+    fetch('/api/stats',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({person,day})}).then(async (response)=>{if(response.ok)setStats(await response.json())}).catch(()=>undefined);
+  }, [person]);
   async function action(payload: object) {
     const r = await fetch("/api/plants", {
       method: "POST",
@@ -194,6 +199,10 @@ export default function Home() {
   const choreCountToday = todayChores.length;
   const openCount = todayCount + choreCountToday;
   const weeklyTeamPoints = stats.scores.Johannes.points + stats.scores.Sonja.points;
+  const gardenXp = stats.totalScores.Johannes.points + stats.totalScores.Sonja.points;
+  const gardenLevel = Math.floor(gardenXp / 100) + 1;
+  const gardenProgress = gardenXp % 100;
+  const gardenEmoji = gardenLevel >= 8 ? '🌳' : gardenLevel >= 6 ? '🌸' : gardenLevel >= 4 ? '🌿' : gardenLevel >= 2 ? '🪴' : '🌱';
   const weeklyGoal = 200;
   const weeklyProgress = Math.min(100, Math.round((weeklyTeamPoints / weeklyGoal) * 100));
   const dateLabel = now
@@ -205,10 +214,10 @@ export default function Home() {
     .toUpperCase();
   const showWeeklyRecap = now.getDay() === 0 && now.getHours() >= 18;
   return (
-    <main className={`shell person-${person.toLowerCase()}`}>
+    <main className={`shell person-${person.toLowerCase()} view-${mobileView}`}>
       {splashVisible && <section className="app-splash" aria-label="CozyFlat wird geladen" aria-live="polite">
-        <img src="/og.png" alt="CozyFlat – Sonja und Johannes packen gemeinsam zuhause an" />
-        <div><img src="/staubi.png" alt="" /><span>Staubi macht CozyFlat gemütlich …</span></div>
+        <picture><source media="(max-width: 900px)" srcSet="/loading-mobile.webp" /><img src="/og.png" alt="CozyFlat – Sonja und Johannes packen gemeinsam zuhause an" /></picture>
+        <div><span>✨ Staubi macht CozyFlat gemütlich</span><i></i><i></i><i></i></div>
       </section>}
       <header className="topbar">
         <a className="brand" href="#top">
@@ -279,6 +288,10 @@ export default function Home() {
       </section>
       <div className={`mobile-progress ${progressOpen ? "is-open" : ""}`} id="fortschritt">
         <button className="progress-toggle" onClick={() => setProgressOpen((open) => !open)} aria-expanded={progressOpen}><span>★ Level & Wochenmission</span><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></button>
+        <section className="cozy-garden" aria-label="Euer gemeinsamer CozyGarden">
+          <div className="garden-scene" aria-hidden="true"><span>{gardenEmoji}</span><i>✨</i><b>☀️</b></div>
+          <div className="garden-copy"><p className="eyebrow">EUER GEMEINSAMER GARTEN</p><h2>CozyGarden · Level {gardenLevel}</h2><p>Jedes Hausi schenkt ihm Wachstum. Jeder gemeinsame App-Tag hält ihn lebendig.</p><div className="garden-track"><i style={{width:`${gardenProgress}%`}} /></div><small><b>🔥 {stats.loginStreak} Tage Login-Streak</b><span>{gardenProgress}/100 XP bis zur nächsten Gartenstufe</span></small></div>
+        </section>
         <section className="level-hub" aria-label="Eure Level und Wochenfortschritt">
         <div className="team-quest">
           <div className="quest-heading"><span>🔥</span><div><p className="eyebrow">WOCHENMISSION</p><strong>{stats.streak} {stats.streak === 1 ? "Tag" : "Tage"} gemeinsam dran</strong></div><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></div>
@@ -308,7 +321,7 @@ export default function Home() {
           const renderChore = (chore: Chore) => { const next = choreNext(chore); const isDue = Boolean(next && next <= now);
             return <article className={`chore-card ${isDue ? 'is-due' : ''} priority-${chore.priority} ${chore.paused ? 'is-paused' : ''}`} key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{choreTiming(chore,now)} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch nie abgehakt'}</small></div><strong>{'!'.repeat(chore.priority)} · +{chore.points}</strong><button className="edit-chore" onClick={()=>{setEditingChore(chore);setChoreModal(true)}} aria-label={`${chore.name} bearbeiten`}>✎</button><button className="finish-chore" onClick={() => finishChore(chore)} disabled={chore.paused || choreBusy === chore.id}>{chore.paused ? 'Pausiert' : choreBusy === chore.id ? '…' : <><img src={avatarFor[person]} alt="" />Jetzt erledigt</>}</button></article>;
           };
-          return <section className="chore-group" key={category}><h3>{category}</h3><div>{dueChores.map(renderChore)}</div>{laterChores.length > 0 && <details className="later-chores"><summary>{laterChores.length} später fällig <span>anzeigen ↓</span></summary><div>{laterChores.map(renderChore)}</div></details>}</section>;
+          return <details className="chore-group" key={category}><summary className="chore-group-preview"><span className="chore-preview-icon">{categoryChores[0]?.icon ?? '✨'}</span><span><small>{dueChores.length ? `${dueChores.length} jetzt wichtig` : 'Flexibel einplanbar'}</small><b>{category}</b></span><span className="chore-preview-strip" aria-hidden="true">{categoryChores.slice(0,3).map((item)=><i key={item.id}>{item.icon}</i>)}</span><em>{categoryChores.length}</em><strong>⌄</strong></summary><div className="chore-group-content"><div>{dueChores.map(renderChore)}</div>{laterChores.length > 0 && <details className="later-chores"><summary>{laterChores.length} weitere Hausis <span>anzeigen ↓</span></summary><div>{laterChores.map(renderChore)}</div></details>}</div></details>;
         })}</div>}
       </section>
       <section className={`plant-section plant-menu ${plantsOpen ? 'is-open' : ''}`} id="pflanzen">
@@ -355,19 +368,23 @@ export default function Home() {
                     </div>
                   </article>;
                 };
-                return <section className={`room-zone ${meta.className}`} key={room}>
-                  <header className="room-header">
+                return <details className={`room-zone ${meta.className}`} key={room}>
+                  <summary className="room-header">
                     <span className="room-symbol" aria-hidden="true">{meta.icon}</span>
                     <div><p>{meta.line}</p><h3>{room}</h3></div>
+                    <span className="room-previews" aria-hidden="true">{roomPlants.slice(0,3).map((plant,index)=><i key={plant.id}>{plant.imageKey ? <img src={`/api/images/${encodeURIComponent(plant.imageKey)}`} alt="" /> : icons[index % icons.length]}</i>)}</span>
                     <span className={`room-count ${dueInRoom ? "has-due" : ""}`}>{dueInRoom ? `${dueInRoom} fällig` : `${roomPlants.length} versorgt`}</span>
-                  </header>
-                  {duePlants.length > 0 && <div className="plant-grid">{duePlants.map(renderCard)}</div>}
-                  {duePlants.length === 0 && <div className="room-all-done"><span>✓</span><div><b>Hier ist alles versorgt</b><small>Bis zur nächsten Pflanzenrunde könnt ihr euch zurücklehnen.</small></div></div>}
-                  {caredPlants.length > 0 && <details className="cared-plants">
+                    <span className="room-chevron" aria-hidden="true">⌄</span>
+                  </summary>
+                  <div className="room-content">
+                    {duePlants.length > 0 && <div className="plant-grid">{duePlants.map(renderCard)}</div>}
+                    {duePlants.length === 0 && <div className="room-all-done"><span>✓</span><div><b>Hier ist alles versorgt</b><small>Bis zur nächsten Pflanzenrunde könnt ihr euch zurücklehnen.</small></div></div>}
+                    {caredPlants.length > 0 && <details className="cared-plants">
                     <summary><span><b>{caredPlants.length} versorgt</b><small>{caredPlants.map((plant) => plant.name).join(" · ")}</small></span><i>anzeigen</i></summary>
                     <div className="plant-grid">{caredPlants.map(renderCard)}</div>
-                  </details>}
-                </section>;
+                    </details>}
+                  </div>
+                </details>;
               })}
           </div>
         ))}
@@ -485,10 +502,10 @@ export default function Home() {
         <strong>Hausi geschafft!</strong><p>{celebration.person} hat „{celebration.label}“ erledigt. Das Zuhause atmet auf.</p><b>+{celebration.points} XP</b>
       </div>}
       <nav className="mobile-nav" aria-label="Hauptnavigation">
-        <a href="#top"><span>⌂</span>Heute</a>
-        <a href="#aufgaben"><span>✓</span>Aufgaben</a>
-        <a href="#pflanzen" onClick={() => setPlantsOpen(true)}><span>☘</span>Pflanzen</a>
-        <a href="#fortschritt" onClick={() => setProgressOpen(true)}><span>★</span>Level</a>
+        <button className={mobileView==='today'?'active':''} onClick={()=>{setMobileView('today');window.scrollTo({top:0,behavior:'smooth'})}}><span>⌂</span>Heute</button>
+        <button className={mobileView==='chores'?'active':''} onClick={()=>{setMobileView('chores');setAllChoresOpen(true);window.scrollTo({top:0,behavior:'smooth'})}}><span>✓</span>Hausis</button>
+        <button className={mobileView==='plants'?'active':''} onClick={()=>{setMobileView('plants');setPlantsOpen(true);window.scrollTo({top:0,behavior:'smooth'})}}><span>☘</span>Pflanzen</button>
+        <button className={mobileView==='level'?'active':''} onClick={()=>{setMobileView('level');setProgressOpen(true);window.scrollTo({top:0,behavior:'smooth'})}}><span>🌱</span>Garten</button>
       </nav>
     </main>
   );

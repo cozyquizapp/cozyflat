@@ -30,3 +30,8 @@ export const chores = sqliteTable('chores', {
 export const choreEvents = sqliteTable('chore_events', {
   id: integer('id').primaryKey({ autoIncrement: true }), choreId: integer('chore_id').notNull(), person: text('person').notNull(), points: integer('points').notNull(), completedAt: text('completed_at').notNull(),
 });
+export const appVisits = sqliteTable('app_visits', {
+  day: text('day').notNull(),
+  person: text('person').notNull(),
+  visitedAt: text('visited_at').notNull(),
+});

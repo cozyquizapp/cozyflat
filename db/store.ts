@@ -27,6 +27,7 @@ async function ready() {
     db.prepare('CREATE TABLE IF NOT EXISTS chores (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, category TEXT NOT NULL, icon TEXT NOT NULL, interval_days INTEGER NOT NULL, points INTEGER NOT NULL, last_completed_at TEXT, last_completed_by TEXT)'),
     db.prepare('CREATE TABLE IF NOT EXISTS chore_events (id INTEGER PRIMARY KEY AUTOINCREMENT, chore_id INTEGER NOT NULL, person TEXT NOT NULL, points INTEGER NOT NULL, completed_at TEXT NOT NULL)'),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_chore_events_completed_at ON chore_events(completed_at)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS app_visits (day TEXT NOT NULL, person TEXT NOT NULL, visited_at TEXT NOT NULL, PRIMARY KEY(day, person))'),
   ]);
   try { await db.prepare('ALTER TABLE chores ADD COLUMN paused INTEGER NOT NULL DEFAULT 0').run(); } catch {}
   try { await db.prepare("ALTER TABLE chores ADD COLUMN schedule_mode TEXT NOT NULL DEFAULT 'flexible'").run(); } catch {}
@@ -97,10 +98,11 @@ export async function getWateringStats() {
   const weekStart = new Date(now); weekStart.setUTCHours(0,0,0,0); weekStart.setUTCDate(weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7));
   const nextWeek = new Date(weekStart); nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
   const previousWeek = new Date(weekStart); previousWeek.setUTCDate(previousWeek.getUTCDate() - 7);
-  const [scores, weekly, previous] = await Promise.all([
+  const [scores, weekly, previous, visits] = await Promise.all([
     db.prepare(`SELECT person, SUM(points) AS points, COUNT(*) AS waterings FROM (SELECT person, points, watered_at AS done_at FROM watering_events UNION ALL SELECT person, points, completed_at AS done_at FROM chore_events) GROUP BY person`).all<{person:string; points:number; waterings:number}>(),
     db.prepare(`SELECT person, SUM(points) AS points, COUNT(*) AS waterings FROM (SELECT person, points, watered_at AS done_at FROM watering_events UNION ALL SELECT person, points, completed_at AS done_at FROM chore_events) WHERE done_at >= ? AND done_at < ? GROUP BY person`).bind(weekStart.toISOString(), nextWeek.toISOString()).all<{person:string; points:number; waterings:number}>(),
     db.prepare(`SELECT person, SUM(points) AS points, COUNT(*) AS waterings FROM (SELECT person, points, watered_at AS done_at FROM watering_events UNION ALL SELECT person, points, completed_at AS done_at FROM chore_events) WHERE done_at >= ? AND done_at < ? GROUP BY person`).bind(previousWeek.toISOString(), weekStart.toISOString()).all<{person:string; points:number; waterings:number}>(),
+    db.prepare('SELECT DISTINCT day FROM app_visits ORDER BY day DESC').all<{day:string}>(),
   ]);
   const days = await db.prepare(`SELECT DISTINCT substr(done_at, 1, 10) AS day FROM (SELECT watered_at AS done_at FROM watering_events UNION ALL SELECT completed_at AS done_at FROM chore_events) ORDER BY day DESC`).all<{day:string}>();
   const daySet = new Set(days.results.map((row) => row.day));
@@ -112,7 +114,19 @@ export async function getWateringStats() {
     const mapped = Object.fromEntries(rows.map((row) => [row.person, { points: Number(row.points), waterings: Number(row.waterings) }]));
     return { Johannes: mapped.Johannes ?? {points:0,waterings:0}, Sonja: mapped.Sonja ?? {points:0,waterings:0} };
   };
-  return { streak, scores: mapScores(weekly.results), totalScores: mapScores(scores.results), previousWeek: mapScores(previous.results) };
+  const visitDays = new Set(visits.results.map((row) => row.day));
+  const loginCursor = new Date(); loginCursor.setHours(0,0,0,0);
+  const loginKey = (date:Date) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  if (!visitDays.has(loginKey(loginCursor))) loginCursor.setDate(loginCursor.getDate() - 1);
+  let loginStreak = 0;
+  while (visitDays.has(loginKey(loginCursor))) { loginStreak++; loginCursor.setDate(loginCursor.getDate() - 1); }
+  return { streak, loginStreak, loginDays: visitDays.size, scores: mapScores(weekly.results), totalScores: mapScores(scores.results), previousWeek: mapScores(previous.results) };
+}
+
+export async function registerVisit(person:string, day:string) {
+  const db = await ready();
+  await db.prepare('INSERT OR IGNORE INTO app_visits (day, person, visited_at) VALUES (?, ?, ?)').bind(day, person, new Date().toISOString()).run();
+  return getWateringStats();
 }
 
 export async function addPlant(name:string, room:string, intervalDays:number, person:string, imageKey:string|null=null) {
