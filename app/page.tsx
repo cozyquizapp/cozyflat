@@ -48,6 +48,7 @@ export default function Home() {
   const [person, setPerson] = useState<"Du" | "Sie">("Du");
   const [busy, setBusy] = useState<number | null>(null);
   const [toast, setToast] = useState("");
+  const [reminderGuide, setReminderGuide] = useState(false);
   async function refresh() {
     const r = await fetch("/api/plants");
     if (r.ok) setPlants(await r.json());
@@ -148,6 +149,11 @@ export default function Home() {
               : "Alles im grünen Bereich"}
           </b>
         </div>
+      </section>
+      <section className="reminder-card">
+        <div className="reminder-symbol" aria-hidden="true">✓</div>
+        <div><p className="eyebrow">APPLE ERINNERUNGEN</p><h2>Gemeinsam nichts vergessen</h2><p>Ein Kurzbefehl trägt fällige Pflanzen automatisch in eure Familienliste ein.</p></div>
+        <button onClick={() => setReminderGuide(true)}>Einrichten</button>
       </section>
       <section className="plant-section">
         <div className="section-head">
@@ -287,6 +293,25 @@ export default function Home() {
               </label>
               <button className="submit-button">Pflanze anlegen</button>
             </form>
+          </section>
+        </div>
+      )}
+      {reminderGuide && (
+        <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setReminderGuide(false); }}>
+          <section className="modal reminder-modal" role="dialog" aria-modal="true" aria-labelledby="reminder-title">
+            <button className="close" onClick={() => setReminderGuide(false)} aria-label="Schließen">×</button>
+            <p className="eyebrow">EINMALIG AUF EINEM IPHONE</p>
+            <h2 id="reminder-title">Familien-Erinnerungen verbinden</h2>
+            <p className="modal-intro">Der Kurzbefehl prüft täglich eure Gießrunde. Fällige Pflanzen landen in der geteilten Liste „Familie“.</p>
+            <ol className="shortcut-steps">
+              <li><b>Gemeinsame Liste prüfen</b><span>Öffnet „Erinnerungen“ und stellt sicher, dass eure geteilte Liste „Familie“ heißt.</span></li>
+              <li><b>Kurzbefehl erstellen</b><span>Öffnet „Kurzbefehle“, tippt auf ＋ und fügt „Inhalt von URL abrufen“ ein.</span></li>
+              <li><b>Adresse einsetzen</b><span>Kopiert die Adresse unten und setzt sie als URL ein. Wählt aus dem Ergebnis den Wert „reminders“.</span></li>
+              <li><b>Erinnerungen hinzufügen</b><span>Wiederholt jeden Eintrag und nutzt „Neue Erinnerung“ mit „title“ für die Liste „Familie“. Vorher nach einer offenen Erinnerung mit demselben Titel suchen, damit nichts doppelt erscheint.</span></li>
+              <li><b>Täglich ausführen</b><span>Unter „Automation“ → „Tageszeit“ den Kurzbefehl jeden Morgen automatisch starten.</span></li>
+            </ol>
+            <button className="copy-url" onClick={async () => { await navigator.clipboard.writeText(`${location.origin}/api/reminders`); setToast('Adresse für den Kurzbefehl kopiert.'); setTimeout(() => setToast(''), 2800); }}>Adresse kopieren</button>
+            <code className="shortcut-url">{typeof window !== 'undefined' ? `${location.origin}/api/reminders` : '/api/reminders'}</code>
           </section>
         </div>
       )}
