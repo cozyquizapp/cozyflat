@@ -12,6 +12,7 @@ type Plant = {
 };
 type PersonScore = { points: number; waterings: number };
 type Stats = { streak: number; scores: Record<"Johannes" | "Sonja", PersonScore>; totalScores: Record<"Johannes" | "Sonja", PersonScore>; previousWeek: Record<"Johannes" | "Sonja", PersonScore> };
+type Chore = { id:number; name:string; category:string; icon:string; intervalDays:number; points:number; lastCompletedAt:string|null; lastCompletedBy:string|null };
 const icons = ["🌿", "🪴", "🌱", "☘️", "🌵", "🍃"];
 const roomOrder = ["Balkon", "Wohnzimmer", "Küche", "Arbeitszimmer"];
 const avatarFor = { Johannes: "/avatar-johannes.png", Sonja: "/avatar-sonja.png" } as const;
@@ -53,10 +54,12 @@ function dateInfo(plant: Plant) {
 
 export default function Home() {
   const [plants, setPlants] = useState<Plant[]>([]);
+  const [chores, setChores] = useState<Chore[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
   const [person, setPerson] = useState<"Johannes" | "Sonja">("Johannes");
   const [busy, setBusy] = useState<number | null>(null);
+  const [choreBusy, setChoreBusy] = useState<number | null>(null);
   const [toast, setToast] = useState("");
   const [reminderGuide, setReminderGuide] = useState(false);
   const [reminderPerson, setReminderPerson] = useState<"Johannes" | "Sonja">("Johannes");
@@ -65,9 +68,10 @@ export default function Home() {
   const [stats, setStats] = useState<Stats>({ streak: 0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
   const [celebration, setCelebration] = useState<{ plant: string; person: string } | null>(null);
   async function refresh() {
-    const [r, s] = await Promise.all([fetch("/api/plants"), fetch("/api/stats")]);
+    const [r, s, c] = await Promise.all([fetch("/api/plants"), fetch("/api/stats"), fetch("/api/chores")]);
     if (r.ok) setPlants(await r.json());
     if (s.ok) setStats(await s.json());
+    if (c.ok) setChores(await c.json());
     setLoading(false);
   }
   useEffect(() => {
@@ -103,6 +107,13 @@ export default function Home() {
     const r = await fetch("/api/plants", { method: "POST", body: data });
     if (r.ok) setPlants(await r.json());
     setModal(false);
+  }
+  async function finishChore(chore: Chore) {
+    setChoreBusy(chore.id);
+    const r = await fetch('/api/chores', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({id:chore.id,person}) });
+    if (r.ok) setChores(await r.json());
+    const s = await fetch('/api/stats'); if (s.ok) setStats(await s.json());
+    setChoreBusy(null); setToast(`${chore.name}: ${person} bekommt ${chore.points} Punkte. Stark!`); setTimeout(() => setToast(''),2800);
   }
   const todayCount = plants.filter((p) => dateInfo(p).diff <= 0).length;
   const soonCount = plants.filter((p) => {
@@ -185,6 +196,13 @@ export default function Home() {
         <div>{(["Johannes", "Sonja"] as const).map((name) => <article key={name}><img src={avatarFor[name]} alt="" /><span><b>{name}</b><small>{stats.scores[name].waterings} Aufgaben erledigt</small></span><strong>{stats.scores[name].points} Punkte</strong></article>)}</div>
         <p>Um Mitternacht startet die neue Wochenrunde. Eure Punkte bleiben im Gesamtranking erhalten.</p>
       </section>}
+      <section className="chores-section">
+        <div className="section-head"><div><p className="eyebrow">HAUSHALTSRUNDE</p><h2>Was sonst noch ansteht</h2><p>Alles darf auch spontan erledigt werden – Besuch wartet schließlich nicht auf den Rhythmus.</p></div></div>
+        <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => <section className="chore-group" key={category}><h3>{category}</h3><div>{chores.filter((chore) => chore.category === category).map((chore) => {
+          const next = chore.lastCompletedAt ? new Date(new Date(chore.lastCompletedAt).getTime() + chore.intervalDays * day) : new Date(0); const isDue = !chore.lastCompletedAt || next <= now;
+          return <article className={`chore-card ${isDue ? 'is-due' : ''}`} key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{isDue ? 'Jetzt fällig' : `wieder ${next.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})}`} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch offen'}</small></div><strong>+{chore.points}</strong><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}>{choreBusy === chore.id ? '…' : 'Erledigt'}</button></article>;
+        })}</div></section>)}</div>
+      </section>
       <section className="plant-section">
         <div className="section-head">
           <div>

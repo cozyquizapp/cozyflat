@@ -24,6 +24,9 @@ async function ready() {
     )`),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_watering_events_watered_at ON watering_events(watered_at)'),
     db.prepare('CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS chores (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, category TEXT NOT NULL, icon TEXT NOT NULL, interval_days INTEGER NOT NULL, points INTEGER NOT NULL, last_completed_at TEXT, last_completed_by TEXT)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS chore_events (id INTEGER PRIMARY KEY AUTOINCREMENT, chore_id INTEGER NOT NULL, person TEXT NOT NULL, points INTEGER NOT NULL, completed_at TEXT NOT NULL)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_chore_events_completed_at ON chore_events(completed_at)'),
   ]);
   const count = await db.prepare('SELECT COUNT(*) AS count FROM plants').first<{count:number}>();
   if (!count?.count) {
@@ -42,6 +45,13 @@ async function ready() {
       db.prepare('DELETE FROM watering_events'),
       db.prepare("UPDATE plants SET last_watered_at = ?, last_watered_by = 'Sonja & Johannes' WHERE lower(room) = 'balkon'").bind(now),
     ]);
+  }
+  const choreCount = await db.prepare('SELECT COUNT(*) AS count FROM chores').first<{count:number}>();
+  if (!choreCount?.count) {
+    const rows: [string,string,string,number,number][] = [
+      ['Bad putzen','Putzen','🛁',14,30],['Küche putzen','Putzen','✨',14,30],['Hausflur fegen','Hausflur','🧹',28,10],['Hausflur wischen','Hausflur','🪣',28,20],['Wäsche 30°','Wäsche','👕',3,12],['Wäsche 60°','Wäsche','♨️',4,12],['Weißwäsche','Wäsche','🤍',4,12],['Spülmaschine ausräumen','Küche','🍽️',1,5],['Kochen','Küche','🍳',1,10],['Staubsaugen','Putzen','〰️',7,15],['Wohnzimmer aufräumen','Aufräumen','🛋️',7,8],['Küche aufräumen','Aufräumen','☕',7,8],['Arbeitszimmer aufräumen','Aufräumen','✏️',7,8],['Schlafzimmer aufräumen','Aufräumen','🛏️',7,8],['Klamotten verräumen','Wäsche','🧺',3,8],
+    ];
+    await db.batch(rows.map((row) => db.prepare('INSERT INTO chores (name, category, icon, interval_days, points) VALUES (?, ?, ?, ?, ?)').bind(...row)));
   }
   return db;
 }
@@ -68,12 +78,11 @@ export async function getWateringStats() {
   const nextWeek = new Date(weekStart); nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
   const previousWeek = new Date(weekStart); previousWeek.setUTCDate(previousWeek.getUTCDate() - 7);
   const [scores, weekly, previous] = await Promise.all([
-    db.prepare(`SELECT person, SUM(points) AS points, COUNT(*) AS waterings FROM watering_events GROUP BY person`).all<{person:string; points:number; waterings:number}>(),
-    db.prepare(`SELECT person, SUM(points) AS points, COUNT(*) AS waterings FROM watering_events WHERE watered_at >= ? AND watered_at < ? GROUP BY person`).bind(weekStart.toISOString(), nextWeek.toISOString()).all<{person:string; points:number; waterings:number}>(),
-    db.prepare(`SELECT person, SUM(points) AS points, COUNT(*) AS waterings FROM watering_events WHERE watered_at >= ? AND watered_at < ? GROUP BY person`).bind(previousWeek.toISOString(), weekStart.toISOString()).all<{person:string; points:number; waterings:number}>(),
+    db.prepare(`SELECT person, SUM(points) AS points, COUNT(*) AS waterings FROM (SELECT person, points, watered_at AS done_at FROM watering_events UNION ALL SELECT person, points, completed_at AS done_at FROM chore_events) GROUP BY person`).all<{person:string; points:number; waterings:number}>(),
+    db.prepare(`SELECT person, SUM(points) AS points, COUNT(*) AS waterings FROM (SELECT person, points, watered_at AS done_at FROM watering_events UNION ALL SELECT person, points, completed_at AS done_at FROM chore_events) WHERE done_at >= ? AND done_at < ? GROUP BY person`).bind(weekStart.toISOString(), nextWeek.toISOString()).all<{person:string; points:number; waterings:number}>(),
+    db.prepare(`SELECT person, SUM(points) AS points, COUNT(*) AS waterings FROM (SELECT person, points, watered_at AS done_at FROM watering_events UNION ALL SELECT person, points, completed_at AS done_at FROM chore_events) WHERE done_at >= ? AND done_at < ? GROUP BY person`).bind(previousWeek.toISOString(), weekStart.toISOString()).all<{person:string; points:number; waterings:number}>(),
   ]);
-  const days = await db.prepare(`SELECT DISTINCT substr(watered_at, 1, 10) AS day
-    FROM watering_events ORDER BY day DESC`).all<{day:string}>();
+  const days = await db.prepare(`SELECT DISTINCT substr(done_at, 1, 10) AS day FROM (SELECT watered_at AS done_at FROM watering_events UNION ALL SELECT completed_at AS done_at FROM chore_events) ORDER BY day DESC`).all<{day:string}>();
   const daySet = new Set(days.results.map((row) => row.day));
   const cursor = new Date(); cursor.setHours(0,0,0,0);
   if (!daySet.has(cursor.toISOString().slice(0,10))) cursor.setDate(cursor.getDate() - 1);
@@ -92,3 +101,7 @@ export async function addPlant(name:string, room:string, intervalDays:number, pe
 }
 
 export async function removePlant(id:number) { const db = await ready(); await db.prepare('DELETE FROM plants WHERE id = ?').bind(id).run(); }
+
+export type Chore = { id:number; name:string; category:string; icon:string; intervalDays:number; points:number; lastCompletedAt:string|null; lastCompletedBy:string|null };
+export async function listChores() { const db = await ready(); const result = await db.prepare('SELECT id, name, category, icon, interval_days AS intervalDays, points, last_completed_at AS lastCompletedAt, last_completed_by AS lastCompletedBy FROM chores ORDER BY category, name').all<Chore>(); return result.results; }
+export async function completeChore(id:number, person:string) { const db = await ready(); const now = new Date().toISOString(); const chore = await db.prepare('SELECT points FROM chores WHERE id = ?').bind(id).first<{points:number}>(); if (!chore) return; await db.batch([db.prepare('UPDATE chores SET last_completed_at = ?, last_completed_by = ? WHERE id = ?').bind(now, person,id),db.prepare('INSERT INTO chore_events (chore_id, person, points, completed_at) VALUES (?, ?, ?, ?)').bind(id,person,chore.points,now)]); }

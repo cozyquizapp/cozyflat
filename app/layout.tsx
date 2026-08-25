@@ -5,6 +5,7 @@ import './collapsed.css';
 import './avatars.css';
 import './weekly.css';
 import './reminders.css';
+import './chores.css';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',

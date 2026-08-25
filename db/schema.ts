@@ -23,3 +23,10 @@ export const appMeta = sqliteTable('app_meta', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
 });
+
+export const chores = sqliteTable('chores', {
+  id: integer('id').primaryKey({ autoIncrement: true }), name: text('name').notNull(), category: text('category').notNull(), icon: text('icon').notNull(), intervalDays: integer('interval_days').notNull(), points: integer('points').notNull(), lastCompletedAt: text('last_completed_at'), lastCompletedBy: text('last_completed_by'),
+});
+export const choreEvents = sqliteTable('chore_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }), choreId: integer('chore_id').notNull(), person: text('person').notNull(), points: integer('points').notNull(), completedAt: text('completed_at').notNull(),
+});
