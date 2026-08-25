@@ -149,7 +149,7 @@ export default function Home() {
     <main className={`shell person-${person.toLowerCase()}`}>
       <header className="topbar">
         <a className="brand" href="#top">
-          <span className="brandmark">CF</span>
+          <span className="brandmark"><img src="/app-icon.png" alt="" /></span>
           <span>CozyFlat</span>
         </a>
         <div className="person-switch" aria-label="Wer benutzt die App?">
