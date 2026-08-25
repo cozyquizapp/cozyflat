@@ -26,8 +26,13 @@ export const metadata: Metadata = {
   description: 'Eure gemeinsame App für Pflanzen, Haushalt und kleine Erfolgsmomente.',
   manifest: '/manifest.webmanifest',
   icons: {
-    icon: [{ url: '/app-icon.png', type: 'image/png' }],
-    apple: [{ url: '/app-icon.png', type: 'image/png' }],
+    icon: [
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+    shortcut: ['/favicon-32.png'],
   },
   appleWebApp: { capable: true, title: 'CozyFlat', statusBarStyle: 'default' },
   openGraph: {
