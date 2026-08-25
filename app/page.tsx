@@ -11,6 +11,13 @@ type Plant = {
   imageKey: string | null;
 };
 const icons = ["🌿", "🪴", "🌱", "☘️", "🌵", "🍃"];
+const roomOrder = ["Balkon", "Wohnzimmer", "Küche", "Arbeitszimmer"];
+const roomMeta: Record<string, { icon: string; line: string; className: string }> = {
+  Balkon: { icon: "☀", line: "Sonne, Kräuter & Sommerluft", className: "balcony" },
+  Wohnzimmer: { icon: "⌂", line: "Euer grünes Herzstück", className: "living" },
+  Küche: { icon: "◇", line: "Frisches Grün zwischen Tassen & Tellern", className: "kitchen" },
+  Arbeitszimmer: { icon: "✎", line: "Ruhige Begleiter beim Arbeiten", className: "office" },
+};
 const day = 86400000;
 
 function dateInfo(plant: Plant) {
@@ -174,53 +181,41 @@ export default function Home() {
             Legt eure erste Pflanze an.
           </div>
         ) : (
-          <div className="plant-grid">
-            {plants.map((plant, i) => {
-              const d = dateInfo(plant);
-              return (
-                <article
-                  className={`plant-card ${d.diff <= 0 ? "urgent" : ""}`}
-                  key={plant.id}
-                >
-                  <div className={`plant-icon ${plant.imageKey ? "has-photo" : ""}`}>
-                    {plant.imageKey ? <img src={`/api/images/${encodeURIComponent(plant.imageKey)}`} alt={plant.name} /> : icons[i % icons.length]}
+          <div className="room-list">
+            {[...roomOrder, ...plants.map((p) => p.room).filter((room) => !roomOrder.includes(room))]
+              .filter((room, index, all) => all.indexOf(room) === index && plants.some((p) => p.room === room))
+              .map((room) => {
+                const meta = roomMeta[room] ?? { icon: "☘", line: "Eure Pflanzen", className: "other" };
+                const roomPlants = plants.filter((plant) => plant.room === room);
+                const dueInRoom = roomPlants.filter((plant) => dateInfo(plant).diff <= 0).length;
+                return <section className={`room-zone ${meta.className}`} key={room}>
+                  <header className="room-header">
+                    <span className="room-symbol" aria-hidden="true">{meta.icon}</span>
+                    <div><p>{meta.line}</p><h3>{room}</h3></div>
+                    <span className={`room-count ${dueInRoom ? "has-due" : ""}`}>{dueInRoom ? `${dueInRoom} fällig` : `${roomPlants.length} versorgt`}</span>
+                  </header>
+                  <div className="plant-grid">
+                    {roomPlants.map((plant, i) => {
+                      const d = dateInfo(plant);
+                      return <article className={`plant-card ${d.diff <= 0 ? "urgent" : ""}`} key={plant.id}>
+                        <div className={`plant-icon ${plant.imageKey ? "has-photo" : ""}`}>
+                          {plant.imageKey ? <img src={`/api/images/${encodeURIComponent(plant.imageKey)}`} alt={plant.name} /> : icons[i % icons.length]}
+                        </div>
+                        <div className="plant-copy">
+                          <span className={`due ${d.diff <= 0 ? "due-now" : ""}`}>{d.diff <= 0 ? "● " : ""}{d.due}</span>
+                          <h3>{plant.name}</h3>
+                          <p>Zuletzt {d.last} von {plant.lastWateredBy}</p>
+                          <p className="next-date">Nächstes Mal: {d.next} · alle {plant.intervalDays} Tage</p>
+                        </div>
+                        <div className="card-actions">
+                          <button className="water-button" onClick={() => water(plant)} disabled={busy === plant.id}><span>✓</span>{busy === plant.id ? "Speichert …" : "Gegossen"}</button>
+                          <button className="delete-button" onClick={async () => { if (confirm(`${plant.name} wirklich entfernen?`)) await action({ action: "delete", id: plant.id }); }} aria-label={`${plant.name} entfernen`}>Entfernen</button>
+                        </div>
+                      </article>;
+                    })}
                   </div>
-                  <div className="plant-copy">
-                    <span className={`due ${d.diff <= 0 ? "due-now" : ""}`}>
-                      {d.diff <= 0 ? "● " : ""}
-                      {d.due}
-                    </span>
-                    <h3>{plant.name}</h3>
-                    <p>
-                      {plant.room} · zuletzt {d.last} von {plant.lastWateredBy}
-                    </p>
-                    <p className="next-date">
-                      Nächstes Mal: {d.next} · alle {plant.intervalDays} Tage
-                    </p>
-                  </div>
-                  <div className="card-actions">
-                    <button
-                      className="water-button"
-                      onClick={() => water(plant)}
-                      disabled={busy === plant.id}
-                    >
-                      <span>✓</span>
-                      {busy === plant.id ? "Speichert …" : "Gegossen"}
-                    </button>
-                    <button
-                      className="delete-button"
-                      onClick={async () => {
-                        if (confirm(`${plant.name} wirklich entfernen?`))
-                          await action({ action: "delete", id: plant.id });
-                      }}
-                      aria-label={`${plant.name} entfernen`}
-                    >
-                      Entfernen
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
+                </section>;
+              })}
           </div>
         )}
       </section>
