@@ -45,3 +45,29 @@
 @media(max-width:640px){
   .today-chores{margin:22px -2px 12px;padding:16px;border-radius:20px}.today-chores-head h3{font-size:22px}.quick-chore{grid-template-columns:36px 1fr;min-height:0}.quick-chore button{grid-column:2;width:100%;justify-content:center}.quick-chore button img{width:28px;height:28px}.all-chores-toggle{margin-bottom:8px}.mobile-progress.is-open{scroll-margin-top:12px}.mobile-progress.is-open>.level-hub{box-shadow:0 14px 35px rgba(23,60,45,.12)}
 }
+
+/* iPhones in landscape are wider than 640 CSS pixels. Keep the dashboard
+   compact until tablet/desktop width instead of falling back to the desktop hero. */
+@media(max-width:900px){
+  .hero{padding:24px 18px 18px}
+  .hero:before{inset:8px 7px 0;border-radius:24px}
+  .personal-greeting{grid-template-columns:68px minmax(0,1fr);gap:13px;align-items:start}
+  .greeting-avatar{width:68px!important;height:68px!important;border-width:4px}
+  .greeting-copy .eyebrow{margin:3px 0 8px;font-size:9px}
+  .greeting-copy h1{font-size:clamp(29px,6.2vw,42px);line-height:1.01;letter-spacing:-.045em}
+  .intro{display:none}
+  .staubi-greeting{margin-top:13px;padding:9px 12px;grid-column:1/-1;max-width:none}
+  .staubi-greeting img{width:36px;height:36px}
+  .staubi-greeting p{font-size:11px;line-height:1.35}
+  .round-start{grid-column:1/-1;min-height:50px;margin-top:12px}
+  .summary{margin:12px 16px 0;padding:13px 8px;grid-template-columns:1fr 1fr}
+  .summary>div{justify-content:center}
+  .summary strong{font-size:27px}
+  .summary .streak{grid-column:1/-1;justify-content:center;padding-top:12px;margin-top:12px;border-top:1px solid var(--line)}
+  .mobile-progress{margin:14px 16px;scroll-margin-top:14px}
+  .progress-toggle{width:100%;min-height:52px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:16px;background:#f4ead5;color:var(--ink);cursor:pointer;font-size:12px}
+  .progress-toggle b{color:var(--green)}
+  .mobile-progress>.level-hub{display:none}
+  .mobile-progress.is-open .progress-toggle{margin-bottom:9px}
+  .mobile-progress.is-open>.level-hub{display:grid;margin:0;box-shadow:0 14px 35px rgba(23,60,45,.12)}
+}
