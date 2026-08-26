@@ -11,7 +11,7 @@ const canvasSize = 512;
 await fs.mkdir(outputDir, { recursive: true });
 
 for (const plantKey of plantKeys) {
-  const preferred = path.join(growthDir, `growth-${plantKey}${plantKey === "monstera" ? "-v2" : ""}.png`);
+  const preferred = path.join(growthDir, `growth-${plantKey}${["monstera", "orchid"].includes(plantKey) ? "-v2" : ""}.png`);
   const source = await fs.access(preferred).then(() => preferred).catch(() => path.join(growthDir, `growth-${plantKey}.png`));
   const metadata = await sharp(source).metadata();
   const { data: pixels, info } = await sharp(source).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
