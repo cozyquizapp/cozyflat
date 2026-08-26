@@ -47,38 +47,49 @@
 .garden-room-tabs button:focus-visible, .weekly-plant-choice button:focus-visible { outline: 3px solid #d59632; outline-offset: 3px; }
 .garden-room-tabs button:disabled { opacity: .48; cursor: not-allowed; }
 
-/* Exact 1009:1559 room canvas. Objects use one bottom-center scene anchor. */
+/* A native game board: fixed slots replace fragile positioning on perspective art. */
 .plant-room-stage {
-  position: relative;
-  overflow: hidden;
+  --room-wall: #e9eddf;
+  --room-panel: #fffdf7;
+  --room-accent: #8ea16e;
+  --room-deep: #244b39;
   width: min(100%, 520px);
-  aspect-ratio: 1009 / 1559;
   margin-inline: auto;
-  isolation: isolate;
-  border-radius: 22px;
-  background: #e7d7bd;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5), 0 18px 40px rgba(72, 50, 28, .12);
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  border: 1px solid color-mix(in srgb, var(--room-accent) 38%, white);
+  border-radius: 26px;
+  background: var(--room-wall);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .82), 0 18px 40px rgba(55, 70, 48, .12);
 }
-.plant-room-bg { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; display: block; object-fit: fill; }
-.plant-shelf { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.collectible, .staubi-home {
-  position: absolute;
-  left: var(--anchor-x);
-  top: var(--anchor-y);
-  width: var(--object-width);
-  transform: translate(-50%, -100%);
-  transform-origin: bottom center;
-  pointer-events: none;
+.plant-room-stage.room-schlafzimmer { --room-wall: #f0e3df; --room-panel: #fff9f6; --room-accent: #be897c; --room-deep: #6f423e; }
+.plant-room-stage.room-kueche { --room-wall: #f4e6d4; --room-panel: #fffaf2; --room-accent: #c68b56; --room-deep: #744a2f; }
+.plant-room-stage.room-bad { --room-wall: #dfebeb; --room-panel: #f8fdfc; --room-accent: #6e9a96; --room-deep: #315d59; }
+.room-plaque { padding: 3px 3px 0; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--room-deep); }
+.room-plaque small { font-size: 10px; font-weight: 900; letter-spacing: .15em; }
+.room-plaque b { font-family: Georgia, serif; font-size: 16px; font-weight: 400; }
+.plant-shelf {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
-.collectible { z-index: 2; filter: drop-shadow(0 7px 6px rgba(58, 38, 21, .22)); }
-.collectible .growth-sprite { width: 100%; height: auto; display: block; object-fit: contain; animation: plant-arrive .65s cubic-bezier(.2, 1.35, .4, 1); }
-.staubi-home { z-index: 3; display: grid; place-items: center; }
+.shelf-slot { position: relative; min-height: 166px; overflow: hidden; display: grid; place-items: center; border: 1px solid rgba(255, 255, 255, .86); border-radius: 22px; background: color-mix(in srgb, var(--room-panel) 88%, transparent); box-shadow: 0 10px 24px rgba(55, 70, 48, .08), inset 0 0 0 1px color-mix(in srgb, var(--room-accent) 12%, transparent); }
+.shelf-slot::after { content: ""; position: absolute; left: 13%; right: 13%; bottom: 29px; height: 9px; border-radius: 8px; background: color-mix(in srgb, var(--room-accent) 62%, #a66f45); box-shadow: 0 5px 9px rgba(65, 45, 28, .16); }
+.shelf-slot.is-empty { align-content: center; gap: 7px; color: color-mix(in srgb, var(--room-deep) 58%, white); }
+.shelf-slot.is-empty::after { opacity: .5; }
+.shelf-slot.is-empty span { width: 34px; height: 34px; display: grid; place-items: center; border: 1px dashed color-mix(in srgb, var(--room-accent) 55%, white); border-radius: 50%; background: rgba(255, 255, 255, .48); font-family: Georgia, serif; font-size: 16px; }
+.shelf-slot.is-empty small { margin-bottom: 26px; font-size: 10px; font-weight: 800; }
+.collectible { position: relative; z-index: 1; width: 92%; height: 156px; padding: 7px 8px 29px; display: grid; grid-template-rows: 1fr auto; justify-items: center; filter: drop-shadow(0 7px 6px rgba(58, 38, 21, .18)); }
+.collectible .growth-sprite { width: 100%; height: 118px; display: block; object-fit: contain; object-position: center bottom; animation: plant-arrive .65s cubic-bezier(.2, 1.35, .4, 1); }
+.collectible small { max-width: 100%; overflow: hidden; color: var(--room-deep); font-size: 9px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
+.staubi-nook { min-height: 108px; padding: 12px 14px 10px 17px; display: grid; grid-template-columns: 1fr 88px; align-items: center; gap: 12px; border-radius: 23px; background: var(--room-deep); color: #fffdf4; box-shadow: 0 12px 28px color-mix(in srgb, var(--room-deep) 20%, transparent); }
+.staubi-nook > div:first-child { display: grid; gap: 5px; }
+.staubi-nook > div:first-child small { font-size: 9px; font-weight: 900; letter-spacing: .15em; opacity: .7; }
+.staubi-nook > div:first-child b { max-width: 230px; font-family: Georgia, serif; font-size: 17px; font-weight: 400; line-height: 1.15; }
+.staubi-home { position: relative; width: 82px; height: 82px; display: grid; place-items: center; }
 .staubi-home img { width: 100%; height: auto; display: block; filter: drop-shadow(0 7px 7px rgba(65, 39, 25, .24)); animation: staubi-idle 3.2s ease-in-out infinite; }
-.staubi-home span { position: absolute; left: 63%; top: -5px; min-width: 44px; padding: 4px 7px; border-radius: 999px; background: rgba(255, 247, 223, .96); box-shadow: 0 4px 12px rgba(77, 52, 28, .12); color: #735a30; font-size: 10px; font-weight: 800; text-align: center; white-space: nowrap; }
-
-.empty-room-hint { position: absolute; left: 50%; bottom: 10%; z-index: 4; width: auto; padding: 8px 12px; display: flex; align-items: center; flex-direction: column; border: 1px solid rgba(255, 255, 255, .7); border-radius: 999px; background: rgba(255, 250, 239, .9); color: #173c2d; font-size: 10px; text-align: center; transform: translateX(-50%); backdrop-filter: blur(8px); }
-.empty-room-hint b { font-family: inherit; font-size: 11px; font-weight: 800; }
-.empty-room-hint small { display: none; }
+.staubi-home span { position: absolute; right: -3px; top: -2px; min-width: 42px; padding: 4px 7px; border-radius: 999px; background: #fff4d7; box-shadow: 0 4px 12px rgba(20, 39, 30, .18); color: #735a30; font-size: 9px; font-weight: 900; text-align: center; white-space: nowrap; }
 
 .plant-room-game > .garden-track { margin: 14px 4px 6px; }
 .garden-meta { display: flex; justify-content: space-between; gap: 12px; padding: 0 4px; color: #667168; font-size: 11px; }

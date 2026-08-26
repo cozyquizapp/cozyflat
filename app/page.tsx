@@ -1,5 +1,5 @@
 "use client";
-import { CSSProperties, FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type Plant = {
   id: number;
@@ -35,58 +35,6 @@ const choreCategoryArt: Record<string, { image: string; tone: string }> = {
   Aufräumen: { image: "/chore-waesche.png", tone: "rose" },
   Müll: { image: "/chore-putzen.png", tone: "sage" },
 };
-const gardenRoomArt: Record<string, { src: string; alt: string }> = {
-  Wohnzimmer: { src: "/garden/rooms/garden-living.png", alt: "Leeres Holzregal im sonnigen Wohnzimmer mit Staubis Körbchen" },
-  Schlafzimmer: { src: "/garden/rooms/garden-bedroom.png", alt: "Leeres Holzregal im ruhigen Schlafzimmer mit Staubis Körbchen" },
-  Küche: { src: "/garden/rooms/garden-kitchen.png", alt: "Leeres Holzregal in der warmen Küche mit Staubis Körbchen" },
-  Bad: { src: "/garden/rooms/garden-bathroom.png", alt: "Leeres Holzregal im hellen Bad mit Staubis Körbchen" },
-};
-type SceneAnchor = { x: number; y: number; width: number };
-type GardenScene = { plants: SceneAnchor[]; staubi: SceneAnchor };
-const gardenSceneAnchors: Record<string, GardenScene> = {
-  Wohnzimmer: {
-    plants: [
-      { x: 39, y: 20.5, width: 27 },
-      { x: 67, y: 30.2, width: 27 },
-      { x: 38, y: 44.5, width: 27 },
-      { x: 77, y: 48.7, width: 27 },
-    ],
-    staubi: { x: 81.5, y: 70.4, width: 13.5 },
-  },
-  Schlafzimmer: {
-    plants: [
-      { x: 66, y: 35, width: 27 },
-      { x: 65, y: 51, width: 27 },
-      { x: 40, y: 59, width: 27 },
-      { x: 80, y: 64, width: 27 },
-    ],
-    staubi: { x: 77, y: 83, width: 14 },
-  },
-  Küche: {
-    plants: [
-      { x: 27, y: 40, width: 27 },
-      { x: 82, y: 52, width: 27 },
-      { x: 48, y: 63, width: 27 },
-      { x: 65, y: 75, width: 27 },
-    ],
-    staubi: { x: 76, y: 84, width: 14 },
-  },
-  Bad: {
-    plants: [
-      { x: 30, y: 37, width: 27 },
-      { x: 72, y: 41, width: 27 },
-      { x: 35, y: 63, width: 27 },
-      { x: 73, y: 67, width: 27 },
-    ],
-    staubi: { x: 77, y: 84, width: 14 },
-  },
-};
-type SceneStyle = CSSProperties & { "--anchor-x": string; "--anchor-y": string; "--object-width": string };
-const sceneStyle = (anchor: SceneAnchor): SceneStyle => ({
-  "--anchor-x": `${anchor.x}%`,
-  "--anchor-y": `${anchor.y}%`,
-  "--object-width": `${anchor.width}%`,
-});
 const growthStage = (xp: number) => Math.min(5, 1 + [24, 60, 120, 200].filter((threshold) => xp >= threshold).length);
 const growthLabel = (stage: number) => ["Keimling", "Erste Blätter", "Jungpflanze", "Kräftig", "Blütenmoment"][stage - 1];
 const gardenGrowthSrc = (plantKey: string, stage: number) => `/garden/stages/${plantKey}-${stage}.png`;
@@ -280,7 +228,7 @@ export default function Home() {
   const gardenLevel = Math.floor(gardenXp / 100) + 1;
   const gardenProgress = gardenXp % 100;
   const gardenEmoji = gardenLevel >= 8 ? '🌳' : gardenLevel >= 6 ? '🌸' : gardenLevel >= 4 ? '🌿' : gardenLevel >= 2 ? '🪴' : '🌱';
-  const activeGardenScene = gardenSceneAnchors[gardenRoom] ?? gardenSceneAnchors.Wohnzimmer;
+  const activeGardenItems = garden?.collection.filter((item)=>item.room===gardenRoom).slice(-4) ?? [];
   const weeklyGoal = 200;
   const weeklyProgress = Math.min(100, Math.round((weeklyTeamPoints / weeklyGoal) * 100));
   const dateLabel = now
@@ -363,10 +311,9 @@ export default function Home() {
           <div className="garden-game-head"><div><p className="eyebrow">STAUBIS PFLANZENZIMMER</p><h2>Euer Zuhause wächst mit.</h2><p>Jedes Hausi schenkt euren Pflanzen neue Blätter.</p></div><div className="garden-level-pill"><span>Level {gardenLevel}</span><b>{gardenProgress}/100 XP</b></div></div>
           <nav className="garden-room-tabs" aria-label="Pflanzenräume">{garden?.rooms.map((room)=><button key={room.name} disabled={!room.unlocked} className={gardenRoom===room.name?'active':''} onClick={()=>room.unlocked&&setGardenRoom(room.name)}><span>{room.unlocked?room.name:'🔒 '+room.name}</span><small>{room.count}/{room.capacity}</small></button>)}</nav>
           <div className={`plant-room-stage room-${gardenRoom.toLowerCase().replace('ü','ue')}`}>
-            <img className="plant-room-bg" src={gardenRoomArt[gardenRoom]?.src ?? gardenRoomArt.Wohnzimmer.src} alt={gardenRoomArt[gardenRoom]?.alt ?? gardenRoomArt.Wohnzimmer.alt} />
-            <div className="plant-shelf" aria-label={`Eure Pflanzen im ${gardenRoom}`}>{garden?.collection.filter((item)=>item.room===gardenRoom).slice(-4).map((item,index)=>{const stage=growthStage(Math.max(0,garden.xp-item.xpAtUnlock));const anchor=activeGardenScene.plants[index] ?? activeGardenScene.plants[0];return <article className={`collectible slot-${index} stage-${stage}`} style={sceneStyle(anchor)} key={item.weekKey}><img className="growth-sprite" src={gardenGrowthSrc(item.plantKey,stage)} alt={`${item.plant.name}, Wachstumsstufe ${stage} von 5: ${growthLabel(stage)}`}/></article>})}</div>
-            {garden?.collection.filter((item)=>item.room===gardenRoom).length===0&&<div className="empty-room-hint"><b>Das Regal wartet auf euren ersten Einzug.</b><small>Wählt unten einen Wochenliebling für diesen Raum.</small></div>}
-            <div className="staubi-home" style={sceneStyle(activeGardenScene.staubi)}><img src="/staubi-cutout.png" alt="Staubi liegt in seinem Körbchen und freut sich über euer Pflanzenzimmer"/><span>{stats.loginStreak ? `Serie: ${stats.loginStreak}` : 'Schläft'}</span></div>
+            <div className="room-plaque"><small>{gardenRoom.toUpperCase()}</small><b>{activeGardenItems.length ? `${activeGardenItems.length} von 4 Pflanzen` : 'Noch ganz viel Platz'}</b></div>
+            <div className="plant-shelf" aria-label={`Eure Pflanzen im ${gardenRoom}`}>{[0,1,2,3].map((index)=>{const item=activeGardenItems[index];if(!item)return <div className="shelf-slot is-empty" key={`empty-${index}`}><span>{index+1}</span><small>Freier Platz</small></div>;const stage=growthStage(Math.max(0,(garden?.xp??0)-item.xpAtUnlock));return <div className="shelf-slot is-occupied" key={item.weekKey}><article className={`collectible stage-${stage}`}><img className="growth-sprite" src={gardenGrowthSrc(item.plantKey,stage)} alt={`${item.plant.name}, Wachstumsstufe ${stage} von 5: ${growthLabel(stage)}`}/><small>{item.plant.name}</small></article></div>})}</div>
+            <aside className="staubi-nook"><div><small>STAUBIS ECKE</small><b>{stats.loginStreak ? `${stats.loginStreak} Tage gemeinsam da` : 'Staubi macht es sich gemütlich'}</b></div><div className="staubi-home"><img src="/staubi-cutout.png" alt="Staubi freut sich über euer Pflanzenzimmer"/><span>{stats.loginStreak ? `Serie ${stats.loginStreak}` : 'Zzz'}</span></div></aside>
           </div>
           {garden?.collection.filter((item)=>item.room===gardenRoom).length ? <ul className="garden-collection" aria-label={`Pflanzen im ${gardenRoom}`}>{garden.collection.filter((item)=>item.room===gardenRoom).slice(-4).map((item)=>{const stage=growthStage(Math.max(0,garden.xp-item.xpAtUnlock));return <li key={item.weekKey}><img className="growth-sprite" src={gardenGrowthSrc(item.plantKey,stage)} alt=""/><span><b>{item.plant.name}</b><small>Stufe {stage}/5 · {growthLabel(stage)}</small></span></li>})}</ul> : null}
           <div className="garden-track"><i style={{width:`${gardenProgress}%`}} /></div><div className="garden-meta"><b>Gemeinsam {gardenXp} XP gesammelt</b><span>Noch {100-gardenProgress} XP bis Raum-Level {gardenLevel+1}</span></div>
