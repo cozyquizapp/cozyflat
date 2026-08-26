@@ -35,6 +35,15 @@ const choreCategoryArt: Record<string, { image: string; tone: string }> = {
   Aufräumen: { image: "/chore-waesche.png", tone: "rose" },
   Müll: { image: "/chore-putzen.png", tone: "sage" },
 };
+const gardenRoomArt: Record<string, { src: string; alt: string }> = {
+  Wohnzimmer: { src: "/garden/rooms/garden-living.png", alt: "Leeres Holzregal im sonnigen Wohnzimmer mit Staubis Körbchen" },
+  Schlafzimmer: { src: "/garden/rooms/garden-bedroom.png", alt: "Leeres Holzregal im ruhigen Schlafzimmer mit Staubis Körbchen" },
+  Küche: { src: "/garden/rooms/garden-kitchen.png", alt: "Leeres Holzregal in der warmen Küche mit Staubis Körbchen" },
+  Bad: { src: "/garden/rooms/garden-bathroom.png", alt: "Leeres Holzregal im hellen Bad mit Staubis Körbchen" },
+};
+const growthStage = (xp: number) => Math.min(5, 1 + [24, 60, 120, 200].filter((threshold) => xp >= threshold).length);
+const growthPosition = ["0%", "25%", "50%", "75%", "100%"];
+const growthLabel = (stage: number) => ["Keimling", "Erste Blätter", "Jungpflanze", "Kräftig", "Blütenmoment"][stage - 1];
 
 function levelFor(points: number) {
   const step = 100;
@@ -307,13 +316,14 @@ export default function Home() {
           <div className="garden-game-head"><div><p className="eyebrow">STAUBIS PFLANZENZIMMER</p><h2>Euer Zuhause wächst mit.</h2><p>Jedes Hausi schenkt euren Pflanzen neue Blätter.</p></div><div className="garden-level-pill"><span>Level {gardenLevel}</span><b>{gardenProgress}/100 XP</b></div></div>
           <nav className="garden-room-tabs" aria-label="Pflanzenräume">{garden?.rooms.map((room)=><button key={room.name} disabled={!room.unlocked} className={gardenRoom===room.name?'active':''} onClick={()=>room.unlocked&&setGardenRoom(room.name)}><span>{room.unlocked?room.name:'🔒 '+room.name}</span><small>{room.count}/{room.capacity}</small></button>)}</nav>
           <div className={`plant-room-stage room-${gardenRoom.toLowerCase().replace('ü','ue')}`}>
-            <img className="plant-room-bg" src="/cozy-garden-room.png" alt="Ein sonniges Pflanzenzimmer mit Holzregal und Staubis Schlafplatz" />
-            <div className="plant-shelf" aria-label={`Eure Pflanzen im ${gardenRoom}`}>{garden?.collection.filter((item)=>item.room===gardenRoom).slice(-4).map((item,index)=>{const gained=Math.max(0,(garden.xp-item.xpAtUnlock));const stage=gained>=70?3:gained>=30?2:1;const art=['orchid','calathea','alocasia'].includes(item.plantKey)?'/plant-orchid.png':'/plant-monstera.png';return <article className={`collectible slot-${index} stage-${stage} pot-${item.plant.pot}`} key={item.weekKey}><img src={art} alt={item.plant.name}/><small>{item.plant.name}<b>{stage===3?'Ausgewachsen':stage===2?'Wächst':'Keimling'}</b></small></article>})}</div>
-            {garden?.collection.filter((item)=>item.room===gardenRoom).length===0&&<div className="empty-room-hint"><span>🪴</span><b>Hier ist noch Platz für eure erste Pflanze.</b><small>Wählt unten euren Wochenliebling.</small></div>}
-            <div className="staubi-home"><img src="/staubi-cutout.png" alt="Staubi freut sich über euer Pflanzenzimmer"/><span>{stats.loginStreak ? `🔥 ${stats.loginStreak}` : 'zzZ'}</span></div>
+            <img className="plant-room-bg" src={gardenRoomArt[gardenRoom]?.src ?? gardenRoomArt.Wohnzimmer.src} alt={gardenRoomArt[gardenRoom]?.alt ?? gardenRoomArt.Wohnzimmer.alt} />
+            <div className="plant-shelf" aria-label={`Eure Pflanzen im ${gardenRoom}`}>{garden?.collection.filter((item)=>item.room===gardenRoom).slice(-4).map((item,index)=>{const stage=growthStage(Math.max(0,garden.xp-item.xpAtUnlock));return <article className={`collectible slot-${index} stage-${stage}`} key={item.weekKey}><span className="growth-sprite" style={{backgroundImage:`url(/garden/growth/growth-${item.plantKey}.png)`,backgroundPosition:`center ${growthPosition[stage-1]}`}} role="img" aria-label={`${item.plant.name}, Wachstumsstufe ${stage} von 5: ${growthLabel(stage)}`}/></article>})}</div>
+            {garden?.collection.filter((item)=>item.room===gardenRoom).length===0&&<div className="empty-room-hint"><b>Das Regal wartet auf euren ersten Einzug.</b><small>Wählt unten einen Wochenliebling für diesen Raum.</small></div>}
+            <div className="staubi-home"><img src="/staubi-cutout.png" alt="Staubi liegt in seinem Körbchen und freut sich über euer Pflanzenzimmer"/><span>{stats.loginStreak ? `Serie: ${stats.loginStreak}` : 'Schläft'}</span></div>
           </div>
+          {garden?.collection.filter((item)=>item.room===gardenRoom).length ? <ul className="garden-collection" aria-label={`Pflanzen im ${gardenRoom}`}>{garden.collection.filter((item)=>item.room===gardenRoom).slice(-4).map((item)=>{const stage=growthStage(Math.max(0,garden.xp-item.xpAtUnlock));return <li key={item.weekKey}><span className="growth-sprite" style={{backgroundImage:`url(/garden/growth/growth-${item.plantKey}.png)`,backgroundPosition:`center ${growthPosition[stage-1]}`}}/><span><b>{item.plant.name}</b><small>Stufe {stage}/5 · {growthLabel(stage)}</small></span></li>})}</ul> : null}
           <div className="garden-track"><i style={{width:`${gardenProgress}%`}} /></div><div className="garden-meta"><b>Gemeinsam {gardenXp} XP gesammelt</b><span>Noch {100-gardenProgress} XP bis Raum-Level {gardenLevel+1}</span></div>
-          {!garden?.chosenThisWeek && garden && <div className="weekly-plant-choice"><span><small>DIESE WOCHE · {gardenRoom.toUpperCase()}</small><b>Welche zieht bei euch ein?</b></span><div>{garden.candidates.map((candidate)=>{const art=['orchid','calathea','alocasia'].includes(candidate.key)?'/plant-orchid.png':'/plant-monstera.png';return <button disabled={gardenBusy} onClick={()=>chooseGardenPlant(candidate.key)} key={candidate.key}><i className={`pot-${candidate.pot}`}><img src={art} alt=""/></i><b>{candidate.name}</b><small>Einziehen lassen</small></button>})}</div></div>}
+          {!garden?.chosenThisWeek && garden && <div className="weekly-plant-choice"><span><small>DIESE WOCHE · {gardenRoom.toUpperCase()}</small><b>Welche zieht bei euch ein?</b></span><div>{garden.candidates.map((candidate)=><button disabled={gardenBusy} onClick={()=>chooseGardenPlant(candidate.key)} key={candidate.key}><i className="growth-sprite" style={{backgroundImage:`url(/garden/growth/growth-${candidate.key}.png)`,backgroundPosition:"center 0%"}}/><b>{candidate.name}</b><small>Als Keimling einziehen lassen</small></button>)}</div></div>}
           {garden?.chosenThisWeek && <div className="next-plant"><span>✨</span><p><b>Wochenpflanze gewählt</b>Nächsten Montag bringt Staubi drei neue Kandidaten mit.</p></div>}
         </section>
         <section className="level-hub" aria-label="Eure Level und Wochenfortschritt">
@@ -527,10 +537,11 @@ export default function Home() {
       </div>}
       <nav className="mobile-nav" aria-label="Hauptnavigation">
         <button className={mobileView==='today'?'active':''} onClick={()=>{setMobileView('today');window.scrollTo({top:0,behavior:'smooth'})}}><span>⌂</span>Heute</button>
-        <button className={mobileView==='chores'?'active':''} onClick={()=>{setMobileView('chores');setAllChoresOpen(true);window.scrollTo({top:0,behavior:'smooth'})}}><span>✓</span>Hausis</button>
+        <button className={mobileView==='chores'?'active':''} onClick={()=>{setMobileView('chores');window.scrollTo({top:0,behavior:'smooth'})}}><span>✓</span>Hausis</button>
         <button className={mobileView==='plants'?'active':''} onClick={()=>{setMobileView('plants');setPlantsOpen(true);window.scrollTo({top:0,behavior:'smooth'})}}><span>☘</span>Pflanzen</button>
         <button className={mobileView==='level'?'active':''} onClick={()=>{setMobileView('level');setProgressOpen(true);window.scrollTo({top:0,behavior:'smooth'})}}><span>🌱</span>Garten</button>
       </nav>
     </main>
   );
 }
+
