@@ -47,7 +47,7 @@
 .garden-room-tabs button:focus-visible, .daily-plant-reward button:focus-visible { outline: 3px solid #d59632; outline-offset: 3px; }
 .garden-room-tabs button:disabled { opacity: .48; cursor: not-allowed; }
 
-/* The room, shelves, plants and Staubi share one Pixi coordinate system. */
+/* The CSS room uses one measured ground anchor for every plant. */
 .garden-scene-shell {
   width: min(100%, 500px);
   margin-inline: auto;
@@ -62,8 +62,128 @@
 .garden-scene-title small { font-size: 9px; font-weight: 900; letter-spacing: .14em; opacity: .64; }
 .garden-scene-title b { margin-top: 3px; font-family: Georgia,serif; font-size: 16px; font-weight: 400; }
 .garden-scene-title em { padding: 7px 9px; border-radius: 999px; background: #fff8df; color: #7e6132; font-size: 9px; font-style: normal; font-weight: 900; white-space: nowrap; box-shadow: 0 4px 12px rgba(103,78,36,.08); }
-.garden-scene-host { position: relative; width: 100%; aspect-ratio: 390 / 624; overflow: hidden; background: #d9c49e; touch-action: manipulation; }
-.garden-canvas { width: 100% !important; height: 100% !important; display: block; }
+.garden-scene-host { position: relative; width: 100%; aspect-ratio: 356 / 478; overflow: hidden; background: #d9b375; touch-action: manipulation; }
+.css-garden-scene {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 78% 12%, rgba(255,244,195,.72) 0 2%, transparent 16%),
+    linear-gradient(126deg, rgba(255,255,255,.42), transparent 33%),
+    linear-gradient(180deg, #efd9ae 0%, #dbb47a 70%, #bd8150 100%);
+  box-shadow: inset 0 -30px 55px rgba(119,68,30,.12);
+}
+.css-garden-scene::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 25px 22px 48px;
+  border: 11px solid rgba(126,74,38,.62);
+  border-bottom-width: 15px;
+  border-radius: 145px 145px 18px 18px;
+  background: linear-gradient(180deg,rgba(255,248,218,.16),rgba(139,79,39,.08));
+  box-shadow: inset 0 0 0 3px rgba(255,236,192,.55),0 14px 25px rgba(90,49,21,.24),0 0 0 1px rgba(74,45,23,.15);
+}
+.css-garden-scene::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: -12%; right: -12%; bottom: -28px;
+  height: 91px;
+  transform: perspective(250px) rotateX(44deg);
+  background: repeating-linear-gradient(90deg,rgba(87,47,27,.12) 0 1px,transparent 1px 88px),linear-gradient(180deg,#bc7d49,#89512e);
+  box-shadow: inset 0 12px 20px rgba(68,36,18,.22);
+}
+.css-room-daily {
+  position: absolute;
+  z-index: 8;
+  top: 15px; left: 24px; right: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(55,54,38,.78);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+.css-room-daily strong { padding: 5px 8px; border-radius: 12px; color: #fff8e6; background: rgba(28,70,51,.88); letter-spacing: 0; white-space: nowrap; }
+.css-garden-cabinet {
+  position: absolute;
+  z-index: 2;
+  inset: 86px 45px 75px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 17px 19px;
+}
+.css-garden-niche {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 56px 56px 14px 14px;
+  background: radial-gradient(circle at 50% 28%,rgba(255,251,225,.86),transparent 48%),linear-gradient(180deg,rgba(135,76,37,.18),rgba(255,235,188,.32));
+  box-shadow: inset 0 12px 24px rgba(87,49,25,.2),inset 0 -3px rgba(255,246,211,.68),0 2px 0 rgba(255,226,172,.62);
+  color: #173c2d;
+}
+.css-garden-niche::after { content:""; position:absolute; z-index:0; left:9px; right:9px; bottom:5px; height:10px; border-radius:50%; background:rgba(90,48,25,.23); filter:blur(3px); }
+.css-niche-name { position:absolute; z-index:8; left:7px; right:7px; top:10px; overflow:hidden; color:rgba(40,65,47,.72); font-size:8px; font-weight:900; letter-spacing:.02em; text-align:center; text-overflow:ellipsis; white-space:nowrap; }
+.css-preview-label { position:absolute; z-index:9; right:7px; bottom:7px; padding:3px 5px; border-radius:8px; background:rgba(255,248,225,.8); color:#74664e; font-size:6px; font-weight:900; letter-spacing:.08em; }
+.css-garden-niche.is-preview .css-plant-fixture { opacity:.48; filter:saturate(.55); }
+.css-garden-niche.is-preview.plant-cactus .css-plant-fixture { opacity:1; filter:none; }
+.css-plant-fixture { position:absolute; z-index:2; inset:0; transition:transform .3s ease; }
+.css-garden-niche:not(.is-preview):hover .css-plant-fixture { transform:translateY(-2px); }
+.css-pot-body-layer,.css-soil-layer,.css-art-layer,.css-rim-layer { position:absolute; inset:0; pointer-events:none; }
+.css-pot-body-layer { z-index:2; }
+.css-soil-layer { z-index:3; }
+.css-art-layer { z-index:4; }
+.css-rim-layer { z-index:5; }
+.css-plant-shadow { position:absolute; z-index:1; left:50%; bottom:5px; width:67px; height:12px; transform:translateX(-50%); border-radius:50%; background:rgba(78,42,23,.23); filter:blur(3px); }
+.css-pot-body { position:absolute; left:50%; bottom:9px; width:56px; height:39px; transform:translateX(-50%); border-radius:7px 7px 22px 22px; background:linear-gradient(145deg,#dda062,#97512f); box-shadow:inset 0 -7px rgba(107,49,29,.17),0 7px 10px rgba(76,41,22,.24); }
+.css-pot-body.sand { background:linear-gradient(145deg,#eadcbf,#b49a78); }
+.css-pot-soil { position:absolute; left:50%; bottom:42px; width:50px; height:11px; transform:translateX(-50%); border-radius:50%; background:radial-gradient(ellipse,#4d301e 0 62%,#684229 66% 100%); }
+.css-pot-front { position:absolute; left:50%; bottom:40px; width:62px; height:10px; transform:translateX(-50%); border-radius:50%; background:linear-gradient(180deg,#edb071,#a85b34); box-shadow:0 2px 3px rgba(65,33,17,.2); }
+.css-pot-front.sand { background:linear-gradient(180deg,#f0e3c8,#b9a17e); }
+.css-plant-art { position:absolute; left:50%; bottom:45px; width:100px; height:102px; transform:translateX(-50%); transform-origin:50% 100%; }
+.css-main-stem { position:absolute; left:50%; bottom:0; width:4px; height:84px; transform:translateX(-50%); border-radius:4px; background:linear-gradient(90deg,#245c3b,#74a762,#245c3b); box-shadow:0 2px 4px rgba(31,73,47,.2); }
+.css-leaf { position:absolute; left:50%; bottom:var(--leaf-y); width:var(--leaf-w); height:calc(var(--leaf-w) * .58); opacity:0; border-radius:88% 12% 82% 18% / 72% 20% 80% 28%; background:linear-gradient(145deg,rgba(255,255,255,.18),transparent 35%),radial-gradient(ellipse at 68% 28%,#6aa960,#2f7049 56%,#1d4c35); box-shadow:inset 0 -2px rgba(13,57,37,.16),0 4px 8px rgba(28,71,45,.17); transform-origin:100% 70%; transition:opacity .35s ease,transform .55s cubic-bezier(.18,.9,.25,1.18); }
+.css-leaf.left { transform:translateX(-100%) rotate(var(--leaf-angle)) scale(.25); }
+.css-leaf.right { transform:rotate(var(--leaf-angle)) scale(.25); transform-origin:0 70%; border-radius:12% 88% 18% 82% / 20% 72% 28% 80%; }
+.css-leaf.is-grown.left { opacity:1; transform:translateX(-100%) rotate(var(--leaf-angle)) scale(.88); }
+.css-leaf.is-grown.right { opacity:1; transform:rotate(var(--leaf-angle)) scale(.88); }
+.css-leaf::before { content:""; position:absolute; z-index:-1; top:65%; width:15px; height:3px; border-radius:3px; background:#39714b; }
+.css-leaf.left::before { right:-10px; transform:rotate(8deg); }
+.css-leaf.right::before { left:-10px; transform:rotate(-8deg); }
+.css-leaf::after { content:""; position:absolute; left:10%; right:10%; top:48%; height:1px; background:rgba(226,246,190,.36); }
+.css-pilea-branch { position:absolute; left:50%; bottom:0; width:3px; height:var(--coin-y); opacity:0; transform:translateX(-50%) rotate(var(--coin-angle)); transform-origin:50% 100%; border-radius:3px; background:#39714b; transition:opacity .35s ease; }
+.css-pilea-branch.is-grown { opacity:1; }
+.css-pilea-branch i { position:absolute; left:50%; top:0; width:var(--coin-s); height:var(--coin-s); transform:translate(-50%,-45%) rotate(calc(-1 * var(--coin-angle))); border-radius:50%; background:radial-gradient(circle at 38% 32%,#7cb66c,#36764d 64%,#23543a); box-shadow:inset 0 -2px rgba(18,70,43,.18),0 4px 7px rgba(29,65,42,.2); }
+.css-cactus-main { position:absolute; left:50%; bottom:0; width:27px; height:69px; transform:translateX(-50%); border-radius:52% 52% 10px 10px; background:repeating-linear-gradient(90deg,#3f8058 0 5px,#6aa36b 5px 9px); box-shadow:inset -5px 0 rgba(24,81,50,.16),0 5px 8px rgba(31,75,47,.18); }
+.css-cactus-arm { position:absolute; bottom:18px; width:21px; height:34px; border-radius:12px; background:linear-gradient(90deg,#3f8058,#6aa36b); }
+.css-cactus-arm.left { left:24px; transform:rotate(-12deg); }
+.css-cactus-arm.right { right:24px; bottom:25px; transform:rotate(12deg); }
+.css-snake { display:flex; align-items:flex-end; justify-content:center; gap:1px; }
+.css-snake i { width:12px; height:calc(42px + (var(--blade) % 3) * 10px); margin-left:-4px; border-radius:75% 10% 50% 10%; background:linear-gradient(90deg,#365f3e,#88a65a 65%,#355d3c); transform:rotate(calc((var(--blade) - 3) * 4deg)); transform-origin:50% 100%; }
+.css-orchid-bloom { position:absolute; left:54px; top:5px; width:16px; height:16px; border-radius:50%; background:radial-gradient(circle,#f0d183 0 18%,#d993a7 20% 48%,#f0b8c4 50%); box-shadow:-10px 2px 0 -3px #d993a7,7px 7px 0 -3px #ebaebb; }
+.css-flauschi-niche { cursor:pointer; font:inherit; transition:transform .18s ease; }
+.css-flauschi-niche:active { transform:scale(.97); }
+.css-flauschi-bed { position:absolute; z-index:1; left:50%; bottom:10px; width:91px; height:35px; transform:translateX(-50%); border-radius:50%; background:radial-gradient(ellipse,#a8aa69 0 48%,#757846 73%); box-shadow:inset 0 8px 10px rgba(255,255,222,.2),0 8px 11px rgba(72,49,25,.23); }
+.css-flauschi { position:absolute; z-index:3; left:50%; bottom:24px; width:61px; height:61px; transform:translateX(-50%); border-radius:50%; background:radial-gradient(circle at 38% 28%,#fff8e7 0,#ead7b2 62%,#b99c76 100%); filter:drop-shadow(0 6px 6px rgba(66,42,20,.22)); animation:css-flauschi-breathe 2.8s ease-in-out infinite; }
+.css-flauschi i { position:absolute; left:20px; top:25px; width:4px; height:5px; border-radius:50%; background:#49372b; box-shadow:18px 0 #49372b; }
+.css-flauschi b { position:absolute; left:50%; top:31px; width:9px; height:5px; transform:translateX(-50%); border-bottom:2px solid #725a45; border-radius:50%; }
+.css-streak-badge { position:absolute; z-index:6; right:7px; bottom:7px; padding:4px 7px; border-radius:10px; background:#fff5dc; color:#73562f; font-family:Georgia,serif; font-size:8px; font-weight:700; }
+.css-light-mote { position:absolute; z-index:10; width:14px; height:14px; border:0; border-radius:50%; background:#fff7b8; box-shadow:0 0 0 8px rgba(255,232,126,.16),0 0 20px 8px rgba(255,222,92,.62); cursor:pointer; animation:css-mote-drift 3.4s ease-in-out infinite alternate; }
+.css-light-mote.mote-1 { left:31px; top:101px; }
+.css-light-mote.mote-2 { right:34px; top:196px; animation-delay:-.8s; }
+.css-light-mote.mote-3 { left:48%; top:325px; animation-delay:-1.9s; }
+.css-light-mote.is-collecting { animation:css-mote-collect .42s cubic-bezier(.2,.8,.2,1) forwards; pointer-events:none; }
+.css-room-caption { position:absolute; z-index:8; left:14px; right:14px; bottom:11px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 11px; border-radius:15px; color:#fff8e8; background:rgba(24,56,42,.91); box-shadow:0 8px 20px rgba(35,35,18,.2); backdrop-filter:blur(8px); }
+.css-room-caption span,.css-room-caption strong,.css-room-caption small { display:block; }
+.css-room-caption strong { font-size:12px; }
+.css-room-caption small { margin-top:2px; opacity:.78; font-size:8px; line-height:1.25; }
+.css-room-caption > b { flex:0 0 auto; font-family:Georgia,serif; font-size:16px; }
+@keyframes css-flauschi-breathe { 50% { transform:translateX(-50%) translateY(-2px) scale(1.025); } }
+@keyframes css-mote-drift { to { transform:translateY(-8px) scale(1.08); } }
+@keyframes css-mote-collect { to { transform:translate(72px,58px) scale(0); opacity:0; } }
 .garden-scene-tip { min-height: 57px; padding: 9px 13px; display: flex; align-items: center; gap: 9px; background: rgba(255,255,255,.74); color: #617067; }
 .garden-scene-tip > span { flex: 0 0 auto; font-size: 22px; }
 .garden-scene-tip p, .garden-scene-tip b { display: block; margin: 0; }
@@ -124,7 +244,7 @@
   .daily-bottom .staubi-greeting p { font-size: 12px; }
   .daily-bottom .round-start { min-height: 60px; padding: 10px 17px; flex-direction: row; align-items: center; justify-content: space-between; border-radius: 18px; }
   .daily-bottom .round-start b { font-size: 16px; }
-  .plant-room-game { margin: 16px; padding: 10px; border-radius: 24px; }
+  .plant-room-game { margin: 16px 0; padding: 10px; border-radius: 24px; }
   .garden-game-head { align-items: flex-start; margin: 5px 6px 12px; }
   .garden-game-head h2 { font-size: 26px; }
   .garden-game-head p { font-size: 12px; }
@@ -145,8 +265,9 @@
   .daily-plant-reward button .growth-sprite { width: 68px; height: 70px; }
   .daily-plant-reward button b { font-size: 11px; }
   .garden-collection li { min-width: 112px; }
+  .css-garden-cabinet { inset: 82px 39px 72px; gap: 15px 17px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .garden-canvas { animation: none; }
+  .css-flauschi,.css-light-mote { animation: none; }
 }

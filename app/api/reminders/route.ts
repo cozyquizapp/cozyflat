@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       appUrl: `https://giessrunde-zuhause.hqv8s9bhsp.chatgpt.site/?person=${encodeURIComponent(person)}`,
     }];
   });
-  const choreNudges = ['Staubi hat nachgezählt: Dieses Hausi steht wirklich heute an.','Kleine Zuhause-Ansage: Ein geplantes Hausi wartet – XP liegen schon bereit.','Gemütlichkeit in Sicht. Dieses geplante Hausi fehlt noch. Na los!'];
+  const choreNudges = ['Flauschi hat nachgezählt: Diese Aufgabe steht wirklich heute an.','Kleine Zuhause-Ansage: Eine geplante Aufgabe wartet – XP liegen schon bereit.','Gemütlichkeit in Sicht. Diese geplante Aufgabe fehlt noch. Na los!'];
   const choreReminders = chores.flatMap((chore) => {
     if (chore.paused || chore.scheduleMode !== 'scheduled') return [];
     const due = chore.lastCompletedAt ? new Date(new Date(chore.lastCompletedAt).getTime() + chore.cadenceHours * 3600000) : new Date(0);

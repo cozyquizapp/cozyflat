@@ -1,7 +1,7 @@
 {
   "name": "CozyFlat – Gemeinsam zuhause anpacken",
   "short_name": "CozyFlat",
-  "description": "Eure gemeinsame App für Hausis, Pflanzen und XP.",
+  "description": "Eure gemeinsame App für Aufgaben, Pflanzen und XP.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
