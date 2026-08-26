@@ -236,18 +236,25 @@ export default function Home() {
   }
   async function water(plant: Plant) {
     setBusy(plant.id);
-    const watered = await action({ action: "water", id: plant.id, person });
-    if (watered) awardGardenMote();
-    const [s,g] = await Promise.all([fetch("/api/stats"),fetch("/api/garden")]);
-    if (s.ok) setStats(await s.json());
-    if (g.ok) setGarden(await g.json());
-    setBusy(null);
     setCelebration({ label: plant.name, person, points: 10, icon: "💧" });
     setTimeout(() => setCelebration(null), 2400);
-    setToast(
-      `${plant.name} wurde von ${person} gegossen. Stark – der Pflanzendienst ist zufrieden.`,
-    );
-    setTimeout(() => setToast(""), 2800);
+    setToast(`${plant.name} bekommt Wasser …`);
+    if ('vibrate' in navigator) navigator.vibrate(28);
+    try {
+      const watered = await action({ action: "water", id: plant.id, person });
+      if (!watered) throw new Error('water-save-failed');
+      awardGardenMote();
+      const [s,g] = await Promise.all([fetch("/api/stats"),fetch("/api/garden")]);
+      if (s.ok) setStats(await s.json());
+      if (g.ok) setGarden(await g.json());
+      setToast(`${plant.name} wurde von ${person} gegossen. Stark – der Pflanzendienst ist zufrieden.`);
+    } catch {
+      setCelebration(null);
+      setToast(`${plant.name} konnte gerade nicht gespeichert werden. Bitte noch einmal tippen.`);
+    } finally {
+      setBusy(null);
+      setTimeout(() => setToast(""), 2800);
+    }
   }
   async function add(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -259,18 +266,36 @@ export default function Home() {
   }
   async function finishChore(chore: Chore, together=false) {
     setChoreBusy(chore.id);
-    const r = await fetch('/api/chores', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({id:chore.id,person,together}) });
-    let awarded=chore.points; let bonus=0;
-    if (r.ok) { const result = await r.json() as {chores:Chore[];completion:{eventIds:number[];bonus:number;pointsEach:number;together:boolean}|null}; setChores(result.chores); if (result.completion) { awarded=result.completion.pointsEach; bonus=result.completion.bonus; setUndoInfo({chore,eventIds:result.completion.eventIds}); setTimeout(() => setUndoInfo(null),5000); awardGardenMote(); } }
-    const [s,g] = await Promise.all([fetch('/api/stats'),fetch('/api/garden')]);
-    if (s.ok) setStats(await s.json());
-    if (g.ok) setGarden(await g.json());
-    setChoreBusy(null);
     const completionName=together?'Sonja & Johannes':person;
-    setCelebration({ label: chore.name, person:completionName, points: awarded, icon: chore.icon });
+    setCelebration({ label: chore.name, person:completionName, points: chore.points + stats.nextTaskBonus, icon: chore.icon });
     setTimeout(() => setCelebration(null), 2400);
-    setToast(`${chore.name}: ${together?'gemeinsam ':''}erledigt. ${together?'Ihr bekommt beide':`${person} bekommt`} ${awarded} XP${bonus?` – inklusive ${bonus} Bonus-XP!`:'.'}`); setTimeout(() => setToast(''),3200);
+    setToast(`${chore.name} wird gespeichert …`);
     if ("vibrate" in navigator) navigator.vibrate([35,45,65]);
+    try {
+      const r = await fetch('/api/chores', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({id:chore.id,person,together}) });
+      if (!r.ok) throw new Error('chore-save-failed');
+      const result = await r.json() as {chores:Chore[];completion:{eventIds:number[];bonus:number;pointsEach:number;together:boolean}|null};
+      setChores(result.chores);
+      let awarded=chore.points; let bonus=0;
+      if (result.completion) {
+        awarded=result.completion.pointsEach;
+        bonus=result.completion.bonus;
+        setUndoInfo({chore,eventIds:result.completion.eventIds});
+        setTimeout(() => setUndoInfo(null),5000);
+        awardGardenMote();
+      }
+      setCelebration({ label: chore.name, person:completionName, points: awarded, icon: chore.icon });
+      const [s,g] = await Promise.all([fetch('/api/stats'),fetch('/api/garden')]);
+      if (s.ok) setStats(await s.json());
+      if (g.ok) setGarden(await g.json());
+      setToast(`${chore.name}: ${together?'gemeinsam ':''}erledigt. ${together?'Ihr bekommt beide':`${person} bekommt`} ${awarded} XP${bonus?` – inklusive ${bonus} Bonus-XP!`:'.'}`);
+    } catch {
+      setCelebration(null);
+      setToast(`${chore.name} konnte gerade nicht gespeichert werden. Bitte noch einmal tippen.`);
+    } finally {
+      setChoreBusy(null);
+      setTimeout(() => setToast(''),3200);
+    }
   }
   async function undoChore() {
     if (!undoInfo) return;
