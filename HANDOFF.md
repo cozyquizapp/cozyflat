@@ -1,6 +1,16 @@
 # CozyFlat – Übergabe und aktueller Stand
 
-Stand: 25. August 2026
+Stand: 26. August 2026
+
+## Rettungsstand vom 26. August
+
+- Die vier neuen Raumkulissen sind brauchbar und bleiben erhalten.
+- Die zwölf am 25. August erzeugten Growth-Sheets enthalten ein eingebranntes Schachbrett und dürfen so nicht veröffentlicht werden.
+- Als Qualitätsprototyp wurde nur die Monstera neu erzeugt: fünf Stufen, konsistenter Terrakottatopf, anschließend technisch mit echter Transparenz freigestellt (`growth-monstera-v2.png`).
+- Die App verwendet bereits ausschließlich für die Monstera dieses V2-Sheet; die anderen elf Pflanzen bleiben bis zu ihrer sauberen Neuerstellung unverändert.
+- Das Sprite-Seitenverhältnis wurde korrigiert, damit eine Wachstumsstufe nicht mehr in einer zu hohen Box abgeschnitten wird.
+- `npm run build` läuft mit diesem Rettungsstand erfolgreich.
+- Es wurde ausdrücklich nichts veröffentlicht.
 
 ## Links
 
@@ -65,12 +75,12 @@ Die öffentliche Version ist Sites-Version 28. Sie enthält unter anderem:
 ## Noch offen
 
 1. Den aktuellen lokalen Stand auf einem iPhone visuell prüfen und danach veröffentlichen.
-2. Eigene Hintergrundbilder für Aufräumen, Müll, Einkauf und Hausflur generieren. Momentan werden verwandte vorhandene Bilder wiederverwendet.
-3. Eigene Kulissen für Schlafzimmer, Küche und Bad generieren, statt das Wohnzimmer farblich abzuwandeln.
-4. Weitere freigestellte Pflanzenillustrationen erstellen, damit die zwölf Pflanzen nicht nur zwei Bildtypen verwenden.
+2. Konsistent schöne, aufgabenspezifische Hintergründe für alle eingeklappten Hausis und Bereiche ergänzen. Aufräumen und Müll sind bereits als Dateien vorhanden, in der Zuordnung werden teilweise noch Ersatzbilder verwendet; Einkauf, Hausflur und weitere Kategorien fehlen noch.
+3. Die vorhandenen neuen Kulissen für Wohnzimmer, Schlafzimmer, Küche und Bad einzeln auf dem iPhone prüfen und ihre Pflanzenanker pro Raum feinjustieren.
+4. Die übrigen elf Growth-Sheets nach dem bestätigten Monstera-V2-Standard neu erstellen: fünf Stufen, derselbe Topf je Pflanze, echtes Alpha, keine Schachbrett- oder Weißflächen.
 5. Abschlussanimation weiter ausbauen: XP-Kaskade, sichtbares Pflanzenwachstum und stärkere Staubi-Reaktion.
 6. Paar-Aufgaben als „gemeinsam gestartet“ mit laufendem Status ausbauen. Beide Personen sollen Beteiligung und Fortschritt sehen; derzeit ist „Gemeinsam“ nur eine Abschlussoption.
-7. Pflanzenzimmer als echtes Minigame polieren: Für jeden Raum zuerst eine leere Regal-/Zimmer-Ausgangslage anlegen; Pflanzen werden danach auf festen, kollisionsfreien Stellflächen in passenden Töpfen platziert. Staubi erhält eigene, sinnvolle Ruhe- und Reaktionspositionen im Raum statt einer freien Überlagerung. Keine Emoji-Sticker, weißen Bildkästen oder losgelösten Karten auf dem Hintergrund. Die Bildreferenz dient als Qualitätsmaßstab: warme, glaubwürdige Szene, passende Pflanzengröße und feste Stellflächen im Raum.
+7. Pflanzenzimmer als echtes Minigame polieren: Die leeren Raumkulissen sind vorhanden; Pflanzen müssen nach dem Monstera-Prototyp auf festen, kollisionsfreien Stellflächen in passenden Töpfen platziert werden. Staubi bleibt eine eigene Ebene und erhält sinnvolle Ruhe- und Reaktionspositionen. Keine Emoji-Sticker, weißen Bildkästen oder losgelösten Karten auf dem Hintergrund.
 8. Design-QA auf einem echten iPhone durchführen, besonders Pflanzenzimmer, Kategorien und Bottom-Navigation.
 
 ## Technischer Aufbau

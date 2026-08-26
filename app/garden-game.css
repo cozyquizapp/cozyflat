@@ -10,7 +10,7 @@
 /* Bespoke room anchors: plants are cropped from their own five-stage sprite sheets. */
 .plant-room-stage .plant-room-bg{filter:none!important}
 .collectible{width:24%;z-index:2}
-.growth-sprite{display:block;width:100%;aspect-ratio:1/.8;background-size:100% 500%;background-repeat:no-repeat;filter:drop-shadow(0 7px 6px rgba(58,38,21,.22))}
+.growth-sprite{display:block;width:100%;aspect-ratio:2.15/1;background-size:100% 500%;background-repeat:no-repeat;filter:drop-shadow(0 7px 6px rgba(58,38,21,.22))}
 .collectible.slot-0{left:21%;bottom:65%}.collectible.slot-1{left:56%;bottom:55%}.collectible.slot-2{left:21%;bottom:40%}.collectible.slot-3{left:57%;bottom:37%}
 .room-schlafzimmer .collectible.slot-0{left:52%;bottom:64%}.room-schlafzimmer .collectible.slot-1{left:51%;bottom:48%}.room-schlafzimmer .collectible.slot-2{left:27%;bottom:41%}.room-schlafzimmer .collectible.slot-3{left:67%;bottom:36%}
 .room-kueche .collectible.slot-0{left:14%;bottom:62%}.room-kueche .collectible.slot-1{left:69%;bottom:50%}.room-kueche .collectible.slot-2{left:37%;bottom:39%}.room-kueche .collectible.slot-3{left:53%;bottom:27%}
