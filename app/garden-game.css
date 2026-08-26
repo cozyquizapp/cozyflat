@@ -29,3 +29,9 @@
 .room-wohnzimmer .empty-room-hint small{display:none}
 @media(max-width:900px){.room-wohnzimmer .collectible.slot-0{left:25%;bottom:78%}.room-wohnzimmer .collectible.slot-1{left:54%;bottom:64%}.room-wohnzimmer .collectible.slot-2{left:23%;bottom:50%}.room-wohnzimmer .collectible.slot-3{left:61%;bottom:42%}.room-wohnzimmer .staubi-home{left:68%;bottom:26%;width:21%}}
 
+/* Individual stage images already encode growth scale; keep them full-size. */
+.collectible.stage-1>img,.collectible.stage-2>img{transform:none}
+.room-wohnzimmer .collectible.slot-0{left:24%;bottom:78.8%}
+.room-wohnzimmer .staubi-home{left:73%;bottom:22.5%;width:16%}
+@media(max-width:900px){.room-wohnzimmer .collectible.slot-0{left:21%;bottom:78%}.room-wohnzimmer .staubi-home{left:72%;bottom:22%;width:18%}}
+
