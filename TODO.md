@@ -30,6 +30,10 @@ Stand: 26. August 2026
 
 ## Bereits erledigt
 
+- Ein verbindlicher CozyFlat-Design-Layer vereinheitlicht Farben, Radien, Schatten, Abstände, Fokuszustände, Buttons, Modals und die iPhone-Navigation in allen Ansichten.
+- Aufgaben und Pflanzen haben jetzt bildgestützte, gleich aufgebaute Bereichsköpfe; Heute, Aufgaben, Pflanzen und Garten wirken wie eine zusammengehörige App.
+- CozyFlat-Name und Profilwahl bleiben auf dem iPhone sichtbar und sind für Screenreader eindeutig beschriftet.
+- Die langen Formulare öffnen als mobile Bottom-Sheets mit gut erreichbarem Schließen-Button und einheitlichen Eingabefeldern.
 - Aufgaben lassen sich mit einem Klick öffnen; kein doppeltes Ausklappen mehr.
 - Gemeinsame Aufgaben und Tagesstreak-Bonus-XP funktionieren.
 - Drei erledigte Aufgaben schalten die tägliche Pflanzenauswahl frei.

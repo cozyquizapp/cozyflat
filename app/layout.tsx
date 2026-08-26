@@ -10,6 +10,7 @@ import './personal.css';
 import './gamify.css';
 import './mobile.css';
 import './garden-game.css';
+import './cozy-system.css';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',

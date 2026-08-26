@@ -387,6 +387,8 @@ export default function Home() {
               key={p}
               onClick={() => { setPerson(p); localStorage.setItem("cozyflat-person", p); }}
               className={person === p ? "active" : ""}
+              aria-label={`${p} auswählen`}
+              aria-pressed={person === p}
             >
               <img src={avatarFor[p]} alt="" />
               <span>{p}</span>
@@ -414,7 +416,7 @@ export default function Home() {
                         : `${choreCountToday} Aufgaben für heute stehen an.`}
               </em>
             </h1>
-            <div className="daily-bottom"><div className="staubi-greeting"><img src="/staubi.png" alt="Flauschi, euer Hausgeist" /><p><b>{openCount ? 'Flauschi hat schon mal geschnuppert:' : 'Flauschi rollt sich ein:'}</b> {openCount ? `${openCount} gute Gelegenheiten für XP. Welche schnappt ihr euch?` : "Nichts drängt. Das Nest ist heute offiziell freigegeben."}</p></div>{openCount > 0 && <a className="round-start" href="#aufgaben"><span>Erste Aufgabe</span><b>Auswählen <i>→</i></b></a>}</div>
+            <div className="daily-bottom"><div className="staubi-greeting"><img src="/staubi.png" alt="Flauschi, euer Hausgeist" /><p><b>{openCount ? 'Flauschi hat schon mal geschnuppert:' : 'Flauschi rollt sich ein:'}</b> {openCount ? `${openCount} ${openCount === 1 ? 'gute Gelegenheit' : 'gute Gelegenheiten'} für XP. Welche schnappt ihr euch?` : "Nichts drängt. Das Nest ist heute offiziell freigegeben."}</p></div>{openCount > 0 && <a className="round-start" href="#aufgaben"><span>Erste Aufgabe</span><b>Auswählen <i>→</i></b></a>}</div>
           </div>
         </div>
       </section>
@@ -431,7 +433,7 @@ export default function Home() {
           <span>↗</span>
           <b>
             {openCount
-              ? `${person}, womit wollt ihr heute anfangen?`
+              ? `${person}, womit möchtest du anfangen?`
               : "Alles erledigt – jetzt wird’s gemütlich"}
           </b>
         </div>
@@ -471,7 +473,7 @@ export default function Home() {
         <p>Um Mitternacht startet eine neue Wochenmission. Eure gesammelten XP bleiben in euren Leveln erhalten.</p>
       </section>}
       <section className="chores-section" id="aufgaben">
-        <div className="section-head"><div><p className="eyebrow">EURE AUFGABEN</p><h2>Was sonst noch ansteht</h2><p>Alles darf auch spontan erledigt werden – Besuch wartet schließlich nicht auf den Rhythmus.</p></div><button className="add-hausi" onClick={()=>{setEditingChore(null);setChoreModal(true)}}><span>＋</span> Aufgabe</button></div>
+        <div className="section-head cozy-screen-head chores-screen-head" style={{backgroundImage:'linear-gradient(90deg,rgba(247,244,231,.98) 0%,rgba(247,244,231,.9) 48%,rgba(18,48,35,.18) 100%), url(/chores/chore-aufraeumen.png)'}}><div><p className="eyebrow">EURE AUFGABEN</p><h2>Was möchtet ihr anpacken?</h2><p>Spontan oder geplant: Jede erledigte Aufgabe schenkt eurem Pflanzenzimmer einen Lichtfunken.</p></div><button className="add-hausi" onClick={()=>{setEditingChore(null);setChoreModal(true)}} aria-label="Aufgabe hinzufügen"><span aria-hidden="true">＋</span> Aufgabe</button></div>
         {todayChores.length > 0 && <section className="today-chores" aria-labelledby="today-chores-title">
           <div className="today-chores-head"><div><p className="eyebrow">HEUTE WICHTIG</p><h3 id="today-chores-title">Eure kleine Tagesauswahl</h3><small className="bonus-preview">{stats.todayTasks} von {garden?.dailyTaskGoal ?? 3} Aufgaben bis zum nächsten Keim · +{stats.nextTaskBonus} Bonus-XP</small></div><span>{todayChores.length} für heute</span></div>
           <div className="task-seed-progress" aria-label={`${Math.min(stats.todayTasks, garden?.dailyTaskGoal ?? 3)} von ${garden?.dailyTaskGoal ?? 3} Aufgaben für den heutigen Keim erledigt`}><i style={{width:`${Math.min(100, stats.todayTasks / (garden?.dailyTaskGoal ?? 3) * 100)}%`}} /></div>
@@ -489,12 +491,12 @@ export default function Home() {
         })}</div>
       </section>
       <section className={`plant-section plant-menu ${plantsOpen || mobileView === 'plants' ? 'is-open' : ''}`} id="pflanzen">
-        <div className="section-head">
+        <div className="section-head cozy-screen-head plants-screen-head" style={{backgroundImage:'linear-gradient(90deg,rgba(247,244,231,.98) 0%,rgba(247,244,231,.88) 50%,rgba(18,48,35,.16) 100%), url(/garden/rooms/garden-living-game-v2.png)'}}>
           <div>
             <p className="eyebrow">PFLANZENPLAN</p>
-            <h2>Eure Pflanzen</h2><p>{todayCount ? `${todayCount} möchten heute Wasser.` : `${plants.length} Pflanzen sind gerade versorgt.`}</p>
+            <h2>Eure Pflanzen</h2><p>{todayCount ? `${todayCount} ${todayCount === 1 ? 'möchte' : 'möchten'} heute Wasser.` : `Alles versorgt – Zeit, das Pflanzenzimmer wachsen zu lassen.`}</p>
           </div>
-          <div className="plant-menu-actions"><button className="plant-menu-toggle" onClick={()=>setPlantsOpen(open=>!open)} aria-expanded={plantsOpen}>{plantsOpen ? 'Menü schließen ↑' : 'Pflanzen öffnen ↓'}</button><button className="add-button" onClick={() => setModal(true)}><span>＋</span> Pflanze</button></div>
+          <div className="plant-menu-actions"><button className="plant-menu-toggle" onClick={()=>setPlantsOpen(open=>!open)} aria-expanded={plantsOpen}>{plantsOpen ? 'Menü schließen ↑' : 'Pflanzen öffnen ↓'}</button><button className="add-button" onClick={() => setModal(true)} aria-label="Pflanze hinzufügen"><span aria-hidden="true">＋</span> Pflanze</button></div>
         </div>
         {(plantsOpen || mobileView === 'plants') && (loading ? (
           <div className="empty">Eure Pflanzen werden geladen …</div>
@@ -667,10 +669,10 @@ export default function Home() {
         <strong>Aufgabe geschafft!</strong><p>{celebration.person} hat „{celebration.label}“ erledigt. Das Zuhause atmet auf.</p><b>+{celebration.points} XP</b>
       </div>}
       <nav className="mobile-nav" aria-label="Hauptnavigation">
-        <button className={mobileView==='today'?'active':''} onClick={()=>{setMobileView('today');window.scrollTo({top:0,behavior:'smooth'})}}><span>⌂</span>Heute</button>
-        <button className={mobileView==='chores'?'active':''} onClick={()=>{setMobileView('chores');window.scrollTo({top:0,behavior:'smooth'})}}><span>✓</span>Aufgaben</button>
-        <button className={mobileView==='plants'?'active':''} onClick={()=>{setMobileView('plants');setPlantsOpen(true);window.scrollTo({top:0,behavior:'smooth'})}}><span>☘</span>Pflanzen</button>
-        <button className={mobileView==='level'?'active':''} onClick={()=>{setMobileView('level');setProgressOpen(true);window.scrollTo({top:0,behavior:'smooth'})}}><span>🌱</span>Garten</button>
+        <button className={mobileView==='today'?'active':''} aria-current={mobileView==='today'?'page':undefined} onClick={()=>{setMobileView('today');window.scrollTo({top:0,behavior:'smooth'})}}><span aria-hidden="true">⌂</span>Heute</button>
+        <button className={mobileView==='chores'?'active':''} aria-current={mobileView==='chores'?'page':undefined} onClick={()=>{setMobileView('chores');window.scrollTo({top:0,behavior:'smooth'})}}><span aria-hidden="true">✓</span>Aufgaben</button>
+        <button className={mobileView==='plants'?'active':''} aria-current={mobileView==='plants'?'page':undefined} onClick={()=>{setMobileView('plants');setPlantsOpen(true);window.scrollTo({top:0,behavior:'smooth'})}}><span aria-hidden="true">☘</span>Pflanzen</button>
+        <button className={mobileView==='level'?'active':''} aria-current={mobileView==='level'?'page':undefined} onClick={()=>{setMobileView('level');setProgressOpen(true);window.scrollTo({top:0,behavior:'smooth'})}}><span aria-hidden="true">🌱</span>Garten</button>
       </nav>
     </main>
   );
