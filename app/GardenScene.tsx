@@ -63,11 +63,13 @@ function BranchPlant({ stage, variant }: { stage: number; variant: string }) {
 
 function CalatheaPlant({ stage }: { stage: number }) {
   const leaves = [
-    { x: -20, y: 8, angle: -24, min: 1 },
-    { x: 20, y: 12, angle: 22, min: 2 },
-    { x: -12, y: 36, angle: -12, min: 4 },
-    { x: 13, y: 42, angle: 12, min: 6 },
-    { x: 0, y: 62, angle: 0, min: 8 },
+    { x: -5, y: 43, angle: -24, leafAngle: -26, min: 1 },
+    { x: 5, y: 45, angle: 24, leafAngle: 26, min: 1 },
+    { x: -4, y: 61, angle: -12, leafAngle: -15, min: 3 },
+    { x: 4, y: 64, angle: 12, leafAngle: 15, min: 5 },
+    { x: -2, y: 78, angle: -5, leafAngle: -8, min: 7 },
+    { x: 2, y: 82, angle: 6, leafAngle: 8, min: 9 },
+    { x: 0, y: 92, angle: 0, leafAngle: 0, min: 11 },
   ];
   return (
     <span className="css-plant-art css-calathea" aria-hidden="true">
@@ -79,6 +81,7 @@ function CalatheaPlant({ stage }: { stage: number }) {
             "--calathea-x": `${leaf.x}px`,
             "--calathea-y": `${leaf.y}px`,
             "--calathea-angle": `${leaf.angle}deg`,
+            "--calathea-leaf-angle": `${leaf.leafAngle}deg`,
           } as CSSProperties}
         />
       ))}

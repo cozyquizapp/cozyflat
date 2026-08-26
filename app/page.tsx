@@ -19,11 +19,11 @@ type GardenData = {dayKey:string;xp:number;candidates:GardenPlant[];collection:A
 const icons = ["🌿", "🪴", "🌱", "☘️", "🌵", "🍃"];
 const roomOrder = ["Balkon", "Wohnzimmer", "Küche", "Arbeitszimmer"];
 const avatarFor = { Johannes: "/avatar-johannes.png", Sonja: "/avatar-sonja.png" } as const;
-const roomMeta: Record<string, { icon: string; line: string; className: string }> = {
-  Balkon: { icon: "☀", line: "Sonne, Kräuter & Sommerluft", className: "balcony" },
-  Wohnzimmer: { icon: "⌂", line: "Euer grünes Herzstück", className: "living" },
-  Küche: { icon: "◇", line: "Frisches Grün zwischen Tassen & Tellern", className: "kitchen" },
-  Arbeitszimmer: { icon: "✎", line: "Ruhige Begleiter beim Arbeiten", className: "office" },
+const roomMeta: Record<string, { icon: string; line: string; className: string; image: string }> = {
+  Balkon: { icon: "☀", line: "Sonne, Kräuter & Sommerluft", className: "balcony", image: "/cozy-garden-room.png" },
+  Wohnzimmer: { icon: "⌂", line: "Euer grünes Herzstück", className: "living", image: "/garden/rooms/garden-living.png" },
+  Küche: { icon: "◇", line: "Frisches Grün zwischen Tassen & Tellern", className: "kitchen", image: "/garden/rooms/garden-kitchen.png" },
+  Arbeitszimmer: { icon: "✎", line: "Ruhige Begleiter beim Arbeiten", className: "office", image: "/garden/rooms/garden-bedroom.png" },
 };
 const day = 86400000;
 const levelNames = ["Nestling", "Anpacker:in", "Rudelprofi", "Zuhause-Held:in", "Cozy-Legende"];
@@ -35,9 +35,10 @@ const choreCategoryArt: Record<string, { image: string; tone: string }> = {
   Küche: { image: "/chore-kueche.png", tone: "peach" },
   Einkauf: { image: "/chore-kueche.png", tone: "peach" },
   Wäsche: { image: "/chore-waesche.png", tone: "rose" },
-  Aufräumen: { image: "/chore-waesche.png", tone: "rose" },
-  Müll: { image: "/chore-putzen.png", tone: "sage" },
+  Aufräumen: { image: "/chores/chore-aufraeumen.png", tone: "peach" },
+  Müll: { image: "/chores/chore-muell.png", tone: "sage" },
 };
+const priorityLabel = (priority: number) => priority >= 3 ? "Wichtig" : priority === 2 ? "Normal" : "Optional";
 const growthStage = (xp: number) => Math.min(12, 1 + [12,28,48,72,100,132,168,210,258,312,372].filter((threshold) => xp >= threshold).length);
 const growthLabel = (stage: number) => ["Keimling", "Blattpaar", "Kleiner Spross", "Jungpflanze", "Neue Triebe", "Gut verwurzelt", "Wird buschig", "Kräftiges Grün", "Fast ausgewachsen", "Üppig", "Knospenzeit", "Prachtstück"][stage - 1] ?? "Prachtstück";
 const growthSpriteStep = (stage: number) => Math.max(1, Math.min(5, Math.ceil(Math.min(12, stage) * 5 / 12)));
@@ -471,27 +472,31 @@ export default function Home() {
       </section>}
       <section className="chores-section" id="aufgaben">
         <div className="section-head"><div><p className="eyebrow">EURE AUFGABEN</p><h2>Was sonst noch ansteht</h2><p>Alles darf auch spontan erledigt werden – Besuch wartet schließlich nicht auf den Rhythmus.</p></div><button className="add-hausi" onClick={()=>{setEditingChore(null);setChoreModal(true)}}><span>＋</span> Aufgabe</button></div>
-        {todayChores.length > 0 && <section className="today-chores" aria-labelledby="today-chores-title"><div className="today-chores-head"><div><p className="eyebrow">HEUTE WICHTIG</p><h3 id="today-chores-title">Eure kleine Tagesauswahl</h3><small className="bonus-preview">🔥 {stats.todayTasks} heute geschafft · Nächste Aufgabe +{stats.nextTaskBonus} Bonus-XP</small></div><span>{todayChores.length} für heute</span></div><div>{todayChores.slice(0,5).map((chore) => <article className="quick-chore" key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{chore.scheduleMode === 'flexible' ? 'Flauschis Tagesvorschlag' : choreTiming(chore,now)} · {'!'.repeat(chore.priority)} · +{chore.points} XP</small></div><div className="completion-choices"><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}><img src={avatarFor[person]} alt="" />{choreBusy === chore.id ? '…' : `Ich`}</button><button className="together-button" onClick={() => finishChore(chore,true)} disabled={choreBusy === chore.id}><span className="duo-avatars"><img src={avatarFor.Johannes} alt=""/><img src={avatarFor.Sonja} alt=""/></span>Gemeinsam</button></div></article>)}</div>{todayChores.length > 5 && <small className="today-more">Danach sind noch {todayChores.length - 5} fest eingeplant – eins nach dem anderen.</small>}</section>}
+        {todayChores.length > 0 && <section className="today-chores" aria-labelledby="today-chores-title">
+          <div className="today-chores-head"><div><p className="eyebrow">HEUTE WICHTIG</p><h3 id="today-chores-title">Eure kleine Tagesauswahl</h3><small className="bonus-preview">{stats.todayTasks} von {garden?.dailyTaskGoal ?? 3} Aufgaben bis zum nächsten Keim · +{stats.nextTaskBonus} Bonus-XP</small></div><span>{todayChores.length} für heute</span></div>
+          <div className="task-seed-progress" aria-label={`${Math.min(stats.todayTasks, garden?.dailyTaskGoal ?? 3)} von ${garden?.dailyTaskGoal ?? 3} Aufgaben für den heutigen Keim erledigt`}><i style={{width:`${Math.min(100, stats.todayTasks / (garden?.dailyTaskGoal ?? 3) * 100)}%`}} /></div>
+          <div>{todayChores.slice(0,5).map((chore) => { const art = choreCategoryArt[chore.category] ?? { image: '/chores/chore-aufraeumen.png', tone: 'sage' }; return <article className="quick-chore" key={chore.id}><span className="quick-chore-art" style={{backgroundImage:`url(${art.image})`}} aria-hidden="true" /><div><b>{chore.name}</b><small>{chore.scheduleMode === 'flexible' ? 'Heute empfohlen' : choreTiming(chore,now)} · {priorityLabel(chore.priority)} · +{chore.points} XP</small></div><div className="completion-choices"><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}><img src={avatarFor[person]} alt="" />{choreBusy === chore.id ? '…' : `Ich`}</button><button className="together-button" onClick={() => finishChore(chore,true)} disabled={choreBusy === chore.id}><span className="duo-avatars"><img src={avatarFor.Johannes} alt=""/><img src={avatarFor.Sonja} alt=""/></span>Gemeinsam</button></div></article>})}</div>{todayChores.length > 5 && <small className="today-more">Danach sind noch {todayChores.length - 5} fest eingeplant – eins nach dem anderen.</small>}
+        </section>}
         <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
           const categoryChores = chores.filter((chore) => chore.category === category);
           const dueChores = categoryChores.filter((chore) => !chore.paused && chore.scheduleMode === 'scheduled' && choreNext(chore)! <= now);
           const laterChores = categoryChores.filter((chore) => !dueChores.includes(chore));
           const art = choreCategoryArt[category] ?? { image: '/chore-putzen.png', tone: 'sage' };
           const renderChore = (chore: Chore) => { const next = choreNext(chore); const isDue = Boolean(next && next <= now);
-            return <article className={`chore-card ${isDue ? 'is-due' : ''} priority-${chore.priority} ${chore.paused ? 'is-paused' : ''}`} key={chore.id}><span className="chore-icon">{chore.icon}</span><div><b>{chore.name}</b><small>{choreTiming(chore,now)} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch nie abgehakt'}</small></div><strong>{'!'.repeat(chore.priority)} · +{chore.points}</strong><button className="edit-chore" onClick={()=>{setEditingChore(chore);setChoreModal(true)}} aria-label={`${chore.name} bearbeiten`}>✎</button><div className="completion-choices"><button className="finish-chore" onClick={() => finishChore(chore)} disabled={chore.paused || choreBusy === chore.id}>{chore.paused ? 'Pausiert' : choreBusy === chore.id ? '…' : <><img src={avatarFor[person]} alt="" />Ich</>}</button><button className="finish-chore together-button" onClick={() => finishChore(chore,true)} disabled={chore.paused || choreBusy === chore.id}><span className="duo-avatars"><img src={avatarFor.Johannes} alt=""/><img src={avatarFor.Sonja} alt=""/></span>Gemeinsam</button></div></article>;
+            return <article className={`chore-card ${isDue ? 'is-due' : ''} priority-${chore.priority} ${chore.paused ? 'is-paused' : ''}`} key={chore.id}><span className="chore-icon chore-art-thumb" style={{backgroundImage:`url(${art.image})`}} aria-hidden="true" /><div><b>{chore.name}</b><small>{choreTiming(chore,now)} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch nie abgehakt'}</small></div><strong><span className={`priority-chip priority-${chore.priority}`}>{priorityLabel(chore.priority)}</span> +{chore.points} XP</strong><button className="edit-chore" onClick={()=>{setEditingChore(chore);setChoreModal(true)}} aria-label={`${chore.name} bearbeiten`}>✎</button><div className="completion-choices"><button className="finish-chore" onClick={() => finishChore(chore)} disabled={chore.paused || choreBusy === chore.id}>{chore.paused ? 'Pausiert' : choreBusy === chore.id ? '…' : <><img src={avatarFor[person]} alt="" />Ich</>}</button><button className="finish-chore together-button" onClick={() => finishChore(chore,true)} disabled={chore.paused || choreBusy === chore.id}><span className="duo-avatars"><img src={avatarFor.Johannes} alt=""/><img src={avatarFor.Sonja} alt=""/></span>Gemeinsam</button></div></article>;
           };
-          return <details className={`chore-group tone-${art.tone}`} key={category}><summary className="chore-group-preview" style={{backgroundImage:`linear-gradient(90deg,rgba(18,48,35,.88) 0%,rgba(18,48,35,.56) 48%,rgba(18,48,35,.08) 100%), url(${art.image})`}}><span className="chore-preview-icon">{categoryChores[0]?.icon ?? '✨'}</span><span><small>{dueChores.length ? `${dueChores.length} jetzt wichtig` : 'Flexibel einplanbar'}</small><b>{category}</b></span><em>{categoryChores.length}</em><strong>⌄</strong></summary><div className="chore-group-content"><div>{[...dueChores,...laterChores].map(renderChore)}</div></div></details>;
+          return <details className={`chore-group tone-${art.tone}`} key={category}><summary className="chore-group-preview" style={{backgroundImage:`linear-gradient(90deg,rgba(18,48,35,.9) 0%,rgba(18,48,35,.58) 54%,rgba(18,48,35,.12) 100%), url(${art.image})`}}><span><small>{dueChores.length ? `${dueChores.length} jetzt wichtig` : 'Flexibel einplanbar'}</small><b>{category}</b></span><em>{categoryChores.length} {categoryChores.length === 1 ? 'Aufgabe' : 'Aufgaben'}</em><strong>⌄</strong></summary><div className="chore-group-content"><div>{[...dueChores,...laterChores].map(renderChore)}</div></div></details>;
         })}</div>
       </section>
-      <section className={`plant-section plant-menu ${plantsOpen ? 'is-open' : ''}`} id="pflanzen">
+      <section className={`plant-section plant-menu ${plantsOpen || mobileView === 'plants' ? 'is-open' : ''}`} id="pflanzen">
         <div className="section-head">
           <div>
-            <p className="eyebrow">EURE PFLANZEN</p>
+            <p className="eyebrow">PFLANZENPLAN</p>
             <h2>Eure Pflanzen</h2><p>{todayCount ? `${todayCount} möchten heute Wasser.` : `${plants.length} Pflanzen sind gerade versorgt.`}</p>
           </div>
           <div className="plant-menu-actions"><button className="plant-menu-toggle" onClick={()=>setPlantsOpen(open=>!open)} aria-expanded={plantsOpen}>{plantsOpen ? 'Menü schließen ↑' : 'Pflanzen öffnen ↓'}</button><button className="add-button" onClick={() => setModal(true)}><span>＋</span> Pflanze</button></div>
         </div>
-        {plantsOpen && (loading ? (
+        {(plantsOpen || mobileView === 'plants') && (loading ? (
           <div className="empty">Eure Pflanzen werden geladen …</div>
         ) : plants.length === 0 ? (
           <div className="empty">
@@ -504,7 +509,7 @@ export default function Home() {
             {[...roomOrder, ...plants.map((p) => p.room).filter((room) => !roomOrder.includes(room))]
               .filter((room, index, all) => all.indexOf(room) === index && plants.some((p) => p.room === room))
               .map((room) => {
-                const meta = roomMeta[room] ?? { icon: "☘", line: "Eure Pflanzen", className: "other" };
+                const meta = roomMeta[room] ?? { icon: "☘", line: "Eure Pflanzen", className: "other", image: "/cozy-garden-room.png" };
                 const roomPlants = plants.filter((plant) => plant.room === room);
                 const duePlants = roomPlants.filter((plant) => dateInfo(plant).diff <= 0);
                 const caredPlants = roomPlants.filter((plant) => dateInfo(plant).diff > 0);
@@ -527,11 +532,12 @@ export default function Home() {
                     </div>
                   </article>;
                 };
+                const roomPreview = roomPlants.find((plant) => plant.imageKey)?.imageKey;
+                const roomPreviewImage = roomPreview ? `/api/images/${encodeURIComponent(roomPreview)}` : meta.image;
                 return <details className={`room-zone ${meta.className}`} key={room}>
-                  <summary className="room-header">
+                  <summary className="room-header room-header-art" style={{backgroundImage:`linear-gradient(90deg,rgba(18,48,35,.88) 0%,rgba(18,48,35,.57) 56%,rgba(18,48,35,.14) 100%), url(${roomPreviewImage})`}}>
                     <span className="room-symbol" aria-hidden="true">{meta.icon}</span>
                     <div><p>{meta.line}</p><h3>{room}</h3></div>
-                    <span className="room-previews" aria-hidden="true">{roomPlants.slice(0,3).map((plant,index)=><i key={plant.id}>{plant.imageKey ? <img src={`/api/images/${encodeURIComponent(plant.imageKey)}`} alt="" /> : icons[index % icons.length]}</i>)}</span>
                     <span className={`room-count ${dueInRoom ? "has-due" : ""}`}>{dueInRoom ? `${dueInRoom} fällig` : `${roomPlants.length} versorgt`}</span>
                     <span className="room-chevron" aria-hidden="true">⌄</span>
                   </summary>
