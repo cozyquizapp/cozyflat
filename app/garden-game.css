@@ -7,3 +7,14 @@
 @media(prefers-reduced-motion:reduce){.collectible{animation:none}}
 @media(max-width:900px){.collectible{width:27%}.collectible.slot-0{left:26.5%;bottom:55.6%;top:auto}.collectible.slot-1{left:48%;bottom:55.8%;top:auto}.collectible.slot-2{left:27%;bottom:42.8%;top:auto}.collectible.slot-3{left:48.5%;bottom:42.3%;top:auto}.staubi-home{left:52%;right:auto;bottom:9%;width:21%}}
 @media(max-width:600px){.collectible{width:30%}.collectible.slot-0{left:25%;bottom:55.5%;top:auto}.collectible.slot-1{left:47%;bottom:55.7%;top:auto}.collectible.slot-2{left:25.5%;bottom:42.6%;top:auto}.collectible.slot-3{left:47.5%;bottom:42.1%;top:auto}.staubi-home{left:52%;right:auto;bottom:8%;width:20%}.garden-collection li{min-width:112px}}
+/* Bespoke room anchors: plants are cropped from their own five-stage sprite sheets. */
+.plant-room-stage .plant-room-bg{filter:none!important}
+.collectible{width:24%;z-index:2}
+.growth-sprite{display:block;width:100%;aspect-ratio:1/.8;background-size:100% 500%;background-repeat:no-repeat;filter:drop-shadow(0 7px 6px rgba(58,38,21,.22))}
+.collectible.slot-0{left:21%;bottom:65%}.collectible.slot-1{left:56%;bottom:55%}.collectible.slot-2{left:21%;bottom:40%}.collectible.slot-3{left:57%;bottom:37%}
+.room-schlafzimmer .collectible.slot-0{left:52%;bottom:64%}.room-schlafzimmer .collectible.slot-1{left:51%;bottom:48%}.room-schlafzimmer .collectible.slot-2{left:27%;bottom:41%}.room-schlafzimmer .collectible.slot-3{left:67%;bottom:36%}
+.room-kueche .collectible.slot-0{left:14%;bottom:62%}.room-kueche .collectible.slot-1{left:69%;bottom:50%}.room-kueche .collectible.slot-2{left:37%;bottom:39%}.room-kueche .collectible.slot-3{left:53%;bottom:27%}
+.room-bad .collectible.slot-0{left:17%;bottom:63%}.room-bad .collectible.slot-1{left:59%;bottom:59%}.room-bad .collectible.slot-2{left:22%;bottom:37%}.room-bad .collectible.slot-3{left:60%;bottom:33%}
+.garden-collection .growth-sprite{width:32px;height:32px;aspect-ratio:auto;background-size:100% 500%;flex:0 0 auto}
+.weekly-plant-choice button .growth-sprite{width:88px;height:92px;margin:auto;background-size:100% 500%;filter:drop-shadow(0 5px 5px rgba(58,38,21,.16))}
+@media(max-width:900px){.collectible{width:29%}.collectible.slot-0{left:18%;bottom:64%}.collectible.slot-1{left:55%;bottom:54%}.collectible.slot-2{left:18%;bottom:39%}.collectible.slot-3{left:56%;bottom:35%}.room-schlafzimmer .collectible.slot-0{left:51%;bottom:62%}.room-schlafzimmer .collectible.slot-1{left:50%;bottom:47%}.room-schlafzimmer .collectible.slot-2{left:25%;bottom:39%}.room-schlafzimmer .collectible.slot-3{left:66%;bottom:34%}.room-kueche .collectible.slot-0{left:12%;bottom:60%}.room-kueche .collectible.slot-1{left:67%;bottom:48%}.room-kueche .collectible.slot-2{left:34%;bottom:37%}.room-kueche .collectible.slot-3{left:51%;bottom:25%}}
