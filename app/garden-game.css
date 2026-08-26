@@ -44,52 +44,32 @@
 .garden-room-tabs button span { font-weight: 800; }
 .garden-room-tabs button small { margin-top: 3px; }
 .garden-room-tabs button.active { border-color: #173c2d; background: #173c2d; color: #fff; box-shadow: 0 8px 20px rgba(23, 60, 45, .18); }
-.garden-room-tabs button:focus-visible, .weekly-plant-choice button:focus-visible { outline: 3px solid #d59632; outline-offset: 3px; }
+.garden-room-tabs button:focus-visible, .daily-plant-reward button:focus-visible { outline: 3px solid #d59632; outline-offset: 3px; }
 .garden-room-tabs button:disabled { opacity: .48; cursor: not-allowed; }
 
-/* A native game board: fixed slots replace fragile positioning on perspective art. */
-.plant-room-stage {
-  --room-wall: #e9eddf;
-  --room-panel: #fffdf7;
-  --room-accent: #8ea16e;
-  --room-deep: #244b39;
-  width: min(100%, 520px);
+/* The room, shelves, plants and Staubi share one Pixi coordinate system. */
+.garden-scene-shell {
+  width: min(100%, 500px);
   margin-inline: auto;
-  padding: 16px;
-  display: grid;
-  gap: 14px;
-  border: 1px solid color-mix(in srgb, var(--room-accent) 38%, white);
+  overflow: hidden;
+  border: 1px solid rgba(139, 157, 105, .42);
   border-radius: 26px;
-  background: var(--room-wall);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .82), 0 18px 40px rgba(55, 70, 48, .12);
+  background: #f5f3e7;
+  box-shadow: 0 22px 55px rgba(43, 61, 38, .15), inset 0 1px 0 rgba(255,255,255,.9);
 }
-.plant-room-stage.room-schlafzimmer { --room-wall: #f0e3df; --room-panel: #fff9f6; --room-accent: #be897c; --room-deep: #6f423e; }
-.plant-room-stage.room-kueche { --room-wall: #f4e6d4; --room-panel: #fffaf2; --room-accent: #c68b56; --room-deep: #744a2f; }
-.plant-room-stage.room-bad { --room-wall: #dfebeb; --room-panel: #f8fdfc; --room-accent: #6e9a96; --room-deep: #315d59; }
-.room-plaque { padding: 3px 3px 0; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--room-deep); }
-.room-plaque small { font-size: 10px; font-weight: 900; letter-spacing: .15em; }
-.room-plaque b { font-family: Georgia, serif; font-size: 16px; font-weight: 400; }
-.plant-shelf {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-.shelf-slot { position: relative; min-height: 166px; overflow: hidden; display: grid; place-items: center; border: 1px solid rgba(255, 255, 255, .86); border-radius: 22px; background: color-mix(in srgb, var(--room-panel) 88%, transparent); box-shadow: 0 10px 24px rgba(55, 70, 48, .08), inset 0 0 0 1px color-mix(in srgb, var(--room-accent) 12%, transparent); }
-.shelf-slot::after { content: ""; position: absolute; left: 13%; right: 13%; bottom: 29px; height: 9px; border-radius: 8px; background: color-mix(in srgb, var(--room-accent) 62%, #a66f45); box-shadow: 0 5px 9px rgba(65, 45, 28, .16); }
-.shelf-slot.is-empty { align-content: center; gap: 7px; color: color-mix(in srgb, var(--room-deep) 58%, white); }
-.shelf-slot.is-empty::after { opacity: .5; }
-.shelf-slot.is-empty span { width: 34px; height: 34px; display: grid; place-items: center; border: 1px dashed color-mix(in srgb, var(--room-accent) 55%, white); border-radius: 50%; background: rgba(255, 255, 255, .48); font-family: Georgia, serif; font-size: 16px; }
-.shelf-slot.is-empty small { margin-bottom: 26px; font-size: 10px; font-weight: 800; }
-.collectible { position: relative; z-index: 1; width: 92%; height: 156px; padding: 7px 8px 29px; display: grid; grid-template-rows: 1fr auto; justify-items: center; filter: drop-shadow(0 7px 6px rgba(58, 38, 21, .18)); }
-.collectible .growth-sprite { width: 100%; height: 118px; display: block; object-fit: contain; object-position: center bottom; animation: plant-arrive .65s cubic-bezier(.2, 1.35, .4, 1); }
-.collectible small { max-width: 100%; overflow: hidden; color: var(--room-deep); font-size: 9px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
-.staubi-nook { min-height: 108px; padding: 12px 14px 10px 17px; display: grid; grid-template-columns: 1fr 88px; align-items: center; gap: 12px; border-radius: 23px; background: var(--room-deep); color: #fffdf4; box-shadow: 0 12px 28px color-mix(in srgb, var(--room-deep) 20%, transparent); }
-.staubi-nook > div:first-child { display: grid; gap: 5px; }
-.staubi-nook > div:first-child small { font-size: 9px; font-weight: 900; letter-spacing: .15em; opacity: .7; }
-.staubi-nook > div:first-child b { max-width: 230px; font-family: Georgia, serif; font-size: 17px; font-weight: 400; line-height: 1.15; }
-.staubi-home { position: relative; width: 82px; height: 82px; display: grid; place-items: center; }
-.staubi-home img { width: 100%; height: auto; display: block; filter: drop-shadow(0 7px 7px rgba(65, 39, 25, .24)); animation: staubi-idle 3.2s ease-in-out infinite; }
-.staubi-home span { position: absolute; right: -3px; top: -2px; min-width: 42px; padding: 4px 7px; border-radius: 999px; background: #fff4d7; box-shadow: 0 4px 12px rgba(20, 39, 30, .18); color: #735a30; font-size: 9px; font-weight: 900; text-align: center; white-space: nowrap; }
+.garden-scene-title { min-height: 54px; padding: 10px 13px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: linear-gradient(90deg,#f8f4e5,#eef2e5); color: #173c2d; }
+.garden-scene-title span, .garden-scene-title small, .garden-scene-title b { display: block; }
+.garden-scene-title small { font-size: 9px; font-weight: 900; letter-spacing: .14em; opacity: .64; }
+.garden-scene-title b { margin-top: 3px; font-family: Georgia,serif; font-size: 16px; font-weight: 400; }
+.garden-scene-title em { padding: 7px 9px; border-radius: 999px; background: #fff8df; color: #7e6132; font-size: 9px; font-style: normal; font-weight: 900; white-space: nowrap; box-shadow: 0 4px 12px rgba(103,78,36,.08); }
+.garden-scene-host { position: relative; width: 100%; aspect-ratio: 390 / 624; overflow: hidden; background: #d9c49e; touch-action: manipulation; }
+.garden-canvas { width: 100% !important; height: 100% !important; display: block; }
+.garden-scene-tip { min-height: 57px; padding: 9px 13px; display: flex; align-items: center; gap: 9px; background: rgba(255,255,255,.74); color: #617067; }
+.garden-scene-tip > span { flex: 0 0 auto; font-size: 22px; }
+.garden-scene-tip p, .garden-scene-tip b { display: block; margin: 0; }
+.garden-scene-tip p { font-size: 10px; line-height: 1.35; }
+.garden-scene-tip b { color: #173c2d; font-size: 11px; }
+.garden-scene-accessible { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .plant-room-game > .garden-track { margin: 14px 4px 6px; }
 .garden-meta { display: flex; justify-content: space-between; gap: 12px; padding: 0 4px; color: #667168; font-size: 11px; }
@@ -97,22 +77,27 @@
 .garden-collection { display: flex; gap: 7px; margin: 10px 2px 0; padding: 0; overflow-x: auto; list-style: none; }
 .garden-collection li { min-width: 124px; padding: 7px 9px; display: flex; align-items: center; gap: 7px; border: 1px solid #d8e0d3; border-radius: 13px; background: rgba(255, 255, 255, .72); color: #173c2d; }
 .garden-collection .growth-sprite { width: 32px; height: 32px; flex: 0 0 auto; object-fit: contain; }
+.garden-collection-symbol { width: 32px; height: 32px; flex: 0 0 auto; display: grid !important; place-items: center; border-radius: 10px; background: linear-gradient(145deg,#fff8e9,#edf2e4); font-size: 20px; box-shadow: inset 0 0 0 1px rgba(132,151,104,.18); }
 .garden-collection span, .garden-collection small { display: block; }
 .garden-collection b { font-size: 10px; }
 .garden-collection small { margin-top: 2px; color: #68746b; font-size: 9px; }
 
-.weekly-plant-choice { margin-top: 15px; padding: 15px; border-radius: 20px; background: rgba(255, 255, 255, .8); }
-.weekly-plant-choice > span small, .weekly-plant-choice > span b { display: block; }
-.weekly-plant-choice > span small { color: #748076; font-size: 10px; letter-spacing: .14em; }
-.weekly-plant-choice > span b { margin-top: 3px; font-family: Georgia, serif; font-size: 24px; font-weight: 400; }
-.weekly-plant-choice > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 12px; }
-.weekly-plant-choice button { padding: 13px 8px; border: 1px solid #dbe3d5; border-radius: 17px; background: #fbfaf5; color: #173c2d; cursor: pointer; transition: transform .2s, box-shadow .2s; }
-.weekly-plant-choice button:active { transform: scale(.96); }
-.weekly-plant-choice button:hover { box-shadow: 0 10px 24px rgba(37, 62, 43, .1); }
-.weekly-plant-choice button .growth-sprite { width: 88px; height: 92px; margin: auto; object-fit: contain; filter: drop-shadow(0 5px 5px rgba(58, 38, 21, .16)); }
-.weekly-plant-choice button b, .weekly-plant-choice button small { display: block; }
-.weekly-plant-choice button b { margin-top: 6px; }
-.weekly-plant-choice button small { margin-top: 3px; color: #718078; }
+.daily-plant-reward { margin-top: 15px; padding: 15px; border-radius: 20px; background: rgba(255, 255, 255, .8); }
+.daily-plant-reward.is-ready { background: linear-gradient(145deg,#fff8e7,#edf3e3); box-shadow: 0 14px 34px rgba(55,81,45,.12); }
+.daily-plant-reward > span small, .daily-plant-reward > span b { display: block; }
+.daily-plant-reward > span small { color: #748076; font-size: 10px; letter-spacing: .14em; }
+.daily-plant-reward > span b { margin-top: 3px; font-family: Georgia, serif; font-size: 24px; font-weight: 400; }
+.daily-plant-reward > div:not(.daily-reward-track) { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 12px; }
+.daily-plant-reward button { padding: 13px 8px; border: 1px solid #dbe3d5; border-radius: 17px; background: #fbfaf5; color: #173c2d; cursor: pointer; transition: transform .2s, box-shadow .2s; }
+.daily-plant-reward button:active { transform: scale(.96); }
+.daily-plant-reward button:hover { box-shadow: 0 10px 24px rgba(37, 62, 43, .1); }
+.daily-plant-reward button .growth-sprite { width: 88px; height: 92px; margin: auto; object-fit: contain; filter: drop-shadow(0 5px 5px rgba(58, 38, 21, .16)); }
+.daily-plant-reward button b, .daily-plant-reward button small { display: block; }
+.daily-plant-reward button b { margin-top: 6px; }
+.daily-plant-reward button small { margin-top: 3px; color: #718078; }
+.daily-reward-track { position: relative; height: 19px; margin-top: 13px; overflow: hidden; border-radius: 999px; background: #e0e5d8; }
+.daily-reward-track i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: linear-gradient(90deg,#78975b,#e2b34e); transition: width .55s cubic-bezier(.2,.8,.2,1); }
+.daily-reward-track em { position: relative; z-index: 1; height: 100%; display: grid; place-items: center; color: #173c2d; font-size: 9px; font-style: normal; font-weight: 900; }
 .next-plant { margin-top: 14px; padding: 12px 15px; display: flex; align-items: center; gap: 10px; border-radius: 18px; background: rgba(255, 255, 255, .76); }
 .next-plant > span { font-size: 27px; }
 .next-plant p, .next-plant b { margin: 0; display: block; }
@@ -144,11 +129,11 @@
   .garden-game-head h2 { font-size: 26px; }
   .garden-game-head p { font-size: 12px; }
   .garden-level-pill { padding: 9px 10px; }
-  .plant-room-stage { width: 100%; border-radius: 18px; }
   .garden-meta { font-size: 10px; }
-  .weekly-plant-choice { padding: 12px; }
-  .weekly-plant-choice > span b { font-size: 21px; }
-  .weekly-plant-choice button { padding: 10px 4px; }
+  .garden-scene-shell { width: 100%; border-radius: 20px; }
+  .daily-plant-reward { padding: 12px; }
+  .daily-plant-reward > span b { font-size: 21px; }
+  .daily-plant-reward button { padding: 10px 4px; }
 }
 
 @media (max-width: 600px) {
@@ -156,12 +141,12 @@
   .garden-room-tabs button { min-width: 112px; flex: 0 0 auto; }
   .garden-game-head { display: grid; grid-template-columns: 1fr auto; }
   .garden-game-head p { grid-column: 1 / -1; }
-  .weekly-plant-choice > div { gap: 6px; }
-  .weekly-plant-choice button .growth-sprite { width: 68px; height: 70px; }
-  .weekly-plant-choice button b { font-size: 11px; }
+  .daily-plant-reward > div:not(.daily-reward-track) { gap: 6px; }
+  .daily-plant-reward button .growth-sprite { width: 68px; height: 70px; }
+  .daily-plant-reward button b { font-size: 11px; }
   .garden-collection li { min-width: 112px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .collectible .growth-sprite, .staubi-home img { animation: none; }
+  .garden-canvas { animation: none; }
 }
