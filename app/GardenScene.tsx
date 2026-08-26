@@ -14,17 +14,15 @@ type GardenSceneProps = {
   plants: GardenScenePlant[];
   streak: number;
   availableMotes: number;
+  taskProgress: number;
+  taskGoal: number;
+  rewardReady: boolean;
   onCollectMote: () => void;
-  onPetStaubi: () => void;
+  onPetFlauschi: () => void;
+  onOpenSeed: () => void;
 };
 
-type DisplayPlant = GardenScenePlant & { preview?: boolean };
-
-const previewPlants: DisplayPlant[] = [
-  { id: "preview-orchid", key: "orchid", name: "Olli Orchidee", stage: 3, preview: true },
-  { id: "preview-pilea", key: "pilea", name: "Polly Pilea", stage: 5, preview: true },
-  { id: "preview-cactus", key: "cactus", name: "Kalle Kaktus", stage: 4, preview: true },
-];
+type DisplayPlant = GardenScenePlant;
 
 function normalizePlantKey(raw: string) {
   const key = raw.toLowerCase().trim();
@@ -58,7 +56,32 @@ function BranchPlant({ stage, variant }: { stage: number; variant: string }) {
           } as CSSProperties}
         />
       ))}
-      {variant === "orchid" && stage >= 10 && <span className="css-orchid-bloom" />}
+      {variant === "orchid" && stage >= 3 && <span className="css-orchid-bloom" />}
+    </span>
+  );
+}
+
+function CalatheaPlant({ stage }: { stage: number }) {
+  const leaves = [
+    { x: -20, y: 8, angle: -24, min: 1 },
+    { x: 20, y: 12, angle: 22, min: 2 },
+    { x: -12, y: 36, angle: -12, min: 4 },
+    { x: 13, y: 42, angle: 12, min: 6 },
+    { x: 0, y: 62, angle: 0, min: 8 },
+  ];
+  return (
+    <span className="css-plant-art css-calathea" aria-hidden="true">
+      {leaves.map((leaf, index) => (
+        <i
+          key={index}
+          className={stage >= leaf.min ? "is-grown" : ""}
+          style={{
+            "--calathea-x": `${leaf.x}px`,
+            "--calathea-y": `${leaf.y}px`,
+            "--calathea-angle": `${leaf.angle}deg`,
+          } as CSSProperties}
+        />
+      ))}
     </span>
   );
 }
@@ -92,16 +115,6 @@ function PileaPlant({ stage }: { stage: number }) {
   );
 }
 
-function CactusPlant({ stage }: { stage: number }) {
-  return (
-    <span className={`css-plant-art css-cactus stage-${Math.min(12, stage)}`} aria-hidden="true">
-      <span className="css-cactus-main" />
-      <span className="css-cactus-arm left" />
-      <span className="css-cactus-arm right" />
-    </span>
-  );
-}
-
 function SnakePlant({ stage }: { stage: number }) {
   return (
     <span className="css-plant-art css-snake" aria-hidden="true">
@@ -114,17 +127,17 @@ function SnakePlant({ stage }: { stage: number }) {
 
 function PlantArtwork({ plant }: { plant: DisplayPlant }) {
   const key = normalizePlantKey(plant.key);
-  if (key === "cactus") return <CactusPlant stage={plant.stage} />;
+  if (key === "calathea") return <CalatheaPlant stage={plant.stage} />;
   if (key === "pilea") return <PileaPlant stage={plant.stage} />;
   if (key === "snake") return <SnakePlant stage={plant.stage} />;
   return <BranchPlant stage={plant.stage} variant={key} />;
 }
 
-function PlantNiche({ plant, locked }: { plant: DisplayPlant; locked: boolean }) {
+function PlantNiche({ plant }: { plant: DisplayPlant }) {
   const key = normalizePlantKey(plant.key);
   const tone = key === "pilea" ? "sand" : "terracotta";
   return (
-    <div className={`css-garden-niche plant-${key} ${locked ? "is-preview" : ""}`}>
+    <div className={`css-garden-niche plant-${key}`}>
       <span className="css-niche-name">{plant.name.toUpperCase()}</span>
       <div className="css-plant-fixture">
         <span className="css-plant-shadow" aria-hidden="true" />
@@ -133,14 +146,48 @@ function PlantNiche({ plant, locked }: { plant: DisplayPlant; locked: boolean })
         <span className="css-art-layer"><PlantArtwork plant={plant} /></span>
         <span className="css-rim-layer"><span className={`css-pot-front ${tone}`} /></span>
       </div>
-      {locked && <span className="css-preview-label">VORSCHAU</span>}
     </div>
   );
 }
 
-export default function GardenScene({ room, plants, streak, availableMotes, onCollectMote, onPetStaubi }: GardenSceneProps) {
+function SeedNiche({ progress, goal, ready, pulsing, onOpen }: { progress: number; goal: number; ready: boolean; pulsing: boolean; onOpen: () => void }) {
+  const stage = Math.min(goal, progress);
+  const remaining = Math.max(0, goal - progress);
+  return (
+    <button
+      type="button"
+      className={`css-garden-niche css-seed-niche seed-stage-${stage} ${ready ? "is-ready" : ""} ${pulsing ? "is-pulsing" : ""}`}
+      onClick={onOpen}
+      aria-label={ready ? "Neue Pflanze auswählen" : `Keim ansehen. Noch ${remaining} Aufgaben bis zur neuen Pflanze`}
+    >
+      <span className="css-niche-name">EUER NÄCHSTER KEIM</span>
+      <span className="css-seed-glow" aria-hidden="true" />
+      <img className="css-seed-art" src="/garden/seedling-v1.png" alt="" />
+      <span className="css-seed-progress" aria-hidden="true">
+        {Array.from({ length: goal }, (_, index) => <i className={index < stage ? "is-filled" : ""} key={index} />)}
+      </span>
+      <span className="css-seed-copy">{ready ? "PFLANZE WÄHLEN" : stage === 0 ? "NOCH SCHLÄFT ER" : stage + 1 >= goal ? "FAST AUFGEBLÜHT" : "ER WÄCHST"}</span>
+    </button>
+  );
+}
+
+function EmptyNiche({ slot }: { slot: number }) {
+  return (
+    <div className="css-garden-niche css-empty-niche" aria-label={`Pflanzenplatz ${slot} ist noch frei`}>
+      <span className="css-niche-name">PLATZ {slot}</span>
+      <span className="css-empty-number" aria-hidden="true">+</span>
+      <span className="css-empty-copy">NOCH FREI</span>
+    </div>
+  );
+}
+
+export default function GardenScene({ room, plants, streak, availableMotes, taskProgress, taskGoal, rewardReady, onCollectMote, onPetFlauschi, onOpenSeed }: GardenSceneProps) {
   const [collecting, setCollecting] = useState<number | null>(null);
-  const displayPlants: DisplayPlant[] = [0, 1, 2].map((index) => plants[index] ?? previewPlants[index]);
+  const [seedPulsing, setSeedPulsing] = useState(false);
+  const [flauschiCelebrating, setFlauschiCelebrating] = useState(false);
+  const shownPlants = plants.slice(0, 8);
+  const firstEmptyIndex = shownPlants.length;
+  const progress = Math.min(taskGoal, taskProgress);
 
   function collectMote(index: number) {
     if (collecting !== null) return;
@@ -151,11 +198,23 @@ export default function GardenScene({ room, plants, streak, availableMotes, onCo
     }, 420);
   }
 
+  function openSeed() {
+    setSeedPulsing(true);
+    window.setTimeout(() => setSeedPulsing(false), 520);
+    onOpenSeed();
+  }
+
+  function celebrateWithFlauschi() {
+    setFlauschiCelebrating(true);
+    onPetFlauschi();
+    window.setTimeout(() => setFlauschiCelebrating(false), 900);
+  }
+
   return (
     <div className="garden-scene-host css-garden-scene" data-testid="garden-scene">
       <div className="css-room-daily">
-        <span>LICHTFUNKEN AUS AUFGABEN</span>
-        <strong>{availableMotes ? `${availableMotes} warten` : "Noch keiner"}</strong>
+        <span>HEUTIGER KEIMFORTSCHRITT</span>
+        <strong>{progress}/{taskGoal} AUFGABEN</strong>
       </div>
 
       {[0, 1, 2].slice(0, availableMotes).map((index) => (
@@ -169,20 +228,24 @@ export default function GardenScene({ room, plants, streak, availableMotes, onCo
       ))}
 
       <div className="css-garden-cabinet">
-        {displayPlants.map((plant, index) => (
-          <PlantNiche key={`${plant.id}-${index}`} plant={plant} locked={!plants[index]} />
-        ))}
-        <button type="button" className="css-garden-niche css-flauschi-niche" onClick={onPetStaubi} aria-label="Flauschi besuchen">
-          <span className="css-niche-name">FLAUSCHI</span>
-          <span className="css-flauschi-bed" aria-hidden="true" />
-          <span className="css-flauschi" aria-hidden="true"><i /><b /></span>
-          <span className="css-streak-badge">{streak ? `Serie ${streak}` : "Zzz"}</span>
-        </button>
+        {Array.from({ length: 8 }, (_, index) => {
+          const plant = shownPlants[index];
+          if (plant) return <PlantNiche key={`${plant.id}-${index}`} plant={plant} />;
+          if (index === firstEmptyIndex) return <SeedNiche key="active-seed" progress={progress} goal={taskGoal} ready={rewardReady} pulsing={seedPulsing} onOpen={openSeed} />;
+          return <EmptyNiche key={`empty-${index}`} slot={index + 1} />;
+        })}
       </div>
 
+      <button type="button" className={`css-flauschi-orb ${flauschiCelebrating ? "is-celebrating" : ""}`} onClick={celebrateWithFlauschi} aria-label="Flauschi besuchen">
+        <span className="css-flauschi-bed" aria-hidden="true" />
+        <span className="css-flauschi" aria-hidden="true"><i /><b /></span>
+        <span className="css-flauschi-sparkles" aria-hidden="true"><i /><i /><i /></span>
+        <span className="css-streak-badge">{streak ? `${streak} Tage` : "Zzz"}</span>
+      </button>
+
       <div className="css-room-caption">
-        <span><strong>{room}</strong><small>Aufgaben erledigen. Funken sammeln. Pflanzen wachsen lassen.</small></span>
-        <b>{plants.length}/4</b>
+        <span><strong>Gemeinsames {room}</strong><small>{rewardReady ? "Euer neuer Mitbewohner wartet schon." : `Noch ${Math.max(0, taskGoal - progress)} ${Math.max(0, taskGoal - progress) === 1 ? "Aufgabe" : "Aufgaben"} bis zur nächsten Pflanze.`}</small></span>
+        <b>{plants.length}/8</b>
       </div>
     </div>
   );

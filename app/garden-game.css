@@ -62,7 +62,7 @@
 .garden-scene-title small { font-size: 9px; font-weight: 900; letter-spacing: .14em; opacity: .64; }
 .garden-scene-title b { margin-top: 3px; font-family: Georgia,serif; font-size: 16px; font-weight: 400; }
 .garden-scene-title em { padding: 7px 9px; border-radius: 999px; background: #fff8df; color: #7e6132; font-size: 9px; font-style: normal; font-weight: 900; white-space: nowrap; box-shadow: 0 4px 12px rgba(103,78,36,.08); }
-.garden-scene-host { position: relative; width: 100%; aspect-ratio: 356 / 478; overflow: hidden; background: #d9b375; touch-action: manipulation; }
+.garden-scene-host { position: relative; width: 100%; aspect-ratio: 356 / 690; overflow: hidden; background: #d9b375; touch-action: manipulation; }
 .css-garden-scene {
   isolation: isolate;
   background:
@@ -112,8 +112,8 @@
   inset: 86px 45px 75px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 17px 19px;
+  grid-template-rows: repeat(4, 1fr);
+  gap: 14px 19px;
 }
 .css-garden-niche {
   position: relative;
@@ -125,11 +125,9 @@
   box-shadow: inset 0 12px 24px rgba(87,49,25,.2),inset 0 -3px rgba(255,246,211,.68),0 2px 0 rgba(255,226,172,.62);
   color: #173c2d;
 }
+.css-garden-niche:is(button) { padding: 0; font: inherit; text-align: inherit; cursor: pointer; }
 .css-garden-niche::after { content:""; position:absolute; z-index:0; left:9px; right:9px; bottom:5px; height:10px; border-radius:50%; background:rgba(90,48,25,.23); filter:blur(3px); }
 .css-niche-name { position:absolute; z-index:8; left:7px; right:7px; top:10px; overflow:hidden; color:rgba(40,65,47,.72); font-size:8px; font-weight:900; letter-spacing:.02em; text-align:center; text-overflow:ellipsis; white-space:nowrap; }
-.css-preview-label { position:absolute; z-index:9; right:7px; bottom:7px; padding:3px 5px; border-radius:8px; background:rgba(255,248,225,.8); color:#74664e; font-size:6px; font-weight:900; letter-spacing:.08em; }
-.css-garden-niche.is-preview .css-plant-fixture { opacity:.48; filter:saturate(.55); }
-.css-garden-niche.is-preview.plant-cactus .css-plant-fixture { opacity:1; filter:none; }
 .css-plant-fixture { position:absolute; z-index:2; inset:0; transition:transform .3s ease; }
 .css-garden-niche:not(.is-preview):hover .css-plant-fixture { transform:translateY(-2px); }
 .css-pot-body-layer,.css-soil-layer,.css-art-layer,.css-rim-layer { position:absolute; inset:0; pointer-events:none; }
@@ -157,13 +155,32 @@
 .css-pilea-branch { position:absolute; left:50%; bottom:0; width:3px; height:var(--coin-y); opacity:0; transform:translateX(-50%) rotate(var(--coin-angle)); transform-origin:50% 100%; border-radius:3px; background:#39714b; transition:opacity .35s ease; }
 .css-pilea-branch.is-grown { opacity:1; }
 .css-pilea-branch i { position:absolute; left:50%; top:0; width:var(--coin-s); height:var(--coin-s); transform:translate(-50%,-45%) rotate(calc(-1 * var(--coin-angle))); border-radius:50%; background:radial-gradient(circle at 38% 32%,#7cb66c,#36764d 64%,#23543a); box-shadow:inset 0 -2px rgba(18,70,43,.18),0 4px 7px rgba(29,65,42,.2); }
-.css-cactus-main { position:absolute; left:50%; bottom:0; width:27px; height:69px; transform:translateX(-50%); border-radius:52% 52% 10px 10px; background:repeating-linear-gradient(90deg,#3f8058 0 5px,#6aa36b 5px 9px); box-shadow:inset -5px 0 rgba(24,81,50,.16),0 5px 8px rgba(31,75,47,.18); }
-.css-cactus-arm { position:absolute; bottom:18px; width:21px; height:34px; border-radius:12px; background:linear-gradient(90deg,#3f8058,#6aa36b); }
-.css-cactus-arm.left { left:24px; transform:rotate(-12deg); }
-.css-cactus-arm.right { right:24px; bottom:25px; transform:rotate(12deg); }
+.css-calathea i { position:absolute; left:50%; bottom:0; width:28px; height:var(--calathea-y); opacity:0; transform:translateX(-50%) rotate(var(--calathea-angle)); transform-origin:50% 100%; border-left:2px solid #356749; transition:opacity .35s ease; }
+.css-calathea i::after { content:""; position:absolute; left:calc(50% + var(--calathea-x)); top:-20px; width:28px; height:50px; transform:translateX(-50%) rotate(calc(-1 * var(--calathea-angle))) scale(.35); transform-origin:50% 82%; border-radius:52% 48% 46% 54% / 68% 68% 32% 32%; background:repeating-linear-gradient(90deg,rgba(239,226,174,.62) 0 2px,transparent 2px 8px),linear-gradient(145deg,#88a56d,#416d4c 58%,#6f4054 100%); box-shadow:inset 0 0 0 1px rgba(49,79,55,.18),0 4px 8px rgba(37,66,43,.18); transition:transform .5s cubic-bezier(.2,.85,.25,1.15); }
+.css-calathea i.is-grown { opacity:1; }
+.css-calathea i.is-grown::after { transform:translateX(-50%) rotate(calc(-1 * var(--calathea-angle))) scale(.82); }
 .css-snake { display:flex; align-items:flex-end; justify-content:center; gap:1px; }
 .css-snake i { width:12px; height:calc(42px + (var(--blade) % 3) * 10px); margin-left:-4px; border-radius:75% 10% 50% 10%; background:linear-gradient(90deg,#365f3e,#88a65a 65%,#355d3c); transform:rotate(calc((var(--blade) - 3) * 4deg)); transform-origin:50% 100%; }
 .css-orchid-bloom { position:absolute; left:54px; top:5px; width:16px; height:16px; border-radius:50%; background:radial-gradient(circle,#f0d183 0 18%,#d993a7 20% 48%,#f0b8c4 50%); box-shadow:-10px 2px 0 -3px #d993a7,7px 7px 0 -3px #ebaebb; }
+.css-seed-niche { transition: transform .18s ease, box-shadow .25s ease, filter .25s ease; }
+.css-seed-niche:active { transform: scale(.975); }
+.css-seed-niche:focus-visible,.css-flauschi-orb:focus-visible { outline: 3px solid #fff3a9; outline-offset: -4px; }
+.css-seed-niche.is-ready { background: radial-gradient(circle at 50% 42%,rgba(255,250,178,.95),transparent 49%),linear-gradient(180deg,rgba(132,93,39,.16),rgba(230,209,151,.32)); box-shadow: inset 0 12px 24px rgba(87,49,25,.17),inset 0 -3px rgba(255,246,211,.8),0 0 24px rgba(255,220,91,.45); }
+.css-seed-niche.is-pulsing { animation: css-seed-tap .52s cubic-bezier(.2,.8,.2,1); }
+.css-seed-glow { position:absolute; z-index:1; left:50%; top:41%; width:58px; height:58px; transform:translate(-50%,-50%); border-radius:50%; background:radial-gradient(circle,rgba(255,248,172,.75),rgba(255,225,106,.18) 50%,transparent 70%); opacity:.5; animation:css-seed-glow 2.6s ease-in-out infinite; }
+.css-seed-niche.is-ready .css-seed-glow { width:78px; height:78px; opacity:1; }
+.css-seed-art { position:absolute; z-index:3; left:50%; bottom:-16px; width:125px; height:125px; object-fit:cover; transform:translateX(-50%) scale(.72); transform-origin:50% 82%; mix-blend-mode:multiply; -webkit-mask-image:radial-gradient(circle at 50% 50%,#000 44%,rgba(0,0,0,.92) 55%,transparent 75%); mask-image:radial-gradient(circle at 50% 50%,#000 44%,rgba(0,0,0,.92) 55%,transparent 75%); filter:saturate(.72) contrast(.98); opacity:.38; transition:transform .52s cubic-bezier(.2,.85,.25,1.12),opacity .32s ease,filter .32s ease; }
+.css-seed-niche.seed-stage-1 .css-seed-art { transform:translateX(-50%) scale(.84); opacity:.64; filter:saturate(.82); }
+.css-seed-niche.seed-stage-2 .css-seed-art { transform:translateX(-50%) scale(.98); opacity:.87; filter:saturate(.94); }
+.css-seed-niche.seed-stage-3 .css-seed-art { transform:translateX(-50%) scale(1.1); opacity:1; filter:saturate(1.04) drop-shadow(0 5px 6px rgba(71,45,25,.16)); }
+.css-seed-progress { position:absolute; z-index:7; left:50%; bottom:8px; display:flex; gap:4px; transform:translateX(-50%); }
+.css-seed-progress i { width:16px; height:4px; border-radius:999px; background:rgba(78,75,49,.18); box-shadow:inset 0 1px rgba(255,255,255,.45); }
+.css-seed-progress i.is-filled { background:#55794a; box-shadow:0 0 8px rgba(255,226,116,.45); }
+.css-seed-copy,.css-empty-copy { position:absolute; z-index:7; left:7px; right:7px; top:25px; color:rgba(68,74,48,.58); font-size:6px; font-weight:900; letter-spacing:.1em; text-align:center; }
+.css-seed-niche.is-ready .css-seed-copy { color:#315f40; }
+.css-empty-niche { opacity:.67; }
+.css-empty-number { position:absolute; z-index:2; left:50%; top:50%; width:34px; height:34px; display:grid; place-items:center; transform:translate(-50%,-43%); border:1px dashed rgba(70,91,66,.2); border-radius:50%; color:rgba(58,78,57,.24); font-family:Georgia,serif; font-size:27px; font-weight:300; }
+.css-empty-copy { top:auto; bottom:9px; }
 .css-flauschi-niche { cursor:pointer; font:inherit; transition:transform .18s ease; }
 .css-flauschi-niche:active { transform:scale(.97); }
 .css-flauschi-bed { position:absolute; z-index:1; left:50%; bottom:10px; width:91px; height:35px; transform:translateX(-50%); border-radius:50%; background:radial-gradient(ellipse,#a8aa69 0 48%,#757846 73%); box-shadow:inset 0 8px 10px rgba(255,255,222,.2),0 8px 11px rgba(72,49,25,.23); }
@@ -171,6 +188,23 @@
 .css-flauschi i { position:absolute; left:20px; top:25px; width:4px; height:5px; border-radius:50%; background:#49372b; box-shadow:18px 0 #49372b; }
 .css-flauschi b { position:absolute; left:50%; top:31px; width:9px; height:5px; transform:translateX(-50%); border-bottom:2px solid #725a45; border-radius:50%; }
 .css-streak-badge { position:absolute; z-index:6; right:7px; bottom:7px; padding:4px 7px; border-radius:10px; background:#fff5dc; color:#73562f; font-family:Georgia,serif; font-size:8px; font-weight:700; }
+.css-flauschi-orb { position:absolute; z-index:12; right:20px; bottom:61px; width:65px; height:65px; padding:0; border:3px solid rgba(255,246,210,.82); border-radius:50%; background:radial-gradient(circle at 45% 35%,#b5bb75,#6f7542); box-shadow:0 9px 20px rgba(58,42,23,.26),0 0 0 4px rgba(42,76,54,.18); cursor:pointer; transition:transform .18s ease; }
+.css-flauschi-orb:active { transform:scale(.93); }
+.css-flauschi-orb .css-flauschi-bed { bottom:5px; width:52px; height:20px; box-shadow:none; }
+.css-flauschi-orb .css-flauschi { bottom:11px; width:43px; height:43px; }
+.css-flauschi-orb .css-flauschi i { left:13px; top:18px; width:3px; height:4px; box-shadow:14px 0 #49372b; }
+.css-flauschi-orb .css-flauschi b { top:22px; width:7px; height:4px; }
+.css-flauschi-orb .css-streak-badge { right:-5px; bottom:-7px; padding:3px 6px; font-size:7px; white-space:nowrap; box-shadow:0 3px 8px rgba(67,47,26,.18); }
+.css-flauschi-sparkles { position:absolute; z-index:8; inset:-8px; pointer-events:none; }
+.css-flauschi-sparkles i { position:absolute; width:7px; height:7px; border-radius:50%; background:#fff4a9; box-shadow:0 0 10px #ffd85e; opacity:0; }
+.css-flauschi-sparkles i:nth-child(1) { left:2px; top:18px; }
+.css-flauschi-sparkles i:nth-child(2) { right:2px; top:6px; }
+.css-flauschi-sparkles i:nth-child(3) { right:0; bottom:13px; width:5px; height:5px; }
+.css-flauschi-orb.is-celebrating { animation:css-flauschi-orb-cheer .78s cubic-bezier(.2,.8,.2,1); box-shadow:0 12px 28px rgba(58,42,23,.3),0 0 0 7px rgba(255,225,111,.3),0 0 24px rgba(255,220,91,.48); }
+.css-flauschi-orb.is-celebrating .css-flauschi { animation:css-flauschi-cheer .78s cubic-bezier(.2,.8,.2,1); }
+.css-flauschi-orb.is-celebrating .css-flauschi-sparkles i { animation:css-flauschi-sparkle .72s ease-out forwards; }
+.css-flauschi-orb.is-celebrating .css-flauschi-sparkles i:nth-child(2) { animation-delay:.08s; }
+.css-flauschi-orb.is-celebrating .css-flauschi-sparkles i:nth-child(3) { animation-delay:.16s; }
 .css-light-mote { position:absolute; z-index:10; width:14px; height:14px; border:0; border-radius:50%; background:#fff7b8; box-shadow:0 0 0 8px rgba(255,232,126,.16),0 0 20px 8px rgba(255,222,92,.62); cursor:pointer; animation:css-mote-drift 3.4s ease-in-out infinite alternate; }
 .css-light-mote.mote-1 { left:31px; top:101px; }
 .css-light-mote.mote-2 { right:34px; top:196px; animation-delay:-.8s; }
@@ -184,6 +218,11 @@
 @keyframes css-flauschi-breathe { 50% { transform:translateX(-50%) translateY(-2px) scale(1.025); } }
 @keyframes css-mote-drift { to { transform:translateY(-8px) scale(1.08); } }
 @keyframes css-mote-collect { to { transform:translate(72px,58px) scale(0); opacity:0; } }
+@keyframes css-seed-glow { 50% { transform:translate(-50%,-50%) scale(1.14); opacity:.9; } }
+@keyframes css-seed-tap { 45% { transform:scale(.96) rotate(-1deg); filter:brightness(1.08); } 72% { transform:scale(1.02) rotate(1deg); } }
+@keyframes css-flauschi-orb-cheer { 30% { transform:translateY(-8px) scale(1.08) rotate(-6deg); } 58% { transform:translateY(-3px) scale(1.04) rotate(6deg); } 82% { transform:translateY(0) scale(.98) rotate(-2deg); } }
+@keyframes css-flauschi-cheer { 30% { transform:translateX(-50%) translateY(-5px) scale(1.12); } 60% { transform:translateX(-50%) translateY(0) scale(.95,1.08); } }
+@keyframes css-flauschi-sparkle { 0% { opacity:0; transform:scale(.2); } 38% { opacity:1; transform:translateY(-7px) scale(1.15); } 100% { opacity:0; transform:translateY(-14px) scale(.4); } }
 .garden-scene-tip { min-height: 57px; padding: 9px 13px; display: flex; align-items: center; gap: 9px; background: rgba(255,255,255,.74); color: #617067; }
 .garden-scene-tip > span { flex: 0 0 auto; font-size: 22px; }
 .garden-scene-tip p, .garden-scene-tip b { display: block; margin: 0; }
@@ -265,9 +304,9 @@
   .daily-plant-reward button .growth-sprite { width: 68px; height: 70px; }
   .daily-plant-reward button b { font-size: 11px; }
   .garden-collection li { min-width: 112px; }
-  .css-garden-cabinet { inset: 82px 39px 72px; gap: 15px 17px; }
+  .css-garden-cabinet { inset: 82px 39px 72px; gap: 12px 17px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .css-flauschi,.css-light-mote { animation: none; }
+  .css-flauschi,.css-light-mote,.css-seed-glow,.css-seed-niche { animation: none; }
 }

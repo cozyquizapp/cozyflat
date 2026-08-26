@@ -14,12 +14,12 @@ Stand: 26. August 2026
 
 - Den aktuellen Wohnzimmer-Prototypmodus ablösen.
 - Schlafzimmer, Küche und Bad im bestätigten Pflanzenzimmer-Stil umsetzen.
-- Einen neuen Raum erst freischalten, wenn der vorherige Raum mit vier Pflanzen gefüllt ist.
+- Einen neuen Raum erst freischalten, wenn der vorherige Raum mit acht Pflanzen gefüllt ist.
 - Jeden Raum auf kleinen iPhone-Displays prüfen.
 
 ## Priorität 2 – Pflanzenvielfalt und Wachstum
 
-- Mehr klar unterscheidbare Pflanzenformen ergänzen; aktuell nutzen mehrere Sorten noch dieselbe Blattform.
+- Weitere klar unterscheidbare Pflanzenformen ergänzen; Orchidee und Calathea haben bereits getrennte Silhouetten.
 - Für jede Pflanzensorte zwölf wirklich sichtbare Wachstumsstufen ausarbeiten.
 - Topf, Erde, Pflanze und vorderen Rand bei jeder Sorte über denselben festen Bodenanker ausrichten.
 - Den endgültigen Auswahlrhythmus festlegen: aktuell gibt es nach drei Tagesaufgaben täglich drei Pflanzen zur Auswahl; ursprünglich war zusätzlich eine wöchentliche Auswahl gewünscht.
@@ -36,6 +36,7 @@ Stand: 26. August 2026
 - Gemeinsame Aufgaben und Tagesstreak-Bonus-XP funktionieren.
 - Drei erledigte Aufgaben schalten die tägliche Pflanzenauswahl frei.
 - Lichtfunken entstehen durch echte erledigte Aufgaben oder gegossene Pflanzen.
-- Das neue Pflanzenzimmer und der korrekt verankerte Kaktus sind auf dem iPhone live.
+- Das Pflanzenzimmer hat acht echte Sammelplätze; der Kaktus-Platzhalter ist entfernt.
+- Der tägliche Keim, einsammelbare Lichtfunken und Flauschis Jubelanimation bilden den ersten spielbaren Loop.
 - App-Symbol, Custom Domain und öffentliche Installation funktionieren.
 - Buttons zeigen Aufgabe/Gießen ab dem ersten Tap sofort an; die Speicherung läuft anschließend im Hintergrund.

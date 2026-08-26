@@ -218,10 +218,23 @@ export default function Home() {
     if ('vibrate' in navigator) navigator.vibrate(24);
   }, []);
   const petStaubi = useCallback(() => {
-    setToast('Flauschi macht: prrr… vermutlich. +1 gemütlich.');
+    setToast('Flauschi wackelt vor Freude. Das zählt als sehr wichtiger Gartenbesuch.');
     window.setTimeout(() => setToast(''), 2200);
     if ('vibrate' in navigator) navigator.vibrate([18,35,18]);
   }, []);
+  const openGardenSeed = useCallback(() => {
+    if (garden?.rewardReady && !garden.chosenToday) {
+      document.getElementById('pflanzenwahl')?.scrollIntoView({behavior:'smooth',block:'center'});
+      setToast('Euer Keim ist bereit – sucht euch eine neue Pflanze aus.');
+    } else if (garden?.chosenToday) {
+      setToast('Die heutige Pflanze ist schon eingezogen. Morgen wächst der nächste Keim.');
+    } else {
+      const remaining=Math.max(0,(garden?.dailyTaskGoal??3)-(garden?.todayTasks??0));
+      setToast(`Noch ${remaining} ${remaining===1?'Aufgabe':'Aufgaben'}, dann dürft ihr eine neue Pflanze wählen.`);
+    }
+    window.setTimeout(() => setToast(''), 2600);
+    if ('vibrate' in navigator) navigator.vibrate(18);
+  }, [garden]);
   async function action(payload: object) {
     const r = await fetch("/api/plants", {
       method: "POST",
@@ -341,7 +354,7 @@ export default function Home() {
   const gardenLevel = Math.floor(gardenXp / 100) + 1;
   const gardenProgress = gardenXp % 100;
   const activeGardenRoom = PROTOTYPE_GARDEN_MODE ? GARDEN_PROTOTYPE_ROOM : gardenRoom;
-  const activeGardenItems = useMemo(() => garden?.collection.filter((item) => item.room === activeGardenRoom).slice(-4) ?? [], [garden, activeGardenRoom]);
+  const activeGardenItems = useMemo(() => garden?.collection.filter((item) => item.room === activeGardenRoom).slice(-8) ?? [], [garden, activeGardenRoom]);
   const gardenScenePlants = useMemo(() => activeGardenItems.map((item) => {
     const stage = growthStage(Math.max(0,(garden?.xp??0)-item.xpAtUnlock));
     return {id:item.weekKey,key:item.plantKey,name:item.plant.name,stage};
@@ -425,17 +438,17 @@ export default function Home() {
       <div className={`mobile-progress ${progressOpen ? "is-open" : ""}`} id="fortschritt">
         <button className="progress-toggle" onClick={() => setProgressOpen((open) => !open)} aria-expanded={progressOpen}><span>★ Level & Wochenmission</span><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></button>
         <section className="plant-room-game" aria-label="Euer gemeinsames Pflanzenzimmer">
-          <div className="garden-game-head"><div><p className="eyebrow">FLAUSCHIS PFLANZENZIMMER</p><h2>Jede Aufgabe lässt etwas wachsen.</h2><p>Erledigte Aufgaben schenken euren Pflanzen Lichtfunken und neue Blätter.</p></div><div className="garden-level-pill"><span>Level {gardenLevel}</span><b>{gardenProgress}/100 XP</b></div></div>
+          <div className="garden-game-head"><div><p className="eyebrow">EUER KLEINES PFLANZENSPIEL</p><h2>Aufräumen. Funkeln. Wachsen.</h2><p>Eine Aufgabe macht einen Lichtfunken. Drei Aufgaben wecken den nächsten Keim.</p></div><div className="garden-level-pill"><span>Raum-Level {gardenLevel}</span><b>{gardenProgress}/100 XP</b></div></div>
           {!PROTOTYPE_GARDEN_MODE && <nav className="garden-room-tabs" aria-label="Pflanzenräume">{garden?.rooms.map((room)=><button key={room.name} disabled={!room.unlocked} className={gardenRoom===room.name?'active':''} onClick={()=>room.unlocked&&setGardenRoom(room.name)}><span>{room.unlocked?room.name:'🔒 '+room.name}</span><small>{room.count}/{room.capacity}</small></button>)}</nav>}
           <div className="garden-scene-shell">
-            <div className="garden-scene-title"><span><small>{activeGardenRoom.toUpperCase()}</small><b>{activeGardenItems.length ? `${activeGardenItems.length} von 4 Pflanzen` : 'Der erste Platz wartet'}</b></span><em>{gardenMotes} Lichtfunken</em></div>
-            <GardenScene room={activeGardenRoom} plants={gardenScenePlants} streak={stats.loginStreak} availableMotes={gardenMotes} onCollectMote={collectGardenMote} onPetStaubi={petStaubi}/>
-            <div className="garden-scene-tip"><span>✨</span><p><b>{gardenMotes ? 'Eure erledigte Aufgabe glitzert hier …' : 'Erledigt eine Aufgabe für einen Lichtfunken.'}</b>{gardenMotes ? 'Sammelt die Lichtpunkte oder besucht Flauschi.' : 'Jede erledigte Aufgabe lässt einen neuen Funken erscheinen.'}</p></div>
+            <div className="garden-scene-title"><span><small>{activeGardenRoom.toUpperCase()}</small><b>{activeGardenItems.length ? `${activeGardenItems.length} ${activeGardenItems.length===1?'Pflanze wohnt':'Pflanzen wohnen'} hier` : 'Der erste Keim wartet auf euch'}</b></span><em>{gardenMotes ? `${gardenMotes} ${gardenMotes===1?'Funke wartet':'Funken warten'}` : 'Alles eingesammelt'}</em></div>
+            <GardenScene room={activeGardenRoom} plants={gardenScenePlants} streak={stats.loginStreak} availableMotes={gardenMotes} taskProgress={garden?.todayTasks??0} taskGoal={garden?.dailyTaskGoal??3} rewardReady={Boolean(garden?.rewardReady&&!garden?.chosenToday)} onCollectMote={collectGardenMote} onPetFlauschi={petStaubi} onOpenSeed={openGardenSeed}/>
+            <div className="garden-scene-tip"><span aria-hidden="true">{garden?.rewardReady&&!garden?.chosenToday?'🌱':gardenMotes?'✨':'☀️'}</span><p><b>{garden?.rewardReady&&!garden?.chosenToday?'Euer Keim ist bereit!':gardenMotes?'Da funkelt eure erledigte Aufgabe!':'Nächster Schritt: eine Aufgabe.'}</b>{garden?.rewardReady&&!garden?.chosenToday?'Tippt auf den Keim und wählt eine neue Pflanze.':gardenMotes?'Tippt den Lichtfunken an – Flauschi schaut genau zu.':'Danach erscheint hier sofort ein Lichtfunke und der Keim wächst.'}</p></div>
             <ul className="garden-scene-accessible">{gardenScenePlants.map((plant)=><li key={plant.id}>{plant.name}, Stufe {plant.stage} von 12: {growthLabel(plant.stage)}</li>)}</ul>
           </div>
-          {garden?.collection.filter((item)=>item.room===activeGardenRoom).length ? <ul className="garden-collection" aria-label={`Pflanzen im ${activeGardenRoom}`}>{garden.collection.filter((item)=>item.room===activeGardenRoom).slice(-4).map((item)=>{const stage=growthStage(Math.max(0,garden.xp-item.xpAtUnlock));return <li key={item.weekKey}><span className="garden-collection-symbol" aria-hidden="true">{item.plant.emoji}</span><span><b>{item.plant.name}</b><small>Stufe {stage}/12 · {growthLabel(stage)}</small></span></li>})}</ul> : null}
+          {garden?.collection.filter((item)=>item.room===activeGardenRoom).length ? <ul className="garden-collection" aria-label={`Pflanzen im ${activeGardenRoom}`}>{garden.collection.filter((item)=>item.room===activeGardenRoom).slice(-8).map((item)=>{const stage=growthStage(Math.max(0,garden.xp-item.xpAtUnlock));return <li key={item.weekKey}><span className="garden-collection-symbol" aria-hidden="true">{item.plant.emoji}</span><span><b>{item.plant.name}</b><small>Stufe {stage}/12 · {growthLabel(stage)}</small></span></li>})}</ul> : null}
           <div className="garden-track"><i style={{width:`${gardenProgress}%`}} /></div><div className="garden-meta"><b>Gemeinsam {gardenXp} XP gesammelt</b><span>Noch {100-gardenProgress} XP bis Raum-Level {gardenLevel+1}</span></div>
-          {garden && !garden.chosenToday && <div className={`daily-plant-reward ${garden.rewardReady?'is-ready':''}`}><span><small>HEUTIGE BELOHNUNG · {activeGardenRoom.toUpperCase()}</small><b>{garden.rewardReady?'Eine neue Pflanze ist bereit!':`Noch ${Math.max(0,garden.dailyTaskGoal-garden.todayTasks)} Aufgaben bis zur neuen Pflanze`}</b></span>{garden.rewardReady?<div>{garden.candidates.map((candidate)=><button disabled={gardenBusy} onClick={()=>chooseGardenPlant(candidate.key)} key={candidate.key}><img className="growth-sprite" src={gardenGrowthSrc(candidate.key,1)} alt=""/><b>{candidate.name}</b><small>Einziehen lassen</small></button>)}</div>:<div className="daily-reward-track" aria-label={`${Math.min(garden.todayTasks,garden.dailyTaskGoal)} von ${garden.dailyTaskGoal} Aufgaben erledigt`}><i style={{width:`${Math.min(100,(garden.todayTasks/garden.dailyTaskGoal)*100)}%`}}/><em>{Math.min(garden.todayTasks,garden.dailyTaskGoal)}/{garden.dailyTaskGoal}</em></div>}</div>}
+          {garden && !garden.chosenToday && garden.rewardReady && <div id="pflanzenwahl" className="daily-plant-reward is-ready"><span><small>HEUTIGER KEIM · {activeGardenRoom.toUpperCase()}</small><b>Welche Pflanze darf einziehen?</b></span><div>{garden.candidates.map((candidate)=><button disabled={gardenBusy} onClick={()=>chooseGardenPlant(candidate.key)} key={candidate.key}><img className="growth-sprite" src={gardenGrowthSrc(candidate.key,1)} alt=""/><b>{candidate.name}</b><small>Einziehen lassen</small></button>)}</div></div>}
           {garden?.chosenToday && <div className="next-plant"><span>✨</span><p><b>Heutige Pflanze freigeschaltet</b>Morgen könnt ihr mit drei Aufgaben den nächsten Platz begrünen.</p></div>}
         </section>
         <section className="level-hub" aria-label="Eure Level und Wochenfortschritt">
