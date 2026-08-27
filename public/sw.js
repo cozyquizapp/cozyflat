@@ -1,9 +1,23 @@
-const CACHE = "cozyflat-shell-v6";
-const SHELL = ["/", "/manifest.webmanifest", "/app-icon.png", "/staubi.png", "/avatar-johannes.png", "/avatar-sonja.png"];
+const CACHE = "cozyflat-static-v7";
+const OFFLINE_DOCUMENT = "/__cozyflat-offline";
+const STATIC_ASSETS = [
+  "/manifest.webmanifest",
+  "/app-icon.png",
+  "/staubi.png",
+  "/avatar-johannes.png",
+  "/avatar-sonja.png",
+];
 
 self.addEventListener("install", (event) => event.waitUntil((async () => {
   const cache = await caches.open(CACHE);
-  await cache.addAll(SHELL);
+  await Promise.all(STATIC_ASSETS.map(async (asset) => {
+    try {
+      const response = await fetch(asset, { cache: "reload" });
+      if (response.ok) await cache.put(asset, response);
+    } catch {
+      // A missing optional asset must never prevent an app update.
+    }
+  }));
   await self.skipWaiting();
 })()));
 
@@ -25,14 +39,27 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname.startsWith("/garden/")) {
-    event.respondWith(fetch(event.request));
+  if (event.request.mode === "navigate") {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE);
+      try {
+        // Home-screen launches must always check the server before using an
+        // offline copy. `no-store` also bypasses Safari's HTTP page cache.
+        const response = await fetch(event.request, { cache: "no-store" });
+        if (response.ok) await cache.put(OFFLINE_DOCUMENT, response.clone());
+        return response;
+      } catch {
+        return (await cache.match(OFFLINE_DOCUMENT)) || Response.error();
+      }
+    })());
     return;
   }
 
   event.respondWith(fetch(event.request).then((response) => {
-    const copy = response.clone();
-    caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+    if (response.ok) {
+      const copy = response.clone();
+      caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+    }
     return response;
-  }).catch(() => caches.match(event.request).then((cached) => cached || (event.request.mode === "navigate" ? caches.match("/") : Response.error()))));
+  }).catch(() => caches.match(event.request).then((cached) => cached || Response.error())));
 });

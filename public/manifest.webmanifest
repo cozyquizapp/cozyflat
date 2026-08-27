@@ -2,7 +2,7 @@
   "name": "CozyFlat – Gemeinsam zuhause anpacken",
   "short_name": "CozyFlat",
   "description": "Eure gemeinsame App für Aufgaben, Pflanzen und XP.",
-  "start_url": "/",
+  "start_url": "/?source=homescreen",
   "scope": "/",
   "display": "standalone",
   "background_color": "#fbf8ef",

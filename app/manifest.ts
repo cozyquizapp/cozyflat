@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'CozyFlat – Unser Zuhause',
     short_name: 'CozyFlat',
     description: 'Pflanzen und Haushalt gemeinsam im Blick behalten.',
-    start_url: '/',
+    start_url: '/?source=homescreen',
     display: 'standalone',
     background_color: '#fcfbf7',
     theme_color: '#173c2d',

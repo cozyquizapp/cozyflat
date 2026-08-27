@@ -163,28 +163,55 @@ export default function Home() {
   }
   useEffect(() => {
     const splashTimer = window.setTimeout(() => setSplashVisible(false), 3000);
+    let removeServiceWorkerListeners = () => undefined;
     if ("serviceWorker" in navigator) {
-      const swScript = `/sw.js?v=2026-08-26c`;
-      navigator.serviceWorker.register(swScript).then((registration) => {
-        if (registration.waiting) {
-          registration.waiting.postMessage("SKIP_WAITING");
+      let hadController = Boolean(navigator.serviceWorker.controller);
+      let refreshing = false;
+      let registration: ServiceWorkerRegistration | undefined;
+
+      const activateWaitingWorker = () => {
+        registration?.waiting?.postMessage("SKIP_WAITING");
+      };
+      const updateServiceWorker = async () => {
+        try {
+          registration ??= await navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" });
+          activateWaitingWorker();
+          await registration.update();
+          activateWaitingWorker();
+        } catch {
+          // CozyFlat remains usable if the browser blocks service workers.
         }
-        void registration.update().catch(() => undefined);
-      }).catch(() => undefined);
-      navigator.serviceWorker.getRegistrations()
-        .then((registrations) => {
-          registrations.forEach((registration) => {
-            if (!registration.active) return;
-            if (!registration.active.scriptURL.includes("2026-08-26c")) {
-              registration.unregister().catch(() => undefined);
-            }
-          });
-        })
-        .catch(() => undefined);
+      };
+      const handleControllerChange = () => {
+        if (!hadController) {
+          hadController = true;
+          return;
+        }
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      };
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") void updateServiceWorker();
+      };
+
+      navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      window.addEventListener("focus", updateServiceWorker);
+      void updateServiceWorker();
+
+      removeServiceWorkerListeners = () => {
+        navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+        window.removeEventListener("focus", updateServiceWorker);
+      };
     }
     refresh();
     setShowReminderCard(localStorage.getItem("reminder-card-dismissed") !== "yes");
-    return () => window.clearTimeout(splashTimer);
+    return () => {
+      window.clearTimeout(splashTimer);
+      removeServiceWorkerListeners();
+    };
   }, []);
   useEffect(() => {
     const day = localDayKey(new Date()).split('-').map((part, index) => index ? part.padStart(2,'0') : part).join('-');
