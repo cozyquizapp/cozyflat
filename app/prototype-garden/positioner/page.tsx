@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { WaterPour, type WaterRigTuning } from "../../GardenScene";
 import { DEFAULT_PLANT_TUNING, PLANT_TUNING_STORAGE_KEY, PottedPlant, type PlantKey, type PlantTuning } from "../page";
 import "../prototype-garden.css";
 import "./positioner.css";
+
+const WATER_TUNING_STORAGE_KEY = "cozyflat-water-rig-tuning-v1";
 
 const PLANTS: Array<{ key: PlantKey; label: string }> = [
   { key: "orchid", label: "Orchidee" },
@@ -47,11 +50,16 @@ export default function PlantPositioner() {
   const [saved, setSaved] = useState<Record<string, PlantTuning>>({});
   const [ready, setReady] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [waterSlot, setWaterSlot] = useState(1);
+  const [waterTuning, setWaterTuning] = useState<WaterRigTuning>({x:0,y:0,scale:1});
+  const [waterCopied, setWaterCopied] = useState(false);
 
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(PLANT_TUNING_STORAGE_KEY);
       if (stored) setSaved(JSON.parse(stored) as Record<string, PlantTuning>);
+      const storedWater = window.localStorage.getItem(WATER_TUNING_STORAGE_KEY);
+      if (storedWater) setWaterTuning(JSON.parse(storedWater) as WaterRigTuning);
     } catch {
       // A fresh local tool still works when storage is unavailable.
     }
@@ -62,6 +70,11 @@ export default function PlantPositioner() {
     if (!ready) return;
     window.localStorage.setItem(PLANT_TUNING_STORAGE_KEY, JSON.stringify(saved));
   }, [ready, saved]);
+
+  useEffect(() => {
+    if (!ready) return;
+    window.localStorage.setItem(WATER_TUNING_STORAGE_KEY, JSON.stringify(waterTuning));
+  }, [ready, waterTuning]);
 
   const layoutKey = `${plantKey}-${stage}`;
   const tuning = { ...defaultTuning(plantKey, stage), ...(saved[layoutKey] ?? {}) };
@@ -85,6 +98,11 @@ export default function PlantPositioner() {
   async function copyValues() {
     await navigator.clipboard.writeText(JSON.stringify(saved, null, 2));
     setCopied(true);
+  }
+
+  async function copyWaterValues() {
+    await navigator.clipboard.writeText(JSON.stringify(waterTuning, null, 2));
+    setWaterCopied(true);
   }
 
   return <main className="positioner-page">
@@ -120,6 +138,25 @@ export default function PlantPositioner() {
         <div className="positioner-stage-pills">
           {[1, 2, 3, 4, 5].map((value) => <button key={value} type="button" className={value === stage ? "is-active" : ""} onClick={() => setStage(value)}>Stufe {value}</button>)}
         </div>
+      </section>
+
+      <section className="positioner-water-card">
+        <div className="positioner-water-head"><span><small>GIESS-ANSICHT</small><strong>Gießkanne + Wasser gemeinsam setzen</strong></span><button type="button" onClick={()=>setWaterTuning({x:0,y:0,scale:1})}>Reset</button></div>
+        <div className="positioner-water-room garden-scene-host css-garden-scene-v2">
+          <img className="css-room-art" src="/prototype-garden-v2/living-cabinet-v2.png" alt="" />
+          <div className="css-room-overlay">
+            <div className={`css-shelf-slot css-slot-${waterSlot}`}><PottedPlant plantKey={plantKey} stage={stage} alt={`${plantLabel}, Stufe ${stage}`} tuning={tuning} /></div>
+            <WaterPour slot={waterSlot} tuning={waterTuning} />
+          </div>
+        </div>
+        <div className="positioner-water-slots" aria-label="Regalplatz für die Gießprobe wählen">{[1,2,3,4,5,6,7,8].map((slot)=><button type="button" className={waterSlot===slot?'is-active':''} onClick={()=>setWaterSlot(slot)} key={slot}>{slot}</button>)}</div>
+        <div className="positioner-controls positioner-water-controls">
+          <label><span><strong>Einheit links / rechts</strong><output>{waterTuning.x}%</output></span><input type="range" min="-12" max="12" step=".25" value={waterTuning.x} onChange={(event)=>{setWaterTuning({...waterTuning,x:Number(event.target.value)});setWaterCopied(false)}} /></label>
+          <label><span><strong>Einheit hoch / runter</strong><output>{waterTuning.y}%</output></span><input type="range" min="-12" max="12" step=".25" value={waterTuning.y} onChange={(event)=>{setWaterTuning({...waterTuning,y:Number(event.target.value)});setWaterCopied(false)}} /></label>
+          <label><span><strong>Gießkanne + Wasser Größe</strong><output>{waterTuning.scale}×</output></span><input type="range" min=".7" max="1.3" step=".01" value={waterTuning.scale} onChange={(event)=>{setWaterTuning({...waterTuning,scale:Number(event.target.value)});setWaterCopied(false)}} /></label>
+        </div>
+        <button type="button" className="positioner-copy-water" onClick={copyWaterValues}>{waterCopied?'Gießwerte kopiert ✓':'Gießwerte kopieren'}</button>
+        <small>Der Strahl ist am Brausekopf verankert. Du verschiebst immer die komplette Einheit – links und rechts bleiben dadurch deckungsgleich.</small>
       </section>
 
       <section className="positioner-controls">

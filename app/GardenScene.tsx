@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { PottedPlant } from "./prototype-garden/page";
 import "./prototype-garden/prototype-garden.css";
 
@@ -57,17 +57,17 @@ function playGardenChime(kind: "water" | "grow") {
   window.setTimeout(()=>void context.close(),650);
 }
 
-function WaterPour({ slot }: { slot: number }) {
+export type WaterRigTuning = { x: number; y: number; scale: number };
+
+export function WaterPour({ slot, tuning }: { slot: number; tuning?: WaterRigTuning }) {
   const mirrored=slot%2===0;
-  // The mirrored can's rose sits farther outside its slot. Give that side its
-  // own start point instead of mirroring the whole SVG, so the stream still
-  // lands in the same pot while visibly leaving the rose.
-  const path=mirrored
-    ? "M108 4 C 92 16 75 32 61 49 C 50 65 41 83 35 103"
-    : "M92 8 C 78 20 66 35 57 51 C 49 67 42 84 35 101";
-  return <>
-    <img className={`css-watering-can css-slot-${slot}`} src="/prototype-garden-v2/watering-can-v1.png" alt="" />
-    <svg className={`css-water-stream css-slot-${slot} ${mirrored?'is-mirrored':''}`} viewBox="0 0 100 110" aria-hidden="true">
+  // Can and water share one coordinate system. The stream starts at the
+  // measured centre of the rose in the source image and therefore stays
+  // attached when the complete rig is mirrored for the right column.
+  const path="M310 671 C 286 770 235 965 160 1160";
+  const rig=tuning??{x:0,y:0,scale:1};
+  const style={"--water-x":`${rig.x}%`,"--water-y":`${rig.y}%`,"--water-width":`${52*rig.scale}%`} as CSSProperties;
+  return <svg className={`css-watering-rig css-slot-${slot} ${mirrored?'is-mirrored':''}`} style={style} viewBox="0 0 1200 1300" aria-hidden="true">
       <defs>
         <linearGradient id="garden-water-gradient" x1="1" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#effcff" />
@@ -75,12 +75,12 @@ function WaterPour({ slot }: { slot: number }) {
           <stop offset="1" stopColor="#4ab5df" />
         </linearGradient>
       </defs>
+      <image className="css-watering-can" href="/prototype-garden-v2/watering-can-v1.png" x="233" y="0" width="967" height="882" />
       <path className="css-water-glow" pathLength="1" d={path} />
       <path className="css-water-core" pathLength="1" d={path} />
-      <circle className="css-water-drop drop-one" cx="43" cy="88" r="3.1" />
-      <circle className="css-water-drop drop-two" cx="34" cy="104" r="2.3" />
-    </svg>
-  </>;
+      <circle className="css-water-drop drop-one" cx="205" cy="1030" r="24" />
+      <circle className="css-water-drop drop-two" cx="155" cy="1170" r="18" />
+    </svg>;
 }
 
 function SeedSlot({ slot, progress, goal, ready, onOpen }: { slot: number; progress: number; goal: number; ready: boolean; onOpen: () => void }) {

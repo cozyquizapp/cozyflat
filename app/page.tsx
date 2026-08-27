@@ -143,7 +143,7 @@ export default function Home() {
   const [reminderPerson, setReminderPerson] = useState<"Johannes" | "Sonja">("Johannes");
   const [showReminderCard, setShowReminderCard] = useState(false);
   const [plantsOpen, setPlantsOpen] = useState(false);
-  const [mobileView, setMobileView] = useState<'today'|'chores'|'plants'|'level'>('today');
+  const [mobileView, setMobileView] = useState<'today'|'chores'|'plants'|'level'|'profile'>('today');
   const [splashVisible, setSplashVisible] = useState(true);
   const emptyScores = { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} };
   const [stats, setStats] = useState<Stats>({ streak: 0, loginStreak: 0, loginDays: 0, todayTasks:0, nextTaskBonus:0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
@@ -295,8 +295,6 @@ export default function Home() {
   async function finishChore(chore: Chore, together=false) {
     setChoreBusy(chore.id);
     const completionName=together?'Sonja & Johannes':person;
-    setCelebration({ label: chore.name, person:completionName, points: chore.points + stats.nextTaskBonus, icon: chore.icon });
-    setTimeout(() => setCelebration(null), 2400);
     setToast(`${chore.name} wird gespeichert …`);
     if ("vibrate" in navigator) navigator.vibrate([35,45,65]);
     try {
@@ -312,6 +310,7 @@ export default function Home() {
         setTimeout(() => setUndoInfo(null),5000);
       }
       setCelebration({ label: chore.name, person:completionName, points: awarded, icon: chore.icon });
+      setTimeout(() => setCelebration(null), 2400);
       const [s,g] = await Promise.all([fetch('/api/stats'),fetch('/api/garden')]);
       if (s.ok) setStats(await s.json());
       if (g.ok) setGarden(await g.json());
@@ -403,6 +402,10 @@ export default function Home() {
   }), [activeGardenItems]);
   const weeklyGoal = 200;
   const weeklyProgress = Math.min(100, Math.round((weeklyTeamPoints / weeklyGoal) * 100));
+  const personalLevel = levelFor(stats.totalScores[person].points);
+  const personalWeek = stats.scores[person];
+  const personalPreviousWeek = stats.previousWeek[person];
+  const personalWeekDifference = personalWeek.points - personalPreviousWeek.points;
   const dateLabel = now
     .toLocaleDateString("de-DE", {
       weekday: "long",
@@ -513,6 +516,30 @@ export default function Home() {
         </div>
         </section>
       </div>
+      <section className="personal-level-screen" aria-labelledby="personal-level-title">
+        <div className="personal-level-hero">
+          <div className="personal-level-heading">
+            <img src={avatarFor[person]} alt="" />
+            <span><small>DEIN FORTSCHRITT</small><b>{person}</b></span>
+            <em>Level {personalLevel.level}</em>
+          </div>
+          <div className="personal-level-copy">
+            <span className="personal-level-star" aria-hidden="true">★</span>
+            <div><p>LEVEL {personalLevel.level}</p><h2 id="personal-level-title">{personalLevel.title}</h2><small>{stats.totalScores[person].points} XP insgesamt</small></div>
+          </div>
+          <div className="personal-level-track" aria-label={`${personalLevel.current} von ${personalLevel.next} XP bis zum nächsten Level`}><i style={{width:`${personalLevel.progress}%`}} /></div>
+          <div className="personal-level-meta"><b>Noch {personalLevel.next-personalLevel.current} XP</b><span>bis Level {personalLevel.level+1}</span></div>
+        </div>
+        <div className="personal-level-stats">
+          <article><span aria-hidden="true">✨</span><b>{personalWeek.points} XP</b><small>Diese Woche</small></article>
+          <article><span aria-hidden="true">✓</span><b>{personalWeek.waterings}</b><small>Aufgaben diese Woche</small></article>
+          <article><span aria-hidden="true">🔥</span><b>{stats.streak} {stats.streak===1?'Tag':'Tage'}</b><small>Gemeinsamer Aufgaben-Streak</small></article>
+        </div>
+        <div className="personal-week-card">
+          <span><small>DEINE WOCHE</small><b>{personalWeekDifference>0?`+${personalWeekDifference} XP`:personalWeekDifference<0?`${personalWeekDifference} XP`:'Gleichauf'}</b></span>
+          <p>{personalPreviousWeek.points===0?'Deine erste Vergleichswoche läuft – jeder Haken zählt.':personalWeekDifference>0?'Du liegst vor deiner letzten Woche. Stark!':personalWeekDifference===0?'Genau auf dem Stand der letzten Woche.':'Noch ein paar Aufgaben und du holst die letzte Woche ein.'}</p>
+        </div>
+      </section>
       {showWeeklyRecap && <section className="weekly-recap">
         <p className="eyebrow">SONNTAGS-RÜCKBLICK</p><h2>Ihr wart fleißig.</h2>
         <div>{(["Johannes", "Sonja"] as const).map((name) => <article key={name}><img src={avatarFor[name]} alt="" /><span><b>{name}</b><small>{stats.scores[name].waterings} Aufgaben erledigt</small></span><strong>{stats.scores[name].points} Punkte</strong></article>)}</div>
@@ -719,6 +746,7 @@ export default function Home() {
         <button className={mobileView==='chores'?'active':''} aria-current={mobileView==='chores'?'page':undefined} onClick={()=>{setMobileView('chores');window.scrollTo({top:0,behavior:'smooth'})}}><span aria-hidden="true">✓</span>Aufgaben</button>
         <button className={mobileView==='plants'?'active':''} aria-current={mobileView==='plants'?'page':undefined} onClick={()=>{setMobileView('plants');setPlantsOpen(true);window.scrollTo({top:0,behavior:'smooth'})}}><span aria-hidden="true">☘</span>Pflanzen</button>
         <button className={mobileView==='level'?'active':''} aria-current={mobileView==='level'?'page':undefined} onClick={()=>{setMobileView('level');setProgressOpen(false);window.scrollTo({top:0,behavior:'smooth'})}}><span aria-hidden="true">🌱</span>Garten</button>
+        <button className={mobileView==='profile'?'active':''} aria-current={mobileView==='profile'?'page':undefined} onClick={()=>{setMobileView('profile');window.scrollTo({top:0,behavior:'smooth'})}}><img className="mobile-nav-avatar" src={avatarFor[person]} alt="" />Level</button>
       </nav>
     </main>
   );

@@ -301,42 +301,27 @@
 .css-room-sun i:nth-child(2) { right: 22%; top: 40%; animation-delay: -.8s; }
 .css-room-sun i:nth-child(3) { left: 48%; top: 60%; animation-delay: -1.55s; }
 
-.css-watering-can,
-.css-water-stream { position: absolute; pointer-events: none; }
-.css-watering-can {
-  z-index: 20;
-  width: 40%;
-  height: 22%;
-  object-fit: contain;
-  transform: translate(20%,-61%) rotate(-5deg);
-  transform-origin: 25% 75%;
-  filter: drop-shadow(0 7px 7px rgba(49,56,38,.22));
-  animation: css-can-pour 1.08s cubic-bezier(.18,.75,.2,1) both;
-}
-.css-water-stream {
+.css-watering-rig {
+  position: absolute;
   z-index: 21;
-  width: 26%;
-  height: 17%;
+  left: calc(24.25% + var(--water-x,0%));
+  width: var(--water-width,52%);
+  height: auto;
   overflow: visible;
-  transform: translate(-40%,-7%);
-  transform-origin: 92% 9%;
-  filter: drop-shadow(0 2px 3px rgba(60,155,195,.28));
-  animation: css-stream-arrive 1.08s cubic-bezier(.18,.75,.2,1) both;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  animation: css-watering-rig-arrive 1.08s cubic-bezier(.18,.75,.2,1) both;
 }
-.css-watering-can.css-slot-1,.css-water-stream.css-slot-1 { left:31.2%; top:14.5%; }
-.css-watering-can.css-slot-2,.css-water-stream.css-slot-2 { left:68.6%; top:14.5%; }
-.css-watering-can.css-slot-3,.css-water-stream.css-slot-3 { left:31.2%; top:34.3%; }
-.css-watering-can.css-slot-4,.css-water-stream.css-slot-4 { left:68.6%; top:34.3%; }
-.css-watering-can.css-slot-5,.css-water-stream.css-slot-5 { left:31.2%; top:54.2%; }
-.css-watering-can.css-slot-6,.css-water-stream.css-slot-6 { left:68.6%; top:54.2%; }
-.css-watering-can.css-slot-7,.css-water-stream.css-slot-7 { left:31.2%; top:74%; }
-.css-watering-can.css-slot-8,.css-water-stream.css-slot-8 { left:68.6%; top:74%; }
-.css-watering-can.css-slot-2,.css-watering-can.css-slot-4,.css-watering-can.css-slot-6,.css-watering-can.css-slot-8 { transform-origin:75% 75%; animation-name:css-can-pour-right; }
-.css-water-stream.css-slot-2,.css-water-stream.css-slot-4,.css-water-stream.css-slot-6,.css-water-stream.css-slot-8 { transform-origin:8% 9%; animation-name:css-stream-arrive-right; }
+.css-watering-rig.is-mirrored { left: calc(23.55% + var(--water-x,0%)); animation-name: css-watering-rig-arrive-right; }
+.css-watering-rig.css-slot-1,.css-watering-rig.css-slot-2 { top:calc(.9% + var(--water-y,0%)); }
+.css-watering-rig.css-slot-3,.css-watering-rig.css-slot-4 { top:calc(20.7% + var(--water-y,0%)); }
+.css-watering-rig.css-slot-5,.css-watering-rig.css-slot-6 { top:calc(40.6% + var(--water-y,0%)); }
+.css-watering-rig.css-slot-7,.css-watering-rig.css-slot-8 { top:calc(60.4% + var(--water-y,0%)); }
+.css-watering-can { filter: drop-shadow(0 38px 34px rgba(49,56,38,.22)); }
 .css-water-glow,.css-water-core { fill:none; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; animation:css-water-path 1.08s cubic-bezier(.18,.75,.2,1) both; }
-.css-water-glow { stroke:rgba(220,248,255,.8); stroke-width:9; filter:blur(2px); }
-.css-water-core { stroke:url(#garden-water-gradient); stroke-width:5; }
-.css-water-drop { fill:#88dcf5; stroke:rgba(239,252,255,.92); stroke-width:1; opacity:0; animation:css-water-drop 1.08s ease-out both; }
+.css-water-glow { stroke:rgba(220,248,255,.8); stroke-width:76; filter:blur(16px); }
+.css-water-core { stroke:url(#garden-water-gradient); stroke-width:42; }
+.css-water-drop { fill:#88dcf5; stroke:rgba(239,252,255,.92); stroke-width:8; opacity:0; animation:css-water-drop 1.08s ease-out both; }
 .css-water-drop.drop-two { animation-delay:.05s; }
 
 .css-flauschi-orb-v2 { position:absolute; z-index:24; right:5%; bottom:4.5%; width:60px; height:60px; padding:0; border:3px solid #fff8dc; border-radius:50%; background:#9da578; box-shadow:0 8px 18px rgba(46,52,34,.24); cursor:pointer; }
@@ -353,10 +338,8 @@
 @keyframes css-target-glow { 50% { opacity:1; transform:scale(1.08); } }
 @keyframes css-room-sun-breathe { 0%,100% { opacity:.68; } 50% { opacity:1; } }
 @keyframes css-room-spark { 0%,100% { opacity:.35; transform:translateY(0) scale(.7); } 50% { opacity:1; transform:translateY(-7px) scale(1.12); } }
-@keyframes css-can-pour { 0% { opacity:0; transform:translate(42%,-74%) rotate(12deg) scale(.68); } 24% { opacity:1; } 64% { opacity:1; transform:translate(20%,-61%) rotate(-7deg) scale(1); } 100% { opacity:0; transform:translate(20%,-61%) rotate(-7deg) scale(1); } }
-@keyframes css-can-pour-right { 0% { opacity:0; transform:translate(-115%,-74%) scaleX(-1) rotate(-12deg) scale(.68); } 24% { opacity:1; } 64% { opacity:1; transform:translate(-93%,-61%) scaleX(-1) rotate(7deg) scale(1); } 100% { opacity:0; transform:translate(-93%,-61%) scaleX(-1) rotate(7deg) scale(1); } }
-@keyframes css-stream-arrive { 0% { opacity:0; transform:translate(-40%,-7%) scale(.96); } 16%,76% { opacity:1; transform:translate(-40%,-7%) scale(1); } 100% { opacity:0; transform:translate(-40%,-5%) scale(.99); } }
-@keyframes css-stream-arrive-right { 0% { opacity:0; transform:translate(-34%,-7%) scale(.96); } 16%,76% { opacity:1; transform:translate(-34%,-7%) scale(1); } 100% { opacity:0; transform:translate(-34%,-5%) scale(.99); } }
+@keyframes css-watering-rig-arrive { 0% { opacity:0; transform:translate(10%,-9%) scale(.78); } 22%,78% { opacity:1; transform:none; } 100% { opacity:0; transform:translateY(1%) scale(.99); } }
+@keyframes css-watering-rig-arrive-right { 0% { opacity:0; transform:translate(-10%,-9%) scaleX(-1) scale(.78); } 22%,78% { opacity:1; transform:scaleX(-1); } 100% { opacity:0; transform:translateY(1%) scaleX(-1) scale(.99); } }
 @keyframes css-water-path { 0%,12% { stroke-dashoffset:1; } 42%,78% { stroke-dashoffset:0; } 100% { stroke-dashoffset:-1; } }
 @keyframes css-water-drop { 0%,38% { opacity:0; transform:translateY(-4px) scale(.55); } 55%,78% { opacity:1; transform:translateY(0) scale(1); } 100% { opacity:0; transform:translateY(5px) scale(.72); } }
 

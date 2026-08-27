@@ -23,6 +23,29 @@
   --cozy-focus: #d99d45;
 }
 
+/* The selected person's palette should feel present in every primary action. */
+.person-sonja .daily-bottom .round-start,
+.person-sonja .submit-button,
+.person-sonja .copy-url,
+.person-sonja .quick-chore button:not(.together-button),
+.person-sonja .finish-chore:not(.together-button),
+.person-sonja .water-button,
+.person-sonja .garden-level-pill,
+.person-sonja .garden-mode-switch button.active,
+.person-sonja .garden-room-tabs button.active {
+  border-color: var(--profile-accent-deep);
+  background: linear-gradient(135deg,var(--profile-accent-deep),var(--profile-accent));
+  color: #fff;
+  box-shadow: 0 9px 22px color-mix(in srgb,var(--profile-accent) 34%,transparent);
+}
+.person-sonja .progress-toggle b,
+.person-sonja .all-chores-toggle b,
+.person-sonja .cared-plants summary i,
+.person-sonja .chore-card .edit-chore { color: var(--profile-accent-deep); }
+.person-sonja .modal input:focus,
+.person-sonja .modal select:focus { outline-color: color-mix(in srgb,var(--profile-accent) 45%,white); border-color: var(--profile-accent-deep); }
+.person-sonja .modal input[type="checkbox"] { accent-color: var(--profile-accent-deep); }
+
 html { background: var(--cozy-canvas); }
 body { background: var(--cozy-canvas); }
 .shell {
@@ -454,4 +477,18 @@ footer { background: linear-gradient(145deg, #173c2d, #214b39); }
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
+}
+
+.person-sonja .cozy-screen-head .add-hausi,
+.person-sonja .cozy-screen-head .add-button {
+  border-color: color-mix(in srgb,var(--profile-accent-deep) 75%,white);
+  background: linear-gradient(135deg,var(--profile-accent-deep),var(--profile-accent));
+  color: #fff;
+  box-shadow: 0 9px 22px color-mix(in srgb,var(--profile-accent) 30%,transparent);
+}
+.person-sonja .cozy-screen-head .add-hausi span,
+.person-sonja .cozy-screen-head .add-button span { color:#fff; }
+@media (max-width: 900px) {
+  .person-sonja .cozy-screen-head .add-hausi,
+  .person-sonja .cozy-screen-head .add-button { color:transparent; }
 }
