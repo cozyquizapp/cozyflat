@@ -231,6 +231,132 @@
 .garden-scene-tip b { color: #173c2d; font-size: 11px; }
 .garden-scene-accessible { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
+/* The production garden uses the same measured cabinet and plant compositor as
+   the approved iPhone prototype. Every layer shares the cabinet coordinate
+   system, so watering and foliage stay aligned at every responsive size. */
+.garden-scene-host.css-garden-scene-v2 {
+  aspect-ratio: 916 / 1717;
+  isolation: isolate;
+  background: #e5c58d;
+}
+.css-garden-scene-v2 .css-room-art {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+.css-garden-scene-v2 .css-room-overlay { position: absolute; z-index: 1; inset: 0; }
+.css-shelf-slot {
+  position: absolute;
+  z-index: 4;
+  width: 32%;
+  height: 17.8%;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  transform: translateX(-50%);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.css-shelf-slot.is-trailing { z-index: 6; }
+.css-shelf-slot:focus-visible { outline: 3px solid #173c2d; outline-offset: -5px; border-radius: 40%; }
+.css-shelf-slot:active { scale: .985; }
+.css-shelf-slot.is-reacting .prototype-plant-foliage { animation: prototype-plant-react .68s cubic-bezier(.2,.85,.22,1); }
+.css-shelf-slot.css-slot-1 { left: 31.2%; top: 14.5%; }
+.css-shelf-slot.css-slot-2 { left: 68.6%; top: 14.5%; }
+.css-shelf-slot.css-slot-3 { left: 31.2%; top: 34.3%; }
+.css-shelf-slot.css-slot-4 { left: 68.6%; top: 34.3%; }
+.css-shelf-slot.css-slot-5 { left: 31.2%; top: 54.2%; }
+.css-shelf-slot.css-slot-6 { left: 68.6%; top: 54.2%; }
+.css-shelf-slot.css-slot-7 { left: 31.2%; top: 74%; }
+.css-shelf-slot.css-slot-8 { left: 68.6%; top: 74%; }
+.css-shelf-slot.css-slot-2 .prototype-plant-foliage,
+.css-shelf-slot.css-slot-6 .prototype-plant-foliage { animation-delay: -1.9s; }
+
+.css-seed-slot { display: grid; place-items: center; }
+.css-seed-slot .prototype-potted-plant { position: relative; z-index: 2; width: 100%; height: 100%; opacity: .62; filter: saturate(.78); }
+.css-seed-halo { position: absolute; z-index: 1; width: 72%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle,rgba(255,247,176,.82),rgba(255,224,111,.15) 52%,transparent 72%); animation: css-seed-halo 2.4s ease-in-out infinite; }
+.css-seed-slot.is-ready .prototype-potted-plant { opacity: 1; filter: saturate(1.05); }
+.css-seed-slot.is-ready .prototype-plant-foliage { animation: prototype-seed-ready 1.6s ease-in-out infinite; }
+.css-seed-slot.is-ready .css-seed-halo { width: 92%; box-shadow: 0 0 22px rgba(255,219,83,.35); }
+
+.css-room-sun {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 8%,rgba(255,252,211,.78),rgba(255,228,132,.24) 36%,transparent 72%);
+  mix-blend-mode: screen;
+  animation: css-room-sun-breathe 2.2s ease-in-out infinite;
+}
+.css-room-sun i { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #fff4ad; box-shadow: 0 0 12px 5px rgba(255,222,102,.62); animation: css-room-spark 2.4s ease-in-out infinite; }
+.css-room-sun i:nth-child(1) { left: 23%; top: 22%; }
+.css-room-sun i:nth-child(2) { right: 22%; top: 40%; animation-delay: -.8s; }
+.css-room-sun i:nth-child(3) { left: 48%; top: 60%; animation-delay: -1.55s; }
+
+.css-watering-can,
+.css-water-stream { position: absolute; pointer-events: none; }
+.css-watering-can {
+  z-index: 20;
+  width: 40%;
+  height: 22%;
+  object-fit: contain;
+  transform: translate(20%,-61%) rotate(-5deg);
+  transform-origin: 25% 75%;
+  filter: drop-shadow(0 7px 7px rgba(49,56,38,.22));
+  animation: css-can-pour 1.08s cubic-bezier(.18,.75,.2,1) both;
+}
+.css-water-stream {
+  z-index: 21;
+  width: 26%;
+  height: 17%;
+  overflow: visible;
+  transform: translate(-40%,-7%);
+  transform-origin: 92% 9%;
+  filter: drop-shadow(0 2px 3px rgba(60,155,195,.28));
+  animation: css-stream-arrive 1.08s cubic-bezier(.18,.75,.2,1) both;
+}
+.css-watering-can.css-slot-1,.css-water-stream.css-slot-1 { left:31.2%; top:14.5%; }
+.css-watering-can.css-slot-2,.css-water-stream.css-slot-2 { left:68.6%; top:14.5%; }
+.css-watering-can.css-slot-3,.css-water-stream.css-slot-3 { left:31.2%; top:34.3%; }
+.css-watering-can.css-slot-4,.css-water-stream.css-slot-4 { left:68.6%; top:34.3%; }
+.css-watering-can.css-slot-5,.css-water-stream.css-slot-5 { left:31.2%; top:54.2%; }
+.css-watering-can.css-slot-6,.css-water-stream.css-slot-6 { left:68.6%; top:54.2%; }
+.css-watering-can.css-slot-7,.css-water-stream.css-slot-7 { left:31.2%; top:74%; }
+.css-watering-can.css-slot-8,.css-water-stream.css-slot-8 { left:68.6%; top:74%; }
+.css-watering-can.css-slot-2,.css-watering-can.css-slot-4,.css-watering-can.css-slot-6,.css-watering-can.css-slot-8 { transform-origin:75% 75%; animation-name:css-can-pour-right; }
+.css-water-stream.css-slot-2,.css-water-stream.css-slot-4,.css-water-stream.css-slot-6,.css-water-stream.css-slot-8 { transform-origin:8% 9%; animation-name:css-stream-arrive-right; }
+.css-water-glow,.css-water-core { fill:none; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; animation:css-water-path 1.08s cubic-bezier(.18,.75,.2,1) both; }
+.css-water-glow { stroke:rgba(220,248,255,.8); stroke-width:9; filter:blur(2px); }
+.css-water-core { stroke:url(#garden-water-gradient); stroke-width:5; }
+.css-water-drop { fill:#88dcf5; stroke:rgba(239,252,255,.92); stroke-width:1; opacity:0; animation:css-water-drop 1.08s ease-out both; }
+.css-water-drop.drop-two { animation-delay:.05s; }
+
+.css-flauschi-orb-v2 { position:absolute; z-index:24; right:5%; bottom:4.5%; width:60px; height:60px; padding:0; border:3px solid #fff8dc; border-radius:50%; background:#9da578; box-shadow:0 8px 18px rgba(46,52,34,.24); cursor:pointer; }
+.css-flauschi-orb-v2 img { display:block; width:100%; height:100%; border-radius:inherit; object-fit:cover; }
+.css-flauschi-orb-v2 span { position:absolute; right:-4px; bottom:-6px; padding:3px 6px; border-radius:999px; background:#fff8dc; color:#6d522e; font-size:7px; font-weight:900; white-space:nowrap; box-shadow:0 3px 8px rgba(67,47,26,.18); }
+.css-flauschi-orb-v2:active { transform:scale(.94); }
+.css-room-caption-v2 { position:absolute; z-index:25; left:4%; right:4%; bottom:2%; min-height:52px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 76px 9px 12px; border-radius:17px; background:rgba(23,60,45,.94); color:#fff8e8; box-shadow:0 8px 20px rgba(35,35,18,.2); backdrop-filter:blur(8px); }
+.css-room-caption-v2 span,.css-room-caption-v2 strong,.css-room-caption-v2 small { display:block; }
+.css-room-caption-v2 strong { font-family:Georgia,serif; font-size:13px; font-weight:400; }
+.css-room-caption-v2 small { margin-top:3px; opacity:.8; font-size:8px; line-height:1.25; }
+.css-room-caption-v2 > b { position:absolute; right:14px; top:10px; font-family:Georgia,serif; font-size:15px; }
+
+@keyframes css-seed-halo { 50% { transform:scale(1.12); opacity:.82; } }
+@keyframes css-room-sun-breathe { 0%,100% { opacity:.68; } 50% { opacity:1; } }
+@keyframes css-room-spark { 0%,100% { opacity:.35; transform:translateY(0) scale(.7); } 50% { opacity:1; transform:translateY(-7px) scale(1.12); } }
+@keyframes css-can-pour { 0% { opacity:0; transform:translate(42%,-74%) rotate(12deg) scale(.68); } 24% { opacity:1; } 64% { opacity:1; transform:translate(20%,-61%) rotate(-7deg) scale(1); } 100% { opacity:0; transform:translate(20%,-61%) rotate(-7deg) scale(1); } }
+@keyframes css-can-pour-right { 0% { opacity:0; transform:translate(-115%,-74%) scaleX(-1) rotate(-12deg) scale(.68); } 24% { opacity:1; } 64% { opacity:1; transform:translate(-93%,-61%) scaleX(-1) rotate(7deg) scale(1); } 100% { opacity:0; transform:translate(-93%,-61%) scaleX(-1) rotate(7deg) scale(1); } }
+@keyframes css-stream-arrive { 0% { opacity:0; transform:translate(-40%,-7%) scale(.96); } 16%,76% { opacity:1; transform:translate(-40%,-7%) scale(1); } 100% { opacity:0; transform:translate(-40%,-5%) scale(.99); } }
+@keyframes css-stream-arrive-right { 0% { opacity:0; transform:translate(-56%,-7%) scaleX(-1) scale(.96); } 16%,76% { opacity:1; transform:translate(-56%,-7%) scaleX(-1) scale(1); } 100% { opacity:0; transform:translate(-56%,-5%) scaleX(-1) scale(.99); } }
+@keyframes css-water-path { 0%,12% { stroke-dashoffset:1; } 42%,78% { stroke-dashoffset:0; } 100% { stroke-dashoffset:-1; } }
+@keyframes css-water-drop { 0%,38% { opacity:0; transform:translateY(-4px) scale(.55); } 55%,78% { opacity:1; transform:translateY(0) scale(1); } 100% { opacity:0; transform:translateY(5px) scale(.72); } }
+
 .plant-room-game > .garden-track { margin: 14px 4px 6px; }
 .garden-meta { display: flex; justify-content: space-between; gap: 12px; padding: 0 4px; color: #667168; font-size: 11px; }
 .garden-meta b { color: #173c2d; }

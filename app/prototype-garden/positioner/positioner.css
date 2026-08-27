@@ -1,0 +1,37 @@
+.positioner-page { min-height: 100dvh; background: #173c2d; color: #173c2d; font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.positioner-page *, .positioner-page *::before, .positioner-page *::after { box-sizing: border-box; }
+.positioner-phone { width: min(100%, 393px); min-height: 100dvh; margin: auto; padding: max(18px, env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom)); background: #f5f4e9; }
+.positioner-header > a { color: #657168; font-size: 11px; font-weight: 800; text-decoration: none; }
+.positioner-header > small { display: block; margin-top: 18px; color: #738077; font-size: 9px; font-weight: 900; letter-spacing: .15em; }
+.positioner-header h1 { margin: 7px 0 0; font: 400 29px/.98 Georgia, serif; letter-spacing: -.025em; }
+.positioner-header p { margin: 9px 0 0; color: #657168; font-size: 11px; font-weight: 650; line-height: 1.35; }
+.positioner-preview-card { position: relative; margin-top: 15px; padding: 12px; border: 1px solid #d9c69d; border-radius: 25px; background: #fffaf0; box-shadow: 0 14px 34px rgba(52, 69, 48, .1); text-align: center; }
+.positioner-layer-key { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 9px; }
+.positioner-layer-key span { padding: 5px 3px; border-radius: 999px; background: #eceddf; color: #607166; font-size: 7px; font-weight: 900; letter-spacing: .04em; }
+.positioner-layer-key span:nth-child(2) { background: #dfe8ce; color: #31543e; }
+.positioner-layer-key span:nth-child(3) { background: #ead1a0; color: #734f27; }
+.positioner-niche { position: relative; width: 230px; height: 230px; margin: auto; overflow: visible; border: 1px solid #dfbd7f; border-radius: 46% 46% 16% 16%; background: radial-gradient(circle at 50% 25%, #fff9dc, #efd39d 70%); box-shadow: inset 0 6px 22px rgba(117, 75, 28, .14), inset 0 -5px 0 rgba(255,255,255,.52); }
+.positioner-niche .prototype-potted-plant { width: 100%; height: 100%; }
+.positioner-soil-line { position: absolute; z-index: 8; left: 25%; right: 25%; bottom: 29%; border-top: 1px dashed rgba(129, 69, 29, .62); pointer-events: none; }
+.positioner-preview-card > strong, .positioner-preview-card > small { display: block; }
+.positioner-preview-card > strong { margin-top: 10px; font: 400 18px/1 Georgia, serif; }
+.positioner-preview-card > small { margin-top: 5px; color: #6c786f; font-size: 9px; }
+.positioner-layer-switch { margin-top: 11px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.positioner-layer-switch button { min-height: 38px; padding: 6px 4px; border: 1px solid #d8ddcf; border-radius: 13px; background: #f7f5e9; color: #68756c; font-size: 8px; font-weight: 900; }
+.positioner-layer-switch button.is-active { border-color: #173c2d; background: #173c2d; color: #fff9e8; box-shadow: 0 6px 14px rgba(23, 60, 45, .17); }
+.positioner-pickers { position: relative; z-index: 20; margin-top: 12px; display: grid; gap: 7px; padding: 8px; border: 1px solid #dde1d4; border-radius: 18px; background: #f5f4e9; }
+.positioner-plant-pills { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.positioner-stage-pills { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.positioner-pickers button { min-width: 0; min-height: 36px; padding: 7px 3px; overflow: hidden; border: 1px solid #d5dbcd; border-radius: 999px; background: #fffdf7; color: #66736a; font-size: 8px; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
+.positioner-pickers button.is-active { border-color: #173c2d; background: #173c2d; color: #fff9e8; }
+.positioner-controls { position: relative; z-index: 20; margin-top: 9px; padding: 7px 12px; border: 1px solid #dde1d4; border-radius: 22px; background: #fffdf8; }
+.positioner-controls label { display: block; padding: 9px 0; border-bottom: 1px solid #eceee6; }
+.positioner-controls label:last-child { border-bottom: 0; }
+.positioner-controls label > span { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.positioner-controls strong { font-size: 10px; }
+.positioner-controls output { min-width: 53px; color: #74603e; font: 700 10px/1 ui-monospace, monospace; text-align: right; }
+.positioner-controls input { width: 100%; margin-top: 8px; accent-color: #3b6d51; }
+.positioner-actions { position: relative; z-index: 20; margin-top: 10px; display: grid; grid-template-columns: 1fr 1.15fr; gap: 7px; }
+.positioner-actions button { min-height: 48px; padding: 8px; border: 1px solid #d6dbce; border-radius: 16px; background: #fffdf8; color: #59695f; font-size: 9px; font-weight: 850; }
+.positioner-actions button.is-primary { border-color: #173c2d; background: #173c2d; color: #fff9e8; }
+@media (prefers-reduced-motion: reduce) { .positioner-page * { scroll-behavior: auto !important; } }

@@ -1,0 +1,12 @@
+.stage-lab-page { min-height: 100vh; padding: 28px; background: #f4f1e4; color: #173c2d; font-family: Inter, ui-sans-serif, sans-serif; }
+.stage-lab-page header { max-width: 1100px; margin: 0 auto 22px; }
+.stage-lab-page header small { color: #6a786f; font-size: 10px; font-weight: 900; letter-spacing: .14em; }
+.stage-lab-page h1 { margin: 7px 0 0; font: 400 34px/1 Georgia, serif; }
+.stage-lab-page header p { margin: 8px 0 0; color: #647168; font-size: 13px; }
+.stage-lab-grid { max-width: 1100px; margin: auto; display: grid; grid-template-columns: repeat(5, minmax(150px, 1fr)); gap: 13px; }
+.stage-lab-card { padding: 8px 8px 10px; border: 1px solid #d9c79e; border-radius: 19px; background: #fffaf0; box-shadow: 0 8px 22px rgba(76, 57, 30, .08); text-align: center; }
+.stage-lab-niche { position: relative; width: 124px; height: 124px; margin: 0 auto 8px; overflow: visible; border: 1px solid #dfbd7f; border-radius: 46% 46% 16% 16%; background: radial-gradient(circle at 50% 25%, #fff9dc, #efd39d 70%); box-shadow: inset 0 5px 16px rgba(117, 75, 28, .13), inset 0 -4px 0 rgba(255,255,255,.48); }
+.stage-lab-card strong, .stage-lab-card span { display: block; }
+.stage-lab-card strong { font: 400 16px/1.1 Georgia, serif; }
+.stage-lab-card span { margin-top: 3px; color: #758078; font-size: 10px; font-weight: 800; }
+@media (max-width: 840px) { .stage-lab-grid { grid-template-columns: repeat(2, minmax(140px, 1fr)); } .stage-lab-page { padding: 18px 12px; } }
