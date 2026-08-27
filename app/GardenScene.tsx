@@ -57,16 +57,33 @@ function playGardenChime(kind: "water" | "grow") {
   window.setTimeout(()=>void context.close(),650);
 }
 
-export type WaterRigTuning = { x: number; y: number; scale: number };
+export type WaterRigTuning = {
+  x: number;
+  y: number;
+  scale: number;
+  waterX?: number;
+  waterY?: number;
+  waterScale?: number;
+  waterAngle?: number;
+  waterSpread?: number;
+};
 
 export function WaterPour({ slot, tuning }: { slot: number; tuning?: WaterRigTuning }) {
   const mirrored=slot%2===0;
-  // Can and water share one coordinate system. The stream starts at the
-  // measured centre of the rose in the source image and therefore stays
-  // attached when the complete rig is mirrored for the right column.
-  const path="M310 671 C 286 770 235 965 160 1160";
   const rig=tuning??{x:0,y:0,scale:1};
+  const waterX=rig.waterX??0;
+  const waterY=rig.waterY??0;
+  const waterScale=rig.waterScale??1;
+  const waterAngle=rig.waterAngle??0;
+  const waterSpread=rig.waterSpread??1;
   const style={"--water-x":`${rig.x}%`,"--water-y":`${rig.y}%`,"--water-width":`${52*rig.scale}%`} as CSSProperties;
+  const waterTransform=`translate(${waterX*10} ${waterY*10}) translate(310 671) rotate(${waterAngle}) scale(${waterScale}) translate(-310 -671)`;
+  const sprayPaths=[-2,-1,0,1,2].map((strand) => {
+    const startX=310+strand*5*waterSpread;
+    const endX=160+strand*32*waterSpread;
+    const controlX=250+strand*15*waterSpread;
+    return `M${startX} ${671+Math.abs(strand)*2} C ${controlX} 790 ${controlX-18} 985 ${endX} 1160`;
+  });
   return <svg className={`css-watering-rig css-slot-${slot} ${mirrored?'is-mirrored':''}`} style={style} viewBox="0 0 1200 1300" aria-hidden="true">
       <defs>
         <linearGradient id="garden-water-gradient" x1="1" y1="0" x2="0" y2="1">
@@ -76,10 +93,10 @@ export function WaterPour({ slot, tuning }: { slot: number; tuning?: WaterRigTun
         </linearGradient>
       </defs>
       <image className="css-watering-can" href="/prototype-garden-v2/watering-can-v1.png" x="233" y="0" width="967" height="882" />
-      <path className="css-water-glow" pathLength="1" d={path} />
-      <path className="css-water-core" pathLength="1" d={path} />
-      <circle className="css-water-drop drop-one" cx="205" cy="1030" r="24" />
-      <circle className="css-water-drop drop-two" cx="155" cy="1170" r="18" />
+      <g className="css-water-spray" transform={waterTransform}>
+        {sprayPaths.map((path,index)=><path key={`glow-${index}`} className="css-water-glow" pathLength="1" d={path} />)}
+        {sprayPaths.map((path,index)=><path key={`core-${index}`} className="css-water-core" pathLength="1" d={path} />)}
+      </g>
     </svg>;
 }
 

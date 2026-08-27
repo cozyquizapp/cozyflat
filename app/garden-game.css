@@ -319,10 +319,8 @@
 .css-watering-rig.css-slot-7,.css-watering-rig.css-slot-8 { top:calc(60.4% + var(--water-y,0%)); }
 .css-watering-can { filter: drop-shadow(0 38px 34px rgba(49,56,38,.22)); }
 .css-water-glow,.css-water-core { fill:none; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; animation:css-water-path 1.08s cubic-bezier(.18,.75,.2,1) both; }
-.css-water-glow { stroke:rgba(220,248,255,.8); stroke-width:76; filter:blur(16px); }
-.css-water-core { stroke:url(#garden-water-gradient); stroke-width:42; }
-.css-water-drop { fill:#88dcf5; stroke:rgba(239,252,255,.92); stroke-width:8; opacity:0; animation:css-water-drop 1.08s ease-out both; }
-.css-water-drop.drop-two { animation-delay:.05s; }
+.css-water-glow { stroke:rgba(220,248,255,.72); stroke-width:27; filter:blur(10px); }
+.css-water-core { stroke:url(#garden-water-gradient); stroke-width:11; }
 
 .css-flauschi-orb-v2 { position:absolute; z-index:24; right:5%; bottom:4.5%; width:60px; height:60px; padding:0; border:3px solid #fff8dc; border-radius:50%; background:#9da578; box-shadow:0 8px 18px rgba(46,52,34,.24); cursor:pointer; }
 .css-flauschi-orb-v2 img { display:block; width:100%; height:100%; border-radius:inherit; object-fit:cover; }
@@ -341,7 +339,6 @@
 @keyframes css-watering-rig-arrive { 0% { opacity:0; transform:translate(10%,-9%) scale(.78); } 22%,78% { opacity:1; transform:none; } 100% { opacity:0; transform:translateY(1%) scale(.99); } }
 @keyframes css-watering-rig-arrive-right { 0% { opacity:0; transform:translate(-10%,-9%) scaleX(-1) scale(.78); } 22%,78% { opacity:1; transform:scaleX(-1); } 100% { opacity:0; transform:translateY(1%) scaleX(-1) scale(.99); } }
 @keyframes css-water-path { 0%,12% { stroke-dashoffset:1; } 42%,78% { stroke-dashoffset:0; } 100% { stroke-dashoffset:-1; } }
-@keyframes css-water-drop { 0%,38% { opacity:0; transform:translateY(-4px) scale(.55); } 55%,78% { opacity:1; transform:translateY(0) scale(1); } 100% { opacity:0; transform:translateY(5px) scale(.72); } }
 
 .garden-mode-switch { width:min(100%,500px); margin:0 auto 10px; padding:4px; display:grid; grid-template-columns:1fr 1fr; gap:4px; border:1px solid #d8dfd1; border-radius:17px; background:rgba(255,255,255,.72); }
 .garden-mode-switch button { min-height:43px; padding:7px 10px; border:0; border-radius:13px; background:transparent; color:#637067; font:inherit; font-size:11px; font-weight:850; cursor:pointer; transition:transform .16s,background-color .2s,color .2s,box-shadow .2s; }
