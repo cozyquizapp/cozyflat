@@ -2,6 +2,11 @@ import { env } from 'cloudflare:workers';
 
 export type Plant = { id:number; name:string; room:string; intervalDays:number; lastWateredAt:string; lastWateredBy:string; createdAt:string; imageKey:string|null };
 
+const gardenGrowthThresholds = [12,28,48,72,100,132,168,210,258,312,372];
+function gardenStageFromXp(xp:number) {
+  return Math.min(12, 1 + gardenGrowthThresholds.filter((threshold) => xp >= threshold).length);
+}
+
 async function ready() {
   const db = env.DB;
   await db.prepare(`CREATE TABLE IF NOT EXISTS plants (
@@ -29,6 +34,9 @@ async function ready() {
     db.prepare('CREATE INDEX IF NOT EXISTS idx_chore_events_completed_at ON chore_events(completed_at)'),
     db.prepare('CREATE TABLE IF NOT EXISTS app_visits (day TEXT NOT NULL, person TEXT NOT NULL, visited_at TEXT NOT NULL, PRIMARY KEY(day, person))'),
     db.prepare('CREATE TABLE IF NOT EXISTS garden_collection (week_key TEXT PRIMARY KEY NOT NULL, plant_key TEXT NOT NULL, chosen_by TEXT NOT NULL, unlocked_at TEXT NOT NULL, xp_at_unlock INTEGER NOT NULL DEFAULT 0)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS garden_watering_events (id INTEGER PRIMARY KEY AUTOINCREMENT, collection_key TEXT NOT NULL, day TEXT NOT NULL, person TEXT NOT NULL, source_event_at TEXT NOT NULL UNIQUE, watered_at TEXT NOT NULL)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_garden_watering_events_day ON garden_watering_events(day)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_garden_watering_events_collection ON garden_watering_events(collection_key)'),
     db.prepare('CREATE TABLE IF NOT EXISTS flauschi_events (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT NOT NULL, person TEXT NOT NULL, action TEXT NOT NULL, created_at TEXT NOT NULL)'),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_flauschi_events_day ON flauschi_events(day)'),
   ]);
@@ -38,6 +46,16 @@ async function ready() {
   try { await db.prepare('ALTER TABLE chores ADD COLUMN priority INTEGER NOT NULL DEFAULT 2').run(); } catch {}
   try { await db.prepare('ALTER TABLE chores ADD COLUMN due_time TEXT').run(); } catch {}
   try { await db.prepare("ALTER TABLE garden_collection ADD COLUMN room TEXT NOT NULL DEFAULT 'Wohnzimmer'").run(); } catch {}
+  try { await db.prepare('ALTER TABLE garden_collection ADD COLUMN growth_base INTEGER NOT NULL DEFAULT 1').run(); } catch {}
+  const gardenGrowthMigration = await db.prepare("INSERT OR IGNORE INTO app_meta (key, value) VALUES ('garden-target-growth-v1', ?)").bind(new Date().toISOString()).run();
+  if (gardenGrowthMigration.meta.changes) {
+    const xpRow = await db.prepare(`SELECT COALESCE(SUM(points),0) AS xp FROM (SELECT points FROM watering_events UNION ALL SELECT points FROM chore_events)`).first<{xp:number}>();
+    const existing = await db.prepare('SELECT week_key AS weekKey, xp_at_unlock AS xpAtUnlock FROM garden_collection').all<{weekKey:string;xpAtUnlock:number}>();
+    if (existing.results.length) {
+      const xp = Number(xpRow?.xp ?? 0);
+      await db.batch(existing.results.map((row) => db.prepare('UPDATE garden_collection SET growth_base = ? WHERE week_key = ?').bind(gardenStageFromXp(Math.max(0,xp-Number(row.xpAtUnlock))),row.weekKey)));
+    }
+  }
   const count = await db.prepare('SELECT COUNT(*) AS count FROM plants').first<{count:number}>();
   if (!count?.count) {
     const now = new Date();
@@ -151,7 +169,8 @@ async function totalHouseXp(db:Awaited<ReturnType<typeof ready>>) { const row=aw
 const gardenRooms=['Wohnzimmer','Schlafzimmer','Küche','Bad'] as const;
 const roomCapacity=8;
 const dailyTaskGoal=3;
-async function dailyTaskCount(db:Awaited<ReturnType<typeof ready>>, dayKey:string) { const [year,month,day]=dayKey.split('-').map(Number); const nextKey=new Date(Date.UTC(year,month-1,day+1)).toISOString().slice(0,10); const start=berlinMidnightUtc(dayKey).toISOString(); const end=berlinMidnightUtc(nextKey).toISOString(); const row=await db.prepare(`SELECT COUNT(DISTINCT done_at) AS count FROM (SELECT watered_at AS done_at FROM watering_events UNION ALL SELECT completed_at AS done_at FROM chore_events) WHERE done_at >= ? AND done_at < ?`).bind(start,end).first<{count:number}>(); return Number(row?.count??0); }
+function dailyTaskWindow(dayKey:string) { const [year,month,day]=dayKey.split('-').map(Number); const nextKey=new Date(Date.UTC(year,month-1,day+1)).toISOString().slice(0,10); return {start:berlinMidnightUtc(dayKey).toISOString(),end:berlinMidnightUtc(nextKey).toISOString()}; }
+async function dailyTaskCount(db:Awaited<ReturnType<typeof ready>>, dayKey:string) { const {start,end}=dailyTaskWindow(dayKey); const row=await db.prepare(`SELECT COUNT(DISTINCT done_at) AS count FROM (SELECT watered_at AS done_at FROM watering_events UNION ALL SELECT completed_at AS done_at FROM chore_events) WHERE done_at >= ? AND done_at < ?`).bind(start,end).first<{count:number}>(); return Number(row?.count??0); }
 
 export type FlauschiAction = 'feed'|'brush'|'play';
 export type FlauschiState = {dayKey:string;availableCare:number;todayCare:number;todayTasks:number;totalCare:number;level:number;levelProgress:number;levelGoal:number;lastAction:FlauschiAction|null;lastPerson:string|null};
@@ -178,8 +197,57 @@ export async function careForFlauschi(action:FlauschiAction,person:string) {
   await db.prepare('INSERT INTO flauschi_events (day, person, action, created_at) VALUES (?, ?, ?, ?)').bind(current.dayKey,person,action,new Date().toISOString()).run();
   return getFlauschiState();
 }
-export async function getGarden() { const db=await ready(); const dayKey=currentDayKey(); const rewardKey=`daily:${dayKey}`; const rows=await db.prepare('SELECT week_key AS weekKey, plant_key AS plantKey, chosen_by AS chosenBy, unlocked_at AS unlockedAt, xp_at_unlock AS xpAtUnlock, room FROM garden_collection ORDER BY unlocked_at').all<{weekKey:string;plantKey:string;chosenBy:string;unlockedAt:string;xpAtUnlock:number;room:string}>(); const [xp,todayTasks]=await Promise.all([totalHouseXp(db),dailyTaskCount(db,dayKey)]); const collection=rows.results.filter((row)=>row.plantKey!=='cactus').map((row)=>({...row,plant:gardenPlants.find((p)=>p.key===row.plantKey)??gardenPlants[0]})); let unlockedCount=1; for(let i=0;i<gardenRooms.length-1;i++){if(collection.filter((item)=>item.room===gardenRooms[i]).length>=roomCapacity)unlockedCount=i+2;else break} const rooms=gardenRooms.map((name,index)=>({name,unlocked:index<unlockedCount,count:collection.filter((item)=>item.room===name).length,capacity:roomCapacity})); const chosenToday=rows.results.some((row)=>row.weekKey===rewardKey); return {dayKey,xp,candidates:dailyCandidates(dayKey),collection,rooms,activeRoom:gardenRooms[Math.min(unlockedCount-1,gardenRooms.length-1)],dailyTaskGoal,todayTasks,rewardReady:todayTasks>=dailyTaskGoal&&!chosenToday,chosenToday}; }
-export async function chooseGardenPlant(plantKey:string, person:string, requestedRoom:string) { const db=await ready(); const current=await getGarden(); if(!current.rewardReady||current.chosenToday||!current.candidates.some((p)=>p.key===plantKey)) return current; const room=current.rooms.find((item)=>item.name===requestedRoom&&item.unlocked&&item.count<item.capacity)?.name??current.activeRoom; const xp=await totalHouseXp(db); await db.prepare('INSERT OR IGNORE INTO garden_collection (week_key, plant_key, chosen_by, unlocked_at, xp_at_unlock, room) VALUES (?, ?, ?, ?, ?, ?)').bind(`daily:${current.dayKey}`,plantKey,person,new Date().toISOString(),xp,room).run(); return getGarden(); }
+export async function getGarden() {
+  const db=await ready();
+  const dayKey=currentDayKey();
+  const rewardKey=`daily:${dayKey}`;
+  const rows=await db.prepare(`SELECT collection.week_key AS weekKey, collection.plant_key AS plantKey, collection.chosen_by AS chosenBy, collection.unlocked_at AS unlockedAt, collection.xp_at_unlock AS xpAtUnlock, collection.room, collection.growth_base AS growthBase, (SELECT COUNT(*) FROM garden_watering_events AS watering WHERE watering.collection_key = collection.week_key) AS careCount FROM garden_collection AS collection ORDER BY collection.unlocked_at`).all<{weekKey:string;plantKey:string;chosenBy:string;unlockedAt:string;xpAtUnlock:number;room:string;growthBase:number;careCount:number}>();
+  const [xp,todayTasks,wateredTodayRow]=await Promise.all([
+    totalHouseXp(db),
+    dailyTaskCount(db,dayKey),
+    db.prepare('SELECT COUNT(*) AS count FROM garden_watering_events WHERE day = ?').bind(dayKey).first<{count:number}>(),
+  ]);
+  const wateredToday=Number(wateredTodayRow?.count??0);
+  const collection=rows.results.filter((row)=>row.plantKey!=='cactus').map((row)=>({
+    ...row,
+    growthBase:Number(row.growthBase??1),
+    careCount:Number(row.careCount??0),
+    growthStage:Math.min(12,Number(row.growthBase??1)+Number(row.careCount??0)),
+    plant:gardenPlants.find((p)=>p.key===row.plantKey)??gardenPlants[0],
+  }));
+  let unlockedCount=1;
+  for(let i=0;i<gardenRooms.length-1;i++){if(collection.filter((item)=>item.room===gardenRooms[i]).length>=roomCapacity)unlockedCount=i+2;else break}
+  const rooms=gardenRooms.map((name,index)=>({name,unlocked:index<unlockedCount,count:collection.filter((item)=>item.room===name).length,capacity:roomCapacity}));
+  const chosenToday=rows.results.some((row)=>row.weekKey===rewardKey);
+  const livingRoomHasSpace=(rooms[0]?.count??0)<roomCapacity;
+  return {dayKey,xp,candidates:dailyCandidates(dayKey),collection,rooms,activeRoom:gardenRooms[Math.min(unlockedCount-1,gardenRooms.length-1)],dailyTaskGoal,todayTasks,availableSun:Math.max(0,todayTasks-wateredToday),wateredToday,rewardReady:todayTasks>=dailyTaskGoal&&!chosenToday&&livingRoomHasSpace,chosenToday};
+}
+
+export async function chooseGardenPlant(plantKey:string, person:string, requestedRoom:string) {
+  const db=await ready();
+  const current=await getGarden();
+  if(!current.rewardReady||current.chosenToday||!current.candidates.some((p)=>p.key===plantKey)) return current;
+  const room=current.rooms.find((item)=>item.name===requestedRoom&&item.unlocked&&item.count<item.capacity)?.name??'Wohnzimmer';
+  const xp=await totalHouseXp(db);
+  await db.prepare('INSERT OR IGNORE INTO garden_collection (week_key, plant_key, chosen_by, unlocked_at, xp_at_unlock, room, growth_base) VALUES (?, ?, ?, ?, ?, ?, 1)').bind(`daily:${current.dayKey}`,plantKey,person,new Date().toISOString(),xp,room).run();
+  return getGarden();
+}
+
+export async function waterGardenPlant(collectionKey:string,person:string) {
+  const db=await ready();
+  const current=await getGarden();
+  const target=current.collection.find((item)=>item.weekKey===collectionKey);
+  if(!target) return {success:false,reason:'missing' as const,garden:current};
+  if(target.growthStage>=12) return {success:false,reason:'mature' as const,garden:current};
+  const {start,end}=dailyTaskWindow(current.dayKey);
+  const source=await db.prepare(`SELECT task.done_at AS doneAt FROM (SELECT watered_at AS done_at FROM watering_events WHERE watered_at >= ? AND watered_at < ? UNION SELECT completed_at AS done_at FROM chore_events WHERE completed_at >= ? AND completed_at < ?) AS task WHERE NOT EXISTS (SELECT 1 FROM garden_watering_events AS used WHERE used.source_event_at = task.done_at) ORDER BY task.done_at LIMIT 1`).bind(start,end,start,end).first<{doneAt:string}>();
+  if(!source?.doneAt) return {success:false,reason:'no-sun' as const,garden:current};
+  const result=await db.prepare('INSERT OR IGNORE INTO garden_watering_events (collection_key, day, person, source_event_at, watered_at) VALUES (?, ?, ?, ?, ?)').bind(collectionKey,current.dayKey,person,source.doneAt,new Date().toISOString()).run();
+  if(!result.meta.changes) return {success:false,reason:'already-used' as const,garden:await getGarden()};
+  const garden=await getGarden();
+  const grown=garden.collection.find((item)=>item.weekKey===collectionKey);
+  return {success:true,reason:'grown' as const,stageBefore:target.growthStage,stageAfter:grown?.growthStage??target.growthStage,garden};
+}
 
 export async function addPlant(name:string, room:string, intervalDays:number, person:string, imageKey:string|null=null) {
   const db = await ready(); const now = new Date().toISOString();
@@ -202,6 +270,6 @@ export async function completeChore(id:number, person:string, together=false) {
   const results = await db.batch(statements);
   return { eventIds: results.slice(1).map((result)=>Number(result.meta.last_row_id)), bonus, pointsEach: chore.points + bonus, together };
 }
-export async function undoChoreCompletion(id:number, eventIds:number[]) { const db = await ready(); const ids=eventIds.filter(Number.isFinite); if (!ids.length) return; for (const eventId of ids) await db.prepare('DELETE FROM chore_events WHERE id = ? AND chore_id = ?').bind(eventId,id).run(); const previous = await db.prepare('SELECT person, completed_at AS completedAt FROM chore_events WHERE chore_id = ? ORDER BY id DESC LIMIT 1').bind(id).first<{person:string;completedAt:string}>(); await db.prepare('UPDATE chores SET last_completed_at = ?, last_completed_by = ? WHERE id = ?').bind(previous?.completedAt ?? null, previous?.person ?? null, id).run(); }
+export async function undoChoreCompletion(id:number, eventIds:number[]) { const db = await ready(); const ids=eventIds.filter(Number.isFinite); if (!ids.length) return; for (const eventId of ids) { const event=await db.prepare('SELECT completed_at AS completedAt FROM chore_events WHERE id = ? AND chore_id = ?').bind(eventId,id).first<{completedAt:string}>(); if(event?.completedAt) await db.prepare('DELETE FROM garden_watering_events WHERE source_event_at = ?').bind(event.completedAt).run(); await db.prepare('DELETE FROM chore_events WHERE id = ? AND chore_id = ?').bind(eventId,id).run(); } const previous = await db.prepare('SELECT person, completed_at AS completedAt FROM chore_events WHERE chore_id = ? ORDER BY id DESC LIMIT 1').bind(id).first<{person:string;completedAt:string}>(); await db.prepare('UPDATE chores SET last_completed_at = ?, last_completed_by = ? WHERE id = ?').bind(previous?.completedAt ?? null,previous?.person ?? null,id).run(); }
 export async function saveChore(input:{id?:number;name:string;category:string;icon:string;intervalDays:number;points:number;paused:boolean;scheduleMode:'flexible'|'scheduled';cadenceHours:number;priority:number;dueTime:string|null}) { const db = await ready(); if (input.id) await db.prepare('UPDATE chores SET name = ?, category = ?, icon = ?, interval_days = ?, points = ?, paused = ?, schedule_mode = ?, cadence_hours = ?, priority = ?, due_time = ? WHERE id = ?').bind(input.name,input.category,input.icon,input.intervalDays,input.points,input.paused?1:0,input.scheduleMode,input.cadenceHours,input.priority,input.dueTime,input.id).run(); else await db.prepare('INSERT INTO chores (name, category, icon, interval_days, points, paused, schedule_mode, cadence_hours, priority, due_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(input.name,input.category,input.icon,input.intervalDays,input.points,input.paused?1:0,input.scheduleMode,input.cadenceHours,input.priority,input.dueTime).run(); }
 export async function removeChore(id:number) { const db = await ready(); await db.batch([db.prepare('DELETE FROM chore_events WHERE chore_id = ?').bind(id),db.prepare('DELETE FROM chores WHERE id = ?').bind(id)]); }

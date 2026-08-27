@@ -18,7 +18,7 @@ type GardenSceneProps = {
   taskProgress: number;
   taskGoal: number;
   rewardReady: boolean;
-  onCollectMote: () => void;
+  onWaterPlant: (collectionKey: string) => Promise<"grown" | "mature" | "no-sun" | "error">;
   onOpenSeed: () => void;
 };
 
@@ -36,10 +36,33 @@ function visualPlantStage(stage: number) {
   return Math.max(1, Math.min(5, Math.ceil(stage * 5 / 12)));
 }
 
+function playGardenChime(kind: "water" | "grow") {
+  const AudioContextClass = window.AudioContext || (window as Window & {webkitAudioContext?:typeof AudioContext}).webkitAudioContext;
+  if (!AudioContextClass) return;
+  const context = new AudioContextClass();
+  const now = context.currentTime;
+  const gain = context.createGain();
+  gain.gain.setValueAtTime(.0001,now);
+  gain.gain.exponentialRampToValueAtTime(.045,now+.02);
+  gain.gain.exponentialRampToValueAtTime(.0001,now+.42);
+  gain.connect(context.destination);
+  (kind === "grow" ? [523,659,784] : [392,523]).forEach((frequency,index) => {
+    const oscillator=context.createOscillator();
+    oscillator.type="sine";
+    oscillator.frequency.value=frequency;
+    oscillator.connect(gain);
+    oscillator.start(now+index*.055);
+    oscillator.stop(now+.46);
+  });
+  window.setTimeout(()=>void context.close(),650);
+}
+
 function WaterPour({ slot }: { slot: number }) {
+  const mirrored=slot%2===0;
+  const path="M92 8 C 78 20 66 35 57 51 C 49 67 42 84 35 101";
   return <>
     <img className={`css-watering-can css-slot-${slot}`} src="/prototype-garden-v2/watering-can-v1.png" alt="" />
-    <svg className={`css-water-stream css-slot-${slot}`} viewBox="0 0 100 110" aria-hidden="true">
+    <svg className={`css-water-stream css-slot-${slot} ${mirrored?'is-mirrored':''}`} viewBox="0 0 100 110" aria-hidden="true">
       <defs>
         <linearGradient id="garden-water-gradient" x1="1" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#effcff" />
@@ -47,8 +70,8 @@ function WaterPour({ slot }: { slot: number }) {
           <stop offset="1" stopColor="#4ab5df" />
         </linearGradient>
       </defs>
-      <path className="css-water-glow" pathLength="1" d="M92 8 C 78 20 66 35 57 51 C 49 67 42 84 35 101" />
-      <path className="css-water-core" pathLength="1" d="M92 8 C 78 20 66 35 57 51 C 49 67 42 84 35 101" />
+      <path className="css-water-glow" pathLength="1" d={path} />
+      <path className="css-water-core" pathLength="1" d={path} />
       <circle className="css-water-drop drop-one" cx="43" cy="88" r="3.1" />
       <circle className="css-water-drop drop-two" cx="34" cy="104" r="2.3" />
     </svg>
@@ -69,7 +92,7 @@ function SeedSlot({ slot, progress, goal, ready, onOpen }: { slot: number; progr
   </button>;
 }
 
-export default function GardenScene({ room, plants, availableMotes, taskProgress, taskGoal, rewardReady, onCollectMote, onOpenSeed }: GardenSceneProps) {
+export default function GardenScene({ room, plants, availableMotes, taskProgress, taskGoal, rewardReady, onWaterPlant, onOpenSeed }: GardenSceneProps) {
   const [wateringSlot, setWateringSlot] = useState<number | null>(null);
   const [reactingSlot, setReactingSlot] = useState<number | null>(null);
   const shownPlants = plants.slice(0, 8);
@@ -77,16 +100,17 @@ export default function GardenScene({ room, plants, availableMotes, taskProgress
   const progress = Math.min(taskGoal, taskProgress);
   const hasSun = availableMotes > 0;
 
-  function waterPlant(slot: number) {
+  async function waterPlant(slot: number, collectionKey: string) {
     if (wateringSlot !== null) return;
     setWateringSlot(slot);
+    playGardenChime("water");
     if ("vibrate" in navigator) navigator.vibrate(hasSun ? [18, 35, 24] : 18);
     window.setTimeout(() => setReactingSlot(slot), 560);
-    window.setTimeout(() => {
-      setWateringSlot(null);
-      setReactingSlot(null);
-      if (hasSun) onCollectMote();
-    }, 1120);
+    const outcome = hasSun ? onWaterPlant(collectionKey) : Promise.resolve("no-sun" as const);
+    const [result] = await Promise.all([outcome,new Promise((resolve)=>window.setTimeout(resolve,1120))]);
+    setWateringSlot(null);
+    setReactingSlot(null);
+    if(result==="grown") playGardenChime("grow");
   }
 
   return (
@@ -99,9 +123,9 @@ export default function GardenScene({ room, plants, availableMotes, taskProgress
           return <button
             key={plant.id}
             type="button"
-            className={`css-shelf-slot css-slot-${slot} ${key === "hoya" ? "is-trailing" : ""} ${reactingSlot === slot ? "is-reacting" : ""}`}
-            onClick={() => waterPlant(slot)}
-            aria-label={`${plant.name} gießen${hasSun ? " und Sonnenenergie nutzen" : ""}`}
+            className={`css-shelf-slot css-slot-${slot} ${key === "hoya" ? "is-trailing" : ""} ${reactingSlot === slot ? "is-reacting" : ""} ${hasSun && plant.stage < 12 ? "is-sun-target" : ""}`}
+            onClick={() => void waterPlant(slot,plant.id)}
+            aria-label={`${plant.name} gießen${hasSun && plant.stage < 12 ? " und wachsen lassen" : plant.stage >= 12 ? ", vollständig ausgewachsen" : ""}`}
           >
             <PottedPlant plantKey={key} stage={visualPlantStage(plant.stage)} alt={plant.name} />
           </button>;

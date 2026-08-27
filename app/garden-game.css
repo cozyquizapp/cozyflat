@@ -34,7 +34,8 @@
 .garden-game-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 2px 4px 15px; }
 .garden-game-head h2 { margin: 3px 0 5px; font-family: Georgia, serif; font-size: 34px; font-weight: 400; }
 .garden-game-head p { margin: 0; color: #657168; }
-.garden-level-pill { flex: 0 0 auto; padding: 11px 15px; border-radius: 17px; background: #173c2d; color: #fff; text-align: right; }
+.garden-level-pill { flex: 0 0 auto; padding: 11px 15px; border:0; border-radius: 17px; background: #173c2d; color: #fff; text-align: right; cursor:pointer; font:inherit; transition:transform .16s ease,box-shadow .2s ease; }
+.garden-level-pill:active { transform:scale(.96); }
 .garden-level-pill span, .garden-level-pill b { display: block; }
 .garden-level-pill span { font-size: 11px; opacity: .7; }
 
@@ -267,6 +268,7 @@
 .css-shelf-slot:focus-visible { outline: 3px solid #173c2d; outline-offset: -5px; border-radius: 40%; }
 .css-shelf-slot:active { scale: .985; }
 .css-shelf-slot.is-reacting .prototype-plant-foliage { animation: prototype-plant-react .68s cubic-bezier(.2,.85,.22,1); }
+.css-shelf-slot.is-sun-target:after { content:""; position:absolute; z-index:-1; inset:16% 13%; border-radius:50%; background:radial-gradient(circle,rgba(255,248,174,.52),rgba(255,226,112,.12) 52%,transparent 73%); opacity:.72; animation:css-target-glow 1.8s ease-in-out infinite; pointer-events:none; }
 .css-shelf-slot.css-slot-1 { left: 31.2%; top: 14.5%; }
 .css-shelf-slot.css-slot-2 { left: 68.6%; top: 14.5%; }
 .css-shelf-slot.css-slot-3 { left: 31.2%; top: 34.3%; }
@@ -348,12 +350,13 @@
 .css-room-caption-v2 > b { position:absolute; right:14px; top:10px; font-family:Georgia,serif; font-size:15px; }
 
 @keyframes css-seed-halo { 50% { transform:scale(1.12); opacity:.82; } }
+@keyframes css-target-glow { 50% { opacity:1; transform:scale(1.08); } }
 @keyframes css-room-sun-breathe { 0%,100% { opacity:.68; } 50% { opacity:1; } }
 @keyframes css-room-spark { 0%,100% { opacity:.35; transform:translateY(0) scale(.7); } 50% { opacity:1; transform:translateY(-7px) scale(1.12); } }
 @keyframes css-can-pour { 0% { opacity:0; transform:translate(42%,-74%) rotate(12deg) scale(.68); } 24% { opacity:1; } 64% { opacity:1; transform:translate(20%,-61%) rotate(-7deg) scale(1); } 100% { opacity:0; transform:translate(20%,-61%) rotate(-7deg) scale(1); } }
 @keyframes css-can-pour-right { 0% { opacity:0; transform:translate(-115%,-74%) scaleX(-1) rotate(-12deg) scale(.68); } 24% { opacity:1; } 64% { opacity:1; transform:translate(-93%,-61%) scaleX(-1) rotate(7deg) scale(1); } 100% { opacity:0; transform:translate(-93%,-61%) scaleX(-1) rotate(7deg) scale(1); } }
 @keyframes css-stream-arrive { 0% { opacity:0; transform:translate(-40%,-7%) scale(.96); } 16%,76% { opacity:1; transform:translate(-40%,-7%) scale(1); } 100% { opacity:0; transform:translate(-40%,-5%) scale(.99); } }
-@keyframes css-stream-arrive-right { 0% { opacity:0; transform:translate(-56%,-7%) scaleX(-1) scale(.96); } 16%,76% { opacity:1; transform:translate(-56%,-7%) scaleX(-1) scale(1); } 100% { opacity:0; transform:translate(-56%,-5%) scaleX(-1) scale(.99); } }
+@keyframes css-stream-arrive-right { 0% { opacity:0; transform:translate(-56%,-7%) scale(.96); } 16%,76% { opacity:1; transform:translate(-56%,-7%) scale(1); } 100% { opacity:0; transform:translate(-56%,-5%) scale(.99); } }
 @keyframes css-water-path { 0%,12% { stroke-dashoffset:1; } 42%,78% { stroke-dashoffset:0; } 100% { stroke-dashoffset:-1; } }
 @keyframes css-water-drop { 0%,38% { opacity:0; transform:translateY(-4px) scale(.55); } 55%,78% { opacity:1; transform:translateY(0) scale(1); } 100% { opacity:0; transform:translateY(5px) scale(.72); } }
 
@@ -380,7 +383,7 @@
 .flauschi-shelf i { margin-bottom:8px; font-style:normal; font-size:22px; }
 .flauschi-rug { position:absolute; z-index:1; left:9%; right:9%; bottom:4%; height:29%; border-radius:50%; background:radial-gradient(ellipse,#d4aa78 0 24%,#b77954 25% 34%,#e2c493 35% 55%,#986b52 56% 64%,#cfad7d 65%); box-shadow:0 8px 14px rgba(91,50,27,.18); }
 .flauschi-cushion { position:absolute; z-index:2; left:50%; bottom:12%; width:42%; height:18%; transform:translateX(-50%); border-radius:50%; background:radial-gradient(ellipse at 50% 20%,#b9bf7c,#727a47 73%); box-shadow:inset 0 9px 12px rgba(255,255,221,.2),0 9px 14px rgba(75,48,27,.24); }
-.flauschi-character { position:absolute; z-index:4; left:50%; bottom:15%; width:35%; aspect-ratio:1; transform:translateX(-50%); border:5px solid rgba(255,250,225,.8); border-radius:50%; object-fit:cover; filter:drop-shadow(0 9px 9px rgba(58,51,32,.24)); animation:flauschi-nest-breathe 3.2s ease-in-out infinite; }
+.flauschi-character { position:absolute; z-index:4; left:50%; bottom:15%; width:32%; aspect-ratio:1; transform:translateX(-50%); border:0; border-radius:50%; object-fit:cover; filter:drop-shadow(0 11px 10px rgba(58,51,32,.22)); animation:flauschi-nest-breathe 3.2s ease-in-out infinite; }
 .flauschi-action-prop { position:absolute; z-index:7; left:65%; bottom:27%; min-width:40px; min-height:40px; display:grid; place-items:center; font-size:30px; pointer-events:none; }
 .flauschi-nest.is-feed .flauschi-character,.flauschi-nest.is-brush .flauschi-character,.flauschi-nest.is-play .flauschi-character { animation:flauschi-nest-cheer .76s cubic-bezier(.2,.85,.2,1); }
 .flauschi-nest.is-feed .flauschi-action-prop,.flauschi-nest.is-brush .flauschi-action-prop,.flauschi-nest.is-play .flauschi-action-prop { animation:flauschi-prop-pop .72s cubic-bezier(.2,.85,.2,1); }
@@ -486,6 +489,8 @@
   .garden-room-tabs { display: flex; overflow-x: auto; scrollbar-width: none; }
   .garden-room-tabs button { min-width: 112px; flex: 0 0 auto; }
   .garden-game-head { display: grid; grid-template-columns: 1fr auto; }
+  .garden-game-head h2 { max-width:210px; font-size:21px; line-height:1.08; }
+  .garden-game-head > div > p:last-child { display:none; }
   .garden-game-head p { grid-column: 1 / -1; }
   .daily-plant-reward > div:not(.daily-reward-track) { gap: 6px; }
   .daily-plant-reward button .growth-sprite { width: 68px; height: 70px; }

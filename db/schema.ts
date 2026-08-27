@@ -43,4 +43,14 @@ export const gardenCollection = sqliteTable('garden_collection', {
   unlockedAt: text('unlocked_at').notNull(),
   xpAtUnlock: integer('xp_at_unlock').notNull().default(0),
   room: text('room').notNull().default('Wohnzimmer'),
+  growthBase: integer('growth_base').notNull().default(1),
+});
+
+export const gardenWateringEvents = sqliteTable('garden_watering_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  collectionKey: text('collection_key').notNull(),
+  day: text('day').notNull(),
+  person: text('person').notNull(),
+  sourceEventAt: text('source_event_at').notNull().unique(),
+  wateredAt: text('watered_at').notNull(),
 });
