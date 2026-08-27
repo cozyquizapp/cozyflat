@@ -414,8 +414,8 @@ export default function Home() {
   return (
     <main className={`shell person-${person.toLowerCase()} view-${mobileView}`}>
       {splashVisible && <section className="app-splash" aria-label="CozyFlat wird geladen" aria-live="polite">
-        <picture><source media="(max-width: 900px)" srcSet="/loading-mobile.webp" /><img src="/og.png" alt="CozyFlat – Sonja und Johannes packen gemeinsam zuhause an" /></picture>
-        <div><span>✨ Flauschi macht CozyFlat gemütlich</span><i></i><i></i><i></i></div>
+        <picture><source media="(max-width: 900px)" srcSet="/loading-mobile-clean.webp" /><img src="/og.png" alt="CozyFlat – Sonja und Johannes packen gemeinsam zuhause an" /></picture>
+        <div><span>✨ Euer Zuhause wird gemütlich</span><i></i><i></i><i></i></div>
       </section>}
       <header className="topbar">
         <a className="brand" href="#top">
@@ -459,7 +459,7 @@ export default function Home() {
                         : `${choreCountToday} Aufgaben für heute stehen an.`}
               </em>
             </h1>
-            <div className="daily-bottom"><div className="staubi-greeting"><img src="/staubi.png" alt="Flauschi, euer Hausgeist" /><p><b>{loading?'Flauschi zählt kurz nach:':openCount ? 'Flauschi hat schon mal geschnuppert:' : 'Flauschi rollt sich ein:'}</b> {loading?'Gleich ist eure Tagesauswahl da.':openCount ? `${openCount} ${openCount === 1 ? 'gute Gelegenheit' : 'gute Gelegenheiten'} für XP. Welche schnappt ihr euch?` : "Nichts drängt. Das Nest ist heute offiziell freigegeben."}</p></div>{!loading&&openCount > 0 && <a className="round-start" href="#aufgaben"><span>Erste Aufgabe</span><b>Auswählen <i>→</i></b></a>}</div>
+            <div className="daily-bottom"><div className="staubi-greeting"><span className="daily-spark" aria-hidden="true">✦</span><p><b>{loading?'Euer Tag wird sortiert:':openCount ? 'Heute wartet auf euch:' : 'Feierabendmodus:'}</b> {loading?'Gleich ist eure Tagesauswahl da.':openCount ? `${openCount} ${openCount === 1 ? 'gute Gelegenheit' : 'gute Gelegenheiten'} für XP. Welche schnappt ihr euch?` : "Nichts drängt. Macht es euch gemütlich."}</p></div>{!loading&&openCount > 0 && <a className="round-start" href="#aufgaben"><span>Erste Aufgabe</span><b>Auswählen <i>→</i></b></a>}</div>
           </div>
         </div>
       </section>
@@ -711,7 +711,7 @@ export default function Home() {
         </div>
       )}
       {celebration && <div className="water-celebration" role="status" aria-live="polite">
-        <div className="water-burst" aria-hidden="true"><img className="staubi-celebrate" src="/staubi.png" alt="" /><span>{celebration.icon}</span><i></i><i></i><i></i><i></i><i></i></div>
+        <div className="water-burst" aria-hidden="true"><span className="celebration-symbol">{celebration.icon}</span><i></i><i></i><i></i><i></i><i></i></div>
         <strong>Aufgabe geschafft!</strong><p>{celebration.person} hat „{celebration.label}“ erledigt. Das Zuhause atmet auf.</p><b>+{celebration.points} XP</b>
       </div>}
       <nav className="mobile-nav" aria-label="Hauptnavigation">

@@ -1,9 +1,10 @@
-const CACHE = "cozyflat-static-v7";
+const CACHE = "cozyflat-static-v8";
 const OFFLINE_DOCUMENT = "/__cozyflat-offline";
 const STATIC_ASSETS = [
   "/manifest.webmanifest",
   "/app-icon.png",
-  "/staubi.png",
+  "/flauschi-cutout-v2.webp",
+  "/loading-mobile-clean.webp",
   "/avatar-johannes.png",
   "/avatar-sonja.png",
 ];

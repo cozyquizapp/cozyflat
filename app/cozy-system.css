@@ -88,6 +88,34 @@ button:disabled { cursor: wait; }
   background-color: var(--cozy-surface);
   backdrop-filter: blur(12px);
 }
+.daily-spark {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #fff0b9, #e6c66d);
+  color: #694f23;
+  box-shadow: inset 0 1px rgba(255,255,255,.8), 0 7px 16px rgba(102,76,32,.14);
+  font-size: 19px;
+}
+.water-burst > .celebration-symbol {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  width: 112px;
+  height: 112px;
+  display: grid;
+  place-items: center;
+  border: 4px solid rgba(255,255,255,.82);
+  border-radius: 34px;
+  background: linear-gradient(145deg, #fff8df, #e6d099);
+  box-shadow: 0 14px 30px rgba(0,0,0,.2), inset 0 1px rgba(255,255,255,.9);
+  font-size: 55px;
+  filter: none;
+  animation: drop-bounce .8s cubic-bezier(.2,1.6,.4,1);
+}
 .daily-bottom .round-start,
 .submit-button,
 .copy-url,

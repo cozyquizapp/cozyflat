@@ -77,7 +77,7 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks}:{person:Per
       <span className="flauschi-rug" aria-hidden="true" />
       <span className="flauschi-cushion" aria-hidden="true" />
       <span className="flauschi-action-prop" aria-hidden="true">{active==='feed'?'🍪':active==='brush'?'✨':active==='play'?'🧶':''}</span>
-      <img className="flauschi-character" src="/prototype-garden-v2/flauschi-medallion-v2.png" alt="Flauschi in seinem Nest" />
+      <img className="flauschi-character" src="/flauschi-cutout-v2.webp" alt="Flauschi in seinem Nest" />
       <div className="flauschi-speech"><b>{mood}</b><span>{message}</span></div>
     </div>
 
