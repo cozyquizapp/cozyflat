@@ -356,7 +356,7 @@
 @keyframes css-can-pour { 0% { opacity:0; transform:translate(42%,-74%) rotate(12deg) scale(.68); } 24% { opacity:1; } 64% { opacity:1; transform:translate(20%,-61%) rotate(-7deg) scale(1); } 100% { opacity:0; transform:translate(20%,-61%) rotate(-7deg) scale(1); } }
 @keyframes css-can-pour-right { 0% { opacity:0; transform:translate(-115%,-74%) scaleX(-1) rotate(-12deg) scale(.68); } 24% { opacity:1; } 64% { opacity:1; transform:translate(-93%,-61%) scaleX(-1) rotate(7deg) scale(1); } 100% { opacity:0; transform:translate(-93%,-61%) scaleX(-1) rotate(7deg) scale(1); } }
 @keyframes css-stream-arrive { 0% { opacity:0; transform:translate(-40%,-7%) scale(.96); } 16%,76% { opacity:1; transform:translate(-40%,-7%) scale(1); } 100% { opacity:0; transform:translate(-40%,-5%) scale(.99); } }
-@keyframes css-stream-arrive-right { 0% { opacity:0; transform:translate(-56%,-7%) scale(.96); } 16%,76% { opacity:1; transform:translate(-56%,-7%) scale(1); } 100% { opacity:0; transform:translate(-56%,-5%) scale(.99); } }
+@keyframes css-stream-arrive-right { 0% { opacity:0; transform:translate(-34%,-7%) scale(.96); } 16%,76% { opacity:1; transform:translate(-34%,-7%) scale(1); } 100% { opacity:0; transform:translate(-34%,-5%) scale(.99); } }
 @keyframes css-water-path { 0%,12% { stroke-dashoffset:1; } 42%,78% { stroke-dashoffset:0; } 100% { stroke-dashoffset:-1; } }
 @keyframes css-water-drop { 0%,38% { opacity:0; transform:translateY(-4px) scale(.55); } 55%,78% { opacity:1; transform:translateY(0) scale(1); } 100% { opacity:0; transform:translateY(5px) scale(.72); } }
 

@@ -59,7 +59,12 @@ function playGardenChime(kind: "water" | "grow") {
 
 function WaterPour({ slot }: { slot: number }) {
   const mirrored=slot%2===0;
-  const path="M92 8 C 78 20 66 35 57 51 C 49 67 42 84 35 101";
+  // The mirrored can's rose sits farther outside its slot. Give that side its
+  // own start point instead of mirroring the whole SVG, so the stream still
+  // lands in the same pot while visibly leaving the rose.
+  const path=mirrored
+    ? "M108 4 C 92 16 75 32 61 49 C 50 65 41 83 35 103"
+    : "M92 8 C 78 20 66 35 57 51 C 49 67 42 84 35 101";
   return <>
     <img className={`css-watering-can css-slot-${slot}`} src="/prototype-garden-v2/watering-can-v1.png" alt="" />
     <svg className={`css-water-stream css-slot-${slot} ${mirrored?'is-mirrored':''}`} viewBox="0 0 100 110" aria-hidden="true">
