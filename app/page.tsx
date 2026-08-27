@@ -1,5 +1,6 @@
 "use client";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import FlauschiNest from "./FlauschiNest";
 import GardenScene from "./GardenScene";
 
 type Plant = {
@@ -44,6 +45,12 @@ const growthLabel = (stage: number) => ["Keimling", "Blattpaar", "Kleiner Spross
 const growthSpriteStep = (stage: number) => Math.max(1, Math.min(5, Math.ceil(Math.min(12, stage) * 5 / 12)));
 const gardenGrowthSrc = (plantKey: string, stage: number) => `/garden/stages/${plantKey}-${growthSpriteStep(stage)}.png`;
 
+function calendarDayDiff(target:Date,reference:Date) {
+  const targetDay=Date.UTC(target.getFullYear(),target.getMonth(),target.getDate());
+  const referenceDay=Date.UTC(reference.getFullYear(),reference.getMonth(),reference.getDate());
+  return Math.round((targetDay-referenceDay)/day);
+}
+
 function levelFor(points: number) {
   const step = 100;
   const level = Math.floor(points / step) + 1;
@@ -55,9 +62,7 @@ function dateInfo(plant: Plant) {
   const last = new Date(plant.lastWateredAt);
   const next = new Date(last.getTime() + plant.intervalDays * day);
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  next.setHours(0, 0, 0, 0);
-  const diff = Math.round((next.getTime() - today.getTime()) / day);
+  const diff = calendarDayDiff(next,today);
   return {
     diff,
     due:
@@ -90,6 +95,7 @@ function choreTiming(chore: Chore, now: Date) {
   if (chore.scheduleMode !== 'scheduled') return 'Spontan erledigbar';
   const next = choreNext(chore)!;
   if (next <= now) return chore.dueTime ? `Heute spätestens ${chore.dueTime}` : 'Jetzt wieder dran';
+  if (calendarDayDiff(next,now) === 0) return chore.dueTime ? `Heute spätestens ${chore.dueTime}` : 'Heute wieder dran';
   const label = next.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
   return `Wieder spätestens ${label}${chore.dueTime ? ` · ${chore.dueTime}` : ''}`;
 }
@@ -145,21 +151,27 @@ export default function Home() {
   const [gardenBusy, setGardenBusy] = useState(false);
   const [gardenRoom, setGardenRoom] = useState('Wohnzimmer');
   const [gardenMotes, setGardenMotes] = useState(0);
+  const [gardenPanel, setGardenPanel] = useState<'plants'|'flauschi'>('plants');
   async function refresh() {
-    const [r, s, c, g] = await Promise.all([fetch("/api/plants"), fetch("/api/stats"), fetch("/api/chores"), fetch("/api/garden")]);
-    if (r.ok) setPlants(await r.json());
-    if (s.ok) setStats(await s.json());
-    if (c.ok) setChores(await c.json());
-    if (g.ok) {
-      const gardenData = await g.json() as GardenData;
-      setGarden(gardenData);
-      setGardenRoom((current) =>
-        PROTOTYPE_GARDEN_MODE
-          ? GARDEN_PROTOTYPE_ROOM
-          : (gardenData.rooms.some((room) => room.name === current && room.unlocked) ? current : gardenData.activeRoom),
-      );
+    setLoading(true);
+    try {
+      const noStore={cache:'no-store' as const};
+      const [r, s, c, g] = await Promise.all([fetch("/api/plants",noStore), fetch("/api/stats",noStore), fetch("/api/chores",noStore), fetch("/api/garden",noStore)]);
+      if (r.ok) setPlants(await r.json());
+      if (s.ok) setStats(await s.json());
+      if (c.ok) setChores(await c.json());
+      if (g.ok) {
+        const gardenData = await g.json() as GardenData;
+        setGarden(gardenData);
+        setGardenRoom((current) =>
+          PROTOTYPE_GARDEN_MODE
+            ? GARDEN_PROTOTYPE_ROOM
+            : (gardenData.rooms.some((room) => room.name === current && room.unlocked) ? current : gardenData.activeRoom),
+        );
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
   useEffect(() => {
     const splashTimer = window.setTimeout(() => setSplashVisible(false), 3000);
@@ -245,11 +257,6 @@ export default function Home() {
     window.setTimeout(() => setToast(''), 2200);
     if ('vibrate' in navigator) navigator.vibrate(24);
   }, []);
-  const petStaubi = useCallback(() => {
-    setToast('Flauschi wackelt vor Freude. Das zählt als sehr wichtiger Gartenbesuch.');
-    window.setTimeout(() => setToast(''), 2200);
-    if ('vibrate' in navigator) navigator.vibrate([18,35,18]);
-  }, []);
   const openGardenSeed = useCallback(() => {
     if (garden?.rewardReady && !garden.chosenToday) {
       document.getElementById('pflanzenwahl')?.scrollIntoView({behavior:'smooth',block:'center'});
@@ -288,7 +295,7 @@ export default function Home() {
       const [s,g] = await Promise.all([fetch("/api/stats"),fetch("/api/garden")]);
       if (s.ok) setStats(await s.json());
       if (g.ok) setGarden(await g.json());
-      setToast(`${plant.name} wurde von ${person} gegossen. Stark – der Pflanzendienst ist zufrieden.`);
+      setToast(`${plant.name} wurde von ${person} gegossen. Im Garten warten jetzt Sonne und ein Pflegemoment.`);
     } catch {
       setCelebration(null);
       setToast(`${plant.name} konnte gerade nicht gespeichert werden. Bitte noch einmal tippen.`);
@@ -329,7 +336,7 @@ export default function Home() {
       const [s,g] = await Promise.all([fetch('/api/stats'),fetch('/api/garden')]);
       if (s.ok) setStats(await s.json());
       if (g.ok) setGarden(await g.json());
-      setToast(`${chore.name}: ${together?'gemeinsam ':''}erledigt. ${together?'Ihr bekommt beide':`${person} bekommt`} ${awarded} XP${bonus?` – inklusive ${bonus} Bonus-XP!`:'.'}`);
+      setToast(`${chore.name}: ${together?'gemeinsam ':''}erledigt. ${together?'Ihr bekommt beide':`${person} bekommt`} ${awarded} XP${bonus?` – inklusive ${bonus} Bonus-XP!`:'.'} Im Garten warten Sonne und ein Pflegemoment.`);
     } catch {
       setCelebration(null);
       setToast(`${chore.name} konnte gerade nicht gespeichert werden. Bitte noch einmal tippen.`);
@@ -366,12 +373,18 @@ export default function Home() {
     const r = await fetch('/api/chores',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)}); if (r.ok) { const result = await r.json() as {chores:Chore[]}; setChores(result.chores); setChoreModal(false); setEditingChore(null); setToast(editingChore ? 'Aufgabe aktualisiert.' : 'Neue Aufgabe angelegt.'); setTimeout(()=>setToast(''),2200); }
   }
   const todayCount = plants.filter((p) => dateInfo(p).diff <= 0).length;
-  const soonCount = plants.filter((p) => {
+  const soonPlantCount = plants.filter((p) => {
     const d = dateInfo(p).diff;
     return d > 0 && d <= 3;
   }).length;
   const now = new Date();
-  const dueChoresToday = chores.filter((chore) => !chore.paused && chore.scheduleMode === 'scheduled' && choreNext(chore)! <= now).sort((a,b)=>b.priority-a.priority);
+  const dueChoresToday = chores.filter((chore) => !chore.paused && chore.scheduleMode === 'scheduled' && calendarDayDiff(choreNext(chore)!,now) <= 0).sort((a,b)=>b.priority-a.priority);
+  const soonChoreCount = chores.filter((chore) => {
+    if(chore.paused||chore.scheduleMode!=='scheduled')return false;
+    const diff=calendarDayDiff(choreNext(chore)!,now);
+    return diff>0&&diff<=3;
+  }).length;
+  const soonCount=soonPlantCount+soonChoreCount;
   const flexiblePicks = dailyFlexiblePicks(chores, now);
   const flexiblePicksOpen = flexiblePicks.filter((chore) => !chore.lastCompletedAt || localDayKey(new Date(chore.lastCompletedAt)) !== localDayKey(now));
   const todayChores = [...dueChoresToday, ...flexiblePicksOpen];
@@ -430,7 +443,9 @@ export default function Home() {
             <h1>
               Hallo {person},
               <em>
-                {openCount === 0
+                {loading
+                  ? "ich schaue kurz nach."
+                  : openCount === 0
                   ? "Alles ist versorgt."
                   : openCount === 1
                     ? todayCount === 1
@@ -443,23 +458,25 @@ export default function Home() {
                         : `${choreCountToday} Aufgaben für heute stehen an.`}
               </em>
             </h1>
-            <div className="daily-bottom"><div className="staubi-greeting"><img src="/staubi.png" alt="Flauschi, euer Hausgeist" /><p><b>{openCount ? 'Flauschi hat schon mal geschnuppert:' : 'Flauschi rollt sich ein:'}</b> {openCount ? `${openCount} ${openCount === 1 ? 'gute Gelegenheit' : 'gute Gelegenheiten'} für XP. Welche schnappt ihr euch?` : "Nichts drängt. Das Nest ist heute offiziell freigegeben."}</p></div>{openCount > 0 && <a className="round-start" href="#aufgaben"><span>Erste Aufgabe</span><b>Auswählen <i>→</i></b></a>}</div>
+            <div className="daily-bottom"><div className="staubi-greeting"><img src="/staubi.png" alt="Flauschi, euer Hausgeist" /><p><b>{loading?'Flauschi zählt kurz nach:':openCount ? 'Flauschi hat schon mal geschnuppert:' : 'Flauschi rollt sich ein:'}</b> {loading?'Gleich ist eure Tagesauswahl da.':openCount ? `${openCount} ${openCount === 1 ? 'gute Gelegenheit' : 'gute Gelegenheiten'} für XP. Welche schnappt ihr euch?` : "Nichts drängt. Das Nest ist heute offiziell freigegeben."}</p></div>{!loading&&openCount > 0 && <a className="round-start" href="#aufgaben"><span>Erste Aufgabe</span><b>Auswählen <i>→</i></b></a>}</div>
           </div>
         </div>
       </section>
       <section className="summary" aria-label="Heutige Zusammenfassung">
         <div>
-          <strong>{openCount}</strong>
+          <strong>{loading?'…':openCount}</strong>
           <span>heute geplant</span>
         </div>
         <div>
-          <strong>{soonCount}</strong>
+          <strong>{loading?'…':soonCount}</strong>
           <span>demnächst</span>
         </div>
         <div className="streak">
           <span>↗</span>
           <b>
-            {openCount
+            {loading
+              ? 'Eure Aufgaben werden gerade aktualisiert.'
+              : openCount
               ? `${person}, womit möchtest du anfangen?`
               : "Alles erledigt – jetzt wird’s gemütlich"}
           </b>
@@ -467,17 +484,18 @@ export default function Home() {
       </section>
       <div className={`mobile-progress ${progressOpen ? "is-open" : ""}`} id="fortschritt">
         <button className="progress-toggle" onClick={() => setProgressOpen((open) => !open)} aria-expanded={progressOpen}><span>★ Level & Wochenmission</span><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></button>
-        <section className="plant-room-game" aria-label="Euer gemeinsames Pflanzenzimmer">
-          <div className="garden-game-head"><div><p className="eyebrow">EUER KLEINES PFLANZENSPIEL</p><h2>Aufräumen. Funkeln. Wachsen.</h2><p>Eine Aufgabe macht einen Lichtfunken. Drei Aufgaben wecken den nächsten Keim.</p></div><div className="garden-level-pill"><span>Raum-Level {gardenLevel}</span><b>{gardenProgress}/100 XP</b></div></div>
+        <section className="plant-room-game" aria-label="Euer gemeinsamer Gartenbereich">
+          <div className="garden-game-head"><div><p className="eyebrow">EUER KLEINES COZY-SPIEL</p><h2>Aufräumen. Pflegen. Wachsen.</h2><p>Aufgaben schenken Sonne fürs Regal und Pflegemomente für Flauschis Nest.</p></div><div className="garden-level-pill"><span>Cozy-Level {gardenLevel}</span><b>{gardenProgress}/100 XP</b></div></div>
+          <nav className="garden-mode-switch" aria-label="Gartenbereich auswählen"><button type="button" className={gardenPanel==='plants'?'active':''} aria-pressed={gardenPanel==='plants'} onClick={()=>setGardenPanel('plants')}>🌿 Pflanzenregal</button><button type="button" className={gardenPanel==='flauschi'?'active':''} aria-pressed={gardenPanel==='flauschi'} onClick={()=>setGardenPanel('flauschi')}>☁️ Flauschis Nest</button></nav>
           {!PROTOTYPE_GARDEN_MODE && <nav className="garden-room-tabs" aria-label="Pflanzenräume">{garden?.rooms.map((room)=><button key={room.name} disabled={!room.unlocked} className={gardenRoom===room.name?'active':''} onClick={()=>room.unlocked&&setGardenRoom(room.name)}><span>{room.unlocked?room.name:'🔒 '+room.name}</span><small>{room.count}/{room.capacity}</small></button>)}</nav>}
-          <div className="garden-scene-shell">
+          {gardenPanel==='plants' ? <><div className="garden-scene-shell">
             <div className="garden-scene-title"><span><small>{activeGardenRoom.toUpperCase()}</small><b>{activeGardenItems.length ? `${activeGardenItems.length} ${activeGardenItems.length===1?'Pflanze wohnt':'Pflanzen wohnen'} hier` : 'Der erste Keim wartet auf euch'}</b></span><em>{gardenMotes ? `${gardenMotes}× Sonne zum Gießen` : 'Nächste Aufgabe lädt Sonne'}</em></div>
-            <GardenScene room={activeGardenRoom} plants={gardenScenePlants} streak={stats.loginStreak} availableMotes={gardenMotes} taskProgress={garden?.todayTasks??0} taskGoal={garden?.dailyTaskGoal??3} rewardReady={Boolean(garden?.rewardReady&&!garden?.chosenToday)} onCollectMote={collectGardenMote} onPetFlauschi={petStaubi} onOpenSeed={openGardenSeed}/>
+            <GardenScene room={activeGardenRoom} plants={gardenScenePlants} availableMotes={gardenMotes} taskProgress={garden?.todayTasks??0} taskGoal={garden?.dailyTaskGoal??3} rewardReady={Boolean(garden?.rewardReady&&!garden?.chosenToday)} onCollectMote={collectGardenMote} onOpenSeed={openGardenSeed}/>
             <div className="garden-scene-tip"><span aria-hidden="true">{garden?.rewardReady&&!garden?.chosenToday?'🌱':gardenMotes?'💧':'☀️'}</span><p><b>{garden?.rewardReady&&!garden?.chosenToday?'Euer Keim ist bereit!':gardenMotes?'Die Sonne ist gespeichert – Wasser marsch!':'Nächster Schritt: eine Aufgabe.'}</b>{garden?.rewardReady&&!garden?.chosenToday?'Tippt auf den Keim und wählt eine neue Pflanze.':gardenMotes?'Tippt eine Pflanze an. Die Gießkanne kommt direkt und nutzt einen Sonnenfunken.':'Jede erledigte Aufgabe schenkt euch eine sonnige Gießrunde.'}</p></div>
             <ul className="garden-scene-accessible">{gardenScenePlants.map((plant)=><li key={plant.id}>{plant.name}, Stufe {plant.stage} von 12: {growthLabel(plant.stage)}</li>)}</ul>
           </div>
           {garden?.collection.filter((item)=>item.room===activeGardenRoom).length ? <ul className="garden-collection" aria-label={`Pflanzen im ${activeGardenRoom}`}>{garden.collection.filter((item)=>item.room===activeGardenRoom).slice(-8).map((item)=>{const stage=growthStage(Math.max(0,garden.xp-item.xpAtUnlock));return <li key={item.weekKey}><span className="garden-collection-symbol" aria-hidden="true">{item.plant.emoji}</span><span><b>{item.plant.name}</b><small>Stufe {stage}/12 · {growthLabel(stage)}</small></span></li>})}</ul> : null}
-          <div className="garden-track"><i style={{width:`${gardenProgress}%`}} /></div><div className="garden-meta"><b>Gemeinsam {gardenXp} XP gesammelt</b><span>Noch {100-gardenProgress} XP bis Raum-Level {gardenLevel+1}</span></div>
+          <div className="garden-track"><i style={{width:`${gardenProgress}%`}} /></div><div className="garden-meta"><b>Gemeinsam {gardenXp} XP gesammelt</b><span>Noch {100-gardenProgress} XP bis Raum-Level {gardenLevel+1}</span></div></> : <FlauschiNest person={person} todayTasks={garden?.todayTasks??stats.todayTasks} onGoToTasks={()=>{setMobileView('chores');window.setTimeout(()=>document.getElementById('aufgaben')?.scrollIntoView({behavior:'smooth',block:'start'}),0)}}/>}
           {garden && !garden.chosenToday && garden.rewardReady && <div id="pflanzenwahl" className="daily-plant-reward is-ready"><span><small>HEUTIGER KEIM · {activeGardenRoom.toUpperCase()}</small><b>Welche Pflanze darf einziehen?</b></span><div>{garden.candidates.map((candidate)=><button disabled={gardenBusy} onClick={()=>chooseGardenPlant(candidate.key)} key={candidate.key}><img className="growth-sprite" src={gardenGrowthSrc(candidate.key,1)} alt=""/><b>{candidate.name}</b><small>Einziehen lassen</small></button>)}</div></div>}
           {garden?.chosenToday && <div className="next-plant"><span>✨</span><p><b>Heutige Pflanze freigeschaltet</b>Morgen könnt ihr mit drei Aufgaben den nächsten Platz begrünen.</p></div>}
         </section>
@@ -508,10 +526,10 @@ export default function Home() {
         </section>}
         <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
           const categoryChores = chores.filter((chore) => chore.category === category);
-          const dueChores = categoryChores.filter((chore) => !chore.paused && chore.scheduleMode === 'scheduled' && choreNext(chore)! <= now);
+          const dueChores = categoryChores.filter((chore) => !chore.paused && chore.scheduleMode === 'scheduled' && calendarDayDiff(choreNext(chore)!,now) <= 0);
           const laterChores = categoryChores.filter((chore) => !dueChores.includes(chore));
           const art = choreCategoryArt[category] ?? { image: '/chore-putzen.png', tone: 'sage' };
-          const renderChore = (chore: Chore) => { const next = choreNext(chore); const isDue = Boolean(next && next <= now);
+          const renderChore = (chore: Chore) => { const next = choreNext(chore); const isDue = Boolean(next && calendarDayDiff(next,now) <= 0);
             return <article className={`chore-card ${isDue ? 'is-due' : ''} priority-${chore.priority} ${chore.paused ? 'is-paused' : ''}`} key={chore.id}><span className="chore-icon chore-art-thumb" style={{backgroundImage:`url(${art.image})`}} aria-hidden="true" /><div><b>{chore.name}</b><small>{choreTiming(chore,now)} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch nie abgehakt'}</small></div><strong><span className={`priority-chip priority-${chore.priority}`}>{priorityLabel(chore.priority)}</span> +{chore.points} XP</strong><button className="edit-chore" onClick={()=>{setEditingChore(chore);setChoreModal(true)}} aria-label={`${chore.name} bearbeiten`}>✎</button><div className="completion-choices"><button className="finish-chore" onClick={() => finishChore(chore)} disabled={chore.paused || choreBusy === chore.id}>{chore.paused ? 'Pausiert' : choreBusy === chore.id ? '…' : <><img src={avatarFor[person]} alt="" />Ich</>}</button><button className="finish-chore together-button" onClick={() => finishChore(chore,true)} disabled={chore.paused || choreBusy === chore.id}><span className="duo-avatars"><img src={avatarFor.Johannes} alt=""/><img src={avatarFor.Sonja} alt=""/></span>Gemeinsam</button></div></article>;
           };
           return <details className={`chore-group tone-${art.tone}`} key={category}><summary className="chore-group-preview" style={{backgroundImage:`linear-gradient(90deg,rgba(18,48,35,.9) 0%,rgba(18,48,35,.58) 54%,rgba(18,48,35,.12) 100%), url(${art.image})`}}><span><small>{dueChores.length ? `${dueChores.length} jetzt wichtig` : 'Flexibel einplanbar'}</small><b>{category}</b></span><em>{categoryChores.length} {categoryChores.length === 1 ? 'Aufgabe' : 'Aufgaben'}</em><strong>⌄</strong></summary><div className="chore-group-content"><div>{[...dueChores,...laterChores].map(renderChore)}</div></div></details>;

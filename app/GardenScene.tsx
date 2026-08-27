@@ -14,13 +14,11 @@ export type GardenScenePlant = {
 type GardenSceneProps = {
   room: string;
   plants: GardenScenePlant[];
-  streak: number;
   availableMotes: number;
   taskProgress: number;
   taskGoal: number;
   rewardReady: boolean;
   onCollectMote: () => void;
-  onPetFlauschi: () => void;
   onOpenSeed: () => void;
 };
 
@@ -71,7 +69,7 @@ function SeedSlot({ slot, progress, goal, ready, onOpen }: { slot: number; progr
   </button>;
 }
 
-export default function GardenScene({ room, plants, streak, availableMotes, taskProgress, taskGoal, rewardReady, onCollectMote, onPetFlauschi, onOpenSeed }: GardenSceneProps) {
+export default function GardenScene({ room, plants, availableMotes, taskProgress, taskGoal, rewardReady, onCollectMote, onOpenSeed }: GardenSceneProps) {
   const [wateringSlot, setWateringSlot] = useState<number | null>(null);
   const [reactingSlot, setReactingSlot] = useState<number | null>(null);
   const shownPlants = plants.slice(0, 8);
@@ -114,10 +112,6 @@ export default function GardenScene({ room, plants, streak, availableMotes, task
         {hasSun && <div className="css-room-sun" aria-hidden="true"><i /><i /><i /></div>}
         {wateringSlot !== null && <WaterPour slot={wateringSlot} />}
 
-        <button type="button" className="css-flauschi-orb-v2" onClick={onPetFlauschi} aria-label="Flauschi besuchen">
-          <img src="/prototype-garden-v2/flauschi-medallion-v2.png" alt="" />
-          <span>{streak ? `${streak} Tage` : "Zzz"}</span>
-        </button>
       </div>
 
       <div className="css-room-caption-v2">

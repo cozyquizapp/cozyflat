@@ -6,7 +6,7 @@ function personName(value: FormDataEntryValue | string | null | undefined) {
   return value === 'Sonja' || value === 'Sie' ? 'Sonja' : 'Johannes';
 }
 
-export async function GET() { return NextResponse.json(await listPlants()); }
+export async function GET() { return NextResponse.json(await listPlants(), {headers:{'cache-control':'no-store'}}); }
 export async function POST(request:NextRequest) {
   if (request.headers.get('content-type')?.includes('multipart/form-data')) {
     const form = await request.formData(); const file = form.get('image'); let imageKey:string|null = null;
