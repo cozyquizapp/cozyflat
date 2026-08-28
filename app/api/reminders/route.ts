@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listChores, listPlants } from '../../../db/store';
+import { protectReminderApi } from '../../access';
 
 export async function GET(request: NextRequest) {
+  const denial=await protectReminderApi(request); if(denial)return denial;
   const requestedPerson = request.nextUrl.searchParams.get('person');
   const person = requestedPerson === 'Sonja' ? 'Sonja' : 'Johannes';
   const [plants, chores] = await Promise.all([listPlants(), listChores()]);

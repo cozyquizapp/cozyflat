@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import AccessGate from './AccessGate';
+import { accessProtectionEnabled, browserHasAccess } from './access';
 import './globals.css';
 import './collapsed.css';
 import './avatars.css';
@@ -24,6 +26,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://cozyflat.cozyquiz.app'),
   title: 'CozyFlat – Gemeinsam zuhause anpacken',
   description: 'Eure gemeinsame App für Pflanzen, Haushalt und kleine Erfolgsmomente.',
   manifest: '/manifest.webmanifest',
@@ -48,6 +51,12 @@ export const metadata: Metadata = {
     description: 'Pflanzen, Haushalt und gemeinsame Level für Sonja und Johannes.',
     images: ['/og.png'],
   },
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: { index: false, follow: false, noimageindex: true },
+  },
 };
 
 export const viewport: Viewport = {
@@ -57,17 +66,21 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default function RootLayout({
+export const dynamic = 'force-dynamic';
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locked = accessProtectionEnabled() && !(await browserHasAccess());
+
   return (
     <html lang="de">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        {locked ? <AccessGate /> : children}
       </body>
     </html>
   );

@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addPlant, listPlants, removePlant, waterPlant } from '../../../db/store';
 import { env } from 'cloudflare:workers';
+import { protectApi } from '../../access';
 
 function personName(value: FormDataEntryValue | string | null | undefined) {
   return value === 'Sonja' || value === 'Sie' ? 'Sonja' : 'Johannes';
 }
 
-export async function GET() { return NextResponse.json(await listPlants(), {headers:{'cache-control':'no-store'}}); }
+export async function GET(request:Request) { const denial=await protectApi(request); if(denial)return denial; return NextResponse.json(await listPlants(), {headers:{'cache-control':'no-store'}}); }
 export async function POST(request:NextRequest) {
+  const denial=await protectApi(request); if(denial)return denial;
   if (request.headers.get('content-type')?.includes('multipart/form-data')) {
     const form = await request.formData(); const file = form.get('image'); let imageKey:string|null = null;
     if (file instanceof File && file.size) { imageKey = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'')}`; await env.IMAGES.put(imageKey, file.stream(), { httpMetadata:{contentType:file.type || 'image/jpeg'} }); }

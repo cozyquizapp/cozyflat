@@ -142,6 +142,7 @@ export default function Home() {
   const [reminderGuide, setReminderGuide] = useState(false);
   const [progressOpen, setProgressOpen] = useState(false);
   const [reminderPerson, setReminderPerson] = useState<"Johannes" | "Sonja">("Johannes");
+  const [reminderShortcutUrl, setReminderShortcutUrl] = useState('');
   const [showReminderCard, setShowReminderCard] = useState(false);
   const [plantsOpen, setPlantsOpen] = useState(false);
   const [mobileView, setMobileView] = useState<'today'|'chores'|'plants'|'level'|'profile'>('today');
@@ -161,6 +162,19 @@ export default function Home() {
     if(view==='level')setProgressOpen(false);
     setMobileView(view);
     window.requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'auto'}));
+  }
+  async function loadReminderUrl(targetPerson:'Johannes'|'Sonja') {
+    setReminderPerson(targetPerson);
+    setReminderShortcutUrl('');
+    const response=await fetch(`/api/access?person=${encodeURIComponent(targetPerson)}`,{cache:'no-store'});
+    if(!response.ok)return '';
+    const result=await response.json() as {url:string};
+    setReminderShortcutUrl(result.url);
+    return result.url;
+  }
+  function openReminderSetup(targetPerson:'Johannes'|'Sonja') {
+    setReminderGuide(true);
+    void loadReminderUrl(targetPerson);
   }
   async function refresh() {
     setLoading(true);
@@ -648,7 +662,7 @@ export default function Home() {
         <button className="dismiss-reminder" onClick={() => { localStorage.setItem("reminder-card-dismissed", "yes"); setShowReminderCard(false); }} aria-label="Apple-Einrichtung ausblenden">×</button>
         <div className="reminder-symbol" aria-hidden="true">✓</div>
         <div><p className="eyebrow">APPLE ERINNERUNGEN</p><h2>Gemeinsam nichts vergessen</h2><p>Ein Kurzbefehl trägt fällige Aufgaben und Pflanzen automatisch in eure Familienliste ein.</p></div>
-        <button onClick={() => { setReminderPerson(person); setReminderGuide(true); }}>Einrichten</button>
+        <button onClick={() => openReminderSetup(person)}>Einrichten</button>
       </section>}
       <footer>
         <span>☘</span>
@@ -657,7 +671,7 @@ export default function Home() {
           <br />
           Danach gemeinsam gemütlich.
         </p>
-        <button className="footer-reminder-link" onClick={() => { setReminderPerson(person); setReminderGuide(true); }}>Erinnerungen einrichten</button>
+        <button className="footer-reminder-link" onClick={() => openReminderSetup(person)}>Erinnerungen einrichten</button>
       </footer>
       {modal && (
         <div
@@ -732,7 +746,7 @@ export default function Home() {
             <p className="modal-intro">Der Kurzbefehl prüft täglich CozyFlat. Fällige Aufgaben und Pflanzen landen in der geteilten Liste „Familie“.</p>
             <fieldset className="reminder-person-picker">
               <legend>Für wen ist dieser Kurzbefehl?</legend>
-              {(["Johannes", "Sonja"] as const).map((name) => <button type="button" className={reminderPerson === name ? "active" : ""} onClick={() => setReminderPerson(name)} key={name}><img src={avatarFor[name]} alt="" /><span><b>{name}</b><small>{reminderPerson === name ? "ausgewählt" : "dieses Profil wählen"}</small></span><i>✓</i></button>)}
+              {(["Johannes", "Sonja"] as const).map((name) => <button type="button" className={reminderPerson === name ? "active" : ""} onClick={() => void loadReminderUrl(name)} key={name}><img src={avatarFor[name]} alt="" /><span><b>{name}</b><small>{reminderPerson === name ? "ausgewählt" : "dieses Profil wählen"}</small></span><i>✓</i></button>)}
             </fieldset>
             <ol className="shortcut-steps">
               <li><b>Gemeinsame Liste prüfen</b><span>Öffnet „Erinnerungen“ und stellt sicher, dass eure geteilte Liste „Familie“ heißt.</span></li>
@@ -741,8 +755,8 @@ export default function Home() {
               <li><b>Erinnerungen hinzufügen</b><span>Wiederholt jeden Eintrag und nutzt „Neue Erinnerung“ mit „title“ für die Liste „Familie“. Vorher nach einer offenen Erinnerung mit demselben Titel suchen, damit nichts doppelt erscheint.</span></li>
               <li><b>Täglich ausführen</b><span>Unter „Automation“ → „Tageszeit“ den Kurzbefehl jeden Morgen automatisch starten.</span></li>
             </ol>
-            <button className="copy-url" onClick={async () => { await navigator.clipboard.writeText(`${location.origin}/api/reminders?person=${encodeURIComponent(reminderPerson)}`); setToast(`Adresse für ${reminderPerson} kopiert.`); setTimeout(() => setToast(''), 2800); }}>Adresse für {reminderPerson} kopieren</button>
-            <code className="shortcut-url">{typeof window !== 'undefined' ? `${location.origin}/api/reminders?person=${encodeURIComponent(reminderPerson)}` : `/api/reminders?person=${reminderPerson}`}</code>
+            <button className="copy-url" disabled={!reminderShortcutUrl} onClick={async () => { const url=reminderShortcutUrl||await loadReminderUrl(reminderPerson); if(!url)return; await navigator.clipboard.writeText(url); setToast(`Sichere Adresse für ${reminderPerson} kopiert.`); setTimeout(() => setToast(''), 2800); }}>Sichere Adresse für {reminderPerson} kopieren</button>
+            <code className="shortcut-url">{reminderShortcutUrl || 'Sichere Adresse wird geladen …'}</code>
           </section>
         </div>
       )}
