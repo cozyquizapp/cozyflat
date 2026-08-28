@@ -9,6 +9,9 @@ type FlauschiState = {
   availableCare:number;
   todayCare:number;
   todayTasks:number;
+  todayActions:CareAction[];
+  dailySetProgress:number;
+  dailySetComplete:boolean;
   totalCare:number;
   level:number;
   levelProgress:number;
@@ -48,13 +51,21 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
 
   async function care(action:CareAction) {
     if(!state||state.availableCare<=0||active) return;
+    if(!state.dailySetComplete&&state.todayActions.includes(action)) {
+      const missing=ACTIONS.filter((item)=>!state.todayActions.includes(item.key)).map((item)=>item.label.toLocaleLowerCase('de-DE'));
+      setMessage(`Das hatten wir heute schon. Für das Tagesritual fehlt noch: ${missing.join(' oder ')}.`);
+      if('vibrate' in navigator) navigator.vibrate(10);
+      return;
+    }
     const previous=state;
     const totalCare=state.totalCare+1;
+    const todayActions=state.todayActions.includes(action)?state.todayActions:[...state.todayActions,action];
+    const dailySetProgress=todayActions.length;
     setActive(action);
-    const optimistic={...state,availableCare:state.availableCare-1,todayCare:state.todayCare+1,totalCare,level:Math.floor(totalCare/state.levelGoal)+1,levelProgress:totalCare%state.levelGoal,lastAction:action,lastPerson:person};
+    const optimistic={...state,availableCare:state.availableCare-1,todayCare:state.todayCare+1,todayActions,dailySetProgress,dailySetComplete:dailySetProgress===3,totalCare,level:Math.floor(totalCare/state.levelGoal)+1,levelProgress:totalCare%state.levelGoal,lastAction:action,lastPerson:person};
     setState(optimistic);
     onAvailableChange?.(optimistic.availableCare);
-    setMessage(ACTIONS.find((item)=>item.key===action)?.reaction??"Flauschi freut sich.");
+    setMessage(dailySetProgress===3?"Tagesritual komplett! Flauschi hat einen kleinen Nestfund entdeckt.":ACTIONS.find((item)=>item.key===action)?.reaction??"Flauschi freut sich.");
     if('vibrate' in navigator) navigator.vibrate([18,32,26]);
     try {
       const response=await fetch('/api/flauschi',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action,person})});
@@ -85,6 +96,9 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
   const progress=state?.levelProgress??0;
   const goal=state?.levelGoal??6;
   const nextReward=goal-progress||goal;
+  const todayActions=state?.todayActions??[];
+  const dailySetProgress=state?.dailySetProgress??0;
+  const dailySetComplete=state?.dailySetComplete??false;
   const mood=active
     ? ACTIONS.find((item)=>item.key===active)?.label??"Flauschi freut sich"
     : available>0
@@ -95,7 +109,7 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
 
   const daypartLabel={morning:'Morgenlicht',day:'Sonnenplatz',evening:'Abendruhe',night:'Nachtlicht'}[daypart];
 
-  return <section className={`flauschi-nest-v2 level-${Math.min(4,level)} ${available>0?'has-care':''} ${active?`is-${active}`:""} ${petting?'is-petting':''}`} aria-label="Flauschis Nest">
+  return <section className={`flauschi-nest-v2 level-${Math.min(4,level)} ${available>0?'has-care':''} ${dailySetComplete?'ritual-complete':''} ${active?`is-${active}`:""} ${petting?'is-petting':''}`} aria-label="Flauschis Nest">
     <header className="flauschi-nest-v2-head">
       <span><small>EUER KLEINER RÜCKKEHR-BONUS</small><strong>Flauschis Nest</strong></span>
       <b>Level {level}</b>
@@ -106,11 +120,16 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
       <div><strong>1 Aufgabe = 1 Moment mit Flauschi</strong><small>{available>0?'Tippt im Zimmer auf Snackglas, Wollkorb oder Flauschi.':'Der nächste Haken weckt Flauschi wieder auf.'}</small></div>
     </div>
 
+    <div className="flauschi-daily-ritual" aria-label={`Tagesritual ${dailySetProgress} von 3`}>
+      <span><small>HEUTIGES RITUAL</small><b>{dailySetComplete?'Komplett versorgt':`${dailySetProgress}/3 kleine Momente`}</b></span>
+      <ol>{ACTIONS.map((item)=><li className={todayActions.includes(item.key)?'done':''} key={item.key}><i aria-hidden="true">{todayActions.includes(item.key)?'✓':item.step}</i><span>{item.key==='feed'?'Snack':item.key==='brush'?'Flausch':'Spiel'}</span></li>)}</ol>
+    </div>
+
     <div className={`flauschi-room-v2 time-${daypart}`} aria-live="polite">
       <span className="flauschi-daypart">{daypartLabel}</span>
       {available>0&&<span className="flauschi-room-hint">Im Zimmer steckt ein Spielmoment</span>}
       {active && <span className="flauschi-action-label">{ACTIONS.find((item)=>item.key===active)?.label}</span>}
-      {available>0&&<><button type="button" className="flauschi-hotspot hotspot-snack" onClick={()=>care('feed')} disabled={Boolean(active)}><b>Snackglas</b><span>geben</span></button><button type="button" className="flauschi-hotspot hotspot-yarn" onClick={()=>care('play')} disabled={Boolean(active)}><b>Wollkorb</b><span>spielen</span></button></>}
+      {available>0&&<><button type="button" className={`flauschi-hotspot hotspot-snack ${!dailySetComplete&&todayActions.includes('feed')?'is-done':''}`} onClick={()=>care('feed')} disabled={Boolean(active)}><b>Snackglas</b><span>{!dailySetComplete&&todayActions.includes('feed')?'heute fertig':'geben'}</span></button><button type="button" className={`flauschi-hotspot hotspot-yarn ${!dailySetComplete&&todayActions.includes('play')?'is-done':''}`} onClick={()=>care('play')} disabled={Boolean(active)}><b>Wollkorb</b><span>{!dailySetComplete&&todayActions.includes('play')?'heute fertig':'spielen'}</span></button></>}
       <button type="button" className="flauschi-character-button" onClick={petFlauschi} aria-label={available>0?'Flauschi pflegen':'Flauschi streicheln'} disabled={Boolean(active)}><img className="flauschi-character-v2" src="/flauschi-cutout-v2.webp" alt="Flauschi auf seinem Lieblingskissen" /></button>
       <div className="flauschi-speech-v2"><b>{mood}</b><span>{message}</span></div>
     </div>

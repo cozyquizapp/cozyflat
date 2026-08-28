@@ -152,7 +152,7 @@ export default function PlantPositioner() {
       <section className="positioner-water-card">
         <div className="positioner-water-head"><span><small>GIESS-ANSICHT</small><strong>Kanne und Wasser fein ausrichten</strong></span><button type="button" onClick={()=>setWaterTuning(DEFAULT_WATER_TUNING)}>Reset</button></div>
         <div className="positioner-water-room garden-scene-host css-garden-scene-v2">
-          <img className="css-room-art" src="/prototype-garden-v2/living-cabinet-v2.png" alt="" />
+          <img className="css-room-art" src="/prototype-garden-v2/living-cabinet-v2.webp" alt="" />
           <div className="css-room-overlay">
             <div className={`css-shelf-slot css-slot-${waterSlot}`}><PottedPlant plantKey={plantKey} stage={stage} alt={`${plantLabel}, Stufe ${stage}`} tuning={tuning} /></div>
             <WaterPour slot={waterSlot} tuning={waterTuning} />

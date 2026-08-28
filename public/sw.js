@@ -1,12 +1,12 @@
-const CACHE = "cozyflat-static-v8";
+const CACHE = "cozyflat-static-v9";
 const OFFLINE_DOCUMENT = "/__cozyflat-offline";
 const STATIC_ASSETS = [
   "/manifest.webmanifest",
-  "/app-icon.png",
+  "/icon-192.png",
   "/flauschi-cutout-v2.webp",
   "/loading-mobile-clean.webp",
-  "/avatar-johannes.png",
-  "/avatar-sonja.png",
+  "/avatar-johannes.webp",
+  "/avatar-sonja.webp",
 ];
 
 self.addEventListener("install", (event) => event.waitUntil((async () => {

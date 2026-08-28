@@ -400,7 +400,7 @@ export default function GardenPrototype() {
         </header>
 
         <section className="prototype-room-wrap" aria-label="Interaktives Pflanzenzimmer mit acht Plätzen">
-          <img className="prototype-room-art" src="/prototype-garden-v2/living-cabinet-v2.png" alt="Leeres warm beleuchtetes Pflanzenregal mit acht Nischen" />
+          <img className="prototype-room-art" src="/prototype-garden-v2/living-cabinet-v2.webp" alt="Leeres warm beleuchtetes Pflanzenregal mit acht Nischen" />
           <div className="prototype-room-overlay">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((slot) => {
               const plant = plants.find((candidate) => candidate.slot === slot);

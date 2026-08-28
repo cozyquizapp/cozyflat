@@ -54,7 +54,7 @@ export default function AccessGate() {
           <span>Privates Zuhause</span>
         </div>
         <div className="access-gate-copy">
-          <img className="access-gate-logo" src="/app-icon.png" alt="" />
+          <img className="access-gate-logo" src="/icon-192.png" alt="" />
           <p className="eyebrow">COZYFLAT FÜR SONJA &amp; JOHANNES</p>
           <h1 id="access-title">Einmal freischalten.<br />Dann einfach reinkommen.</h1>
           <p>Öffnet euren privaten Einladungslink auf diesem iPhone. CozyFlat merkt sich das Gerät anschließend sechs Monate lang.</p>

@@ -173,26 +173,29 @@ function dailyTaskWindow(dayKey:string) { const [year,month,day]=dayKey.split('-
 async function dailyTaskCount(db:Awaited<ReturnType<typeof ready>>, dayKey:string) { const {start,end}=dailyTaskWindow(dayKey); const row=await db.prepare(`SELECT COUNT(DISTINCT done_at) AS count FROM (SELECT watered_at AS done_at FROM watering_events UNION ALL SELECT completed_at AS done_at FROM chore_events) WHERE done_at >= ? AND done_at < ?`).bind(start,end).first<{count:number}>(); return Number(row?.count??0); }
 
 export type FlauschiAction = 'feed'|'brush'|'play';
-export type FlauschiState = {dayKey:string;availableCare:number;todayCare:number;todayTasks:number;totalCare:number;level:number;levelProgress:number;levelGoal:number;lastAction:FlauschiAction|null;lastPerson:string|null};
+export type FlauschiState = {dayKey:string;availableCare:number;todayCare:number;todayTasks:number;todayActions:FlauschiAction[];dailySetProgress:number;dailySetComplete:boolean;totalCare:number;level:number;levelProgress:number;levelGoal:number;lastAction:FlauschiAction|null;lastPerson:string|null};
 export async function getFlauschiState():Promise<FlauschiState> {
   const db=await ready();
   const dayKey=currentDayKey();
-  const [todayTasks,todayRow,totalRow,lastRow]=await Promise.all([
+  const [todayTasks,todayRow,todayActionsRow,totalRow,lastRow]=await Promise.all([
     dailyTaskCount(db,dayKey),
     db.prepare('SELECT COUNT(*) AS count FROM flauschi_events WHERE day = ?').bind(dayKey).first<{count:number}>(),
+    db.prepare('SELECT action FROM flauschi_events WHERE day = ? GROUP BY action ORDER BY MIN(id)').bind(dayKey).all<{action:FlauschiAction}>(),
     db.prepare('SELECT COUNT(*) AS count FROM flauschi_events').first<{count:number}>(),
     db.prepare('SELECT action, person FROM flauschi_events ORDER BY id DESC LIMIT 1').first<{action:FlauschiAction;person:string}>(),
   ]);
   const todayCare=Number(todayRow?.count??0);
+  const todayActions=todayActionsRow.results.map((row)=>row.action).filter((action):action is FlauschiAction=>action==='feed'||action==='brush'||action==='play');
   const totalCare=Number(totalRow?.count??0);
   const levelGoal=6;
-  return {dayKey,availableCare:Math.max(0,todayTasks-todayCare),todayCare,todayTasks,totalCare,level:Math.floor(totalCare/levelGoal)+1,levelProgress:totalCare%levelGoal,levelGoal,lastAction:lastRow?.action??null,lastPerson:lastRow?.person??null};
+  return {dayKey,availableCare:Math.max(0,todayTasks-todayCare),todayCare,todayTasks,todayActions,dailySetProgress:todayActions.length,dailySetComplete:todayActions.length===3,totalCare,level:Math.floor(totalCare/levelGoal)+1,levelProgress:totalCare%levelGoal,levelGoal,lastAction:lastRow?.action??null,lastPerson:lastRow?.person??null};
 }
 export async function careForFlauschi(action:FlauschiAction,person:string) {
   const allowed:FlauschiAction[]=['feed','brush','play'];
   if(!allowed.includes(action)) return getFlauschiState();
   const current=await getFlauschiState();
   if(current.availableCare<=0) return current;
+  if(!current.dailySetComplete&&current.todayActions.includes(action)) return current;
   const db=await ready();
   await db.prepare('INSERT INTO flauschi_events (day, person, action, created_at) VALUES (?, ?, ?, ?)').bind(current.dayKey,person,action,new Date().toISOString()).run();
   return getFlauschiState();

@@ -137,7 +137,7 @@ export default function GardenScene({ room, plants, availableMotes, taskProgress
 
   return (
     <div className={`garden-scene-host css-garden-scene-v2 ${hasSun ? "has-sun" : ""}`} data-testid="garden-scene">
-      <img className="css-room-art" src="/prototype-garden-v2/living-cabinet-v2.png" alt="" />
+      <img className="css-room-art" src="/prototype-garden-v2/living-cabinet-v2.webp" alt="" />
       <div className="css-room-overlay">
         {shownPlants.map((plant, index) => {
           const slot = index + 1;

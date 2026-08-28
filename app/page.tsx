@@ -2,6 +2,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import FlauschiNest from "./FlauschiNest";
 import GardenScene from "./GardenScene";
+import MobileNav, { type MobileView } from './MobileNav';
+import RewardSheet, { type CompletionReward } from './RewardSheet';
 
 type Plant = {
   id: number;
@@ -19,10 +21,9 @@ type GardenPlant = {key:string;name:string;emoji:string;pot:string};
 type GardenCollectionItem = {weekKey:string;plantKey:string;chosenBy:string;unlockedAt:string;xpAtUnlock:number;room:string;growthBase:number;careCount:number;growthStage:number;plant:GardenPlant};
 type GardenData = {dayKey:string;xp:number;candidates:GardenPlant[];collection:GardenCollectionItem[];rooms:Array<{name:string;unlocked:boolean;count:number;capacity:number}>;activeRoom:string;dailyTaskGoal:number;todayTasks:number;availableSun:number;wateredToday:number;rewardReady:boolean;chosenToday:boolean};
 type GardenWaterResponse = {success:boolean;reason:'grown'|'mature'|'no-sun'|'already-used'|'missing';stageBefore?:number;stageAfter?:number;garden:GardenData};
-type CompletionReward = {label:string;person:string;points:number;bonus:number};
 const icons = ["🌿", "🪴", "🌱", "☘️", "🌵", "🍃"];
 const roomOrder = ["Balkon", "Wohnzimmer", "Küche", "Arbeitszimmer"];
-const avatarFor = { Johannes: "/avatar-johannes.png", Sonja: "/avatar-sonja.png" } as const;
+const avatarFor = { Johannes: "/avatar-johannes.webp", Sonja: "/avatar-sonja.webp" } as const;
 const roomMeta: Record<string, { icon: string; line: string; className: string; image: string }> = {
   Balkon: { icon: "☀", line: "Sonne, Kräuter & Sommerluft", className: "balcony", image: "/cozy-garden-room.png" },
   Wohnzimmer: { icon: "⌂", line: "Euer grünes Herzstück", className: "living", image: "/garden/rooms/garden-living.png" },
@@ -34,13 +35,13 @@ const levelNames = ["Nestling", "Anpacker:in", "Rudelprofi", "Zuhause-Held:in", 
 const PROTOTYPE_GARDEN_MODE = true;
 const GARDEN_PROTOTYPE_ROOM = "Wohnzimmer";
 const choreCategoryArt: Record<string, { image: string; tone: string }> = {
-  Putzen: { image: "/chore-putzen.png", tone: "sage" },
-  Hausflur: { image: "/chore-putzen.png", tone: "sage" },
-  Küche: { image: "/chore-kueche.png", tone: "peach" },
-  Einkauf: { image: "/chore-kueche.png", tone: "peach" },
-  Wäsche: { image: "/chore-waesche.png", tone: "rose" },
-  Aufräumen: { image: "/chores/chore-aufraeumen.png", tone: "peach" },
-  Müll: { image: "/chores/chore-muell.png", tone: "sage" },
+  Putzen: { image: "/chore-putzen.webp", tone: "sage" },
+  Hausflur: { image: "/chore-putzen.webp", tone: "sage" },
+  Küche: { image: "/chore-kueche.webp", tone: "peach" },
+  Einkauf: { image: "/chore-kueche.webp", tone: "peach" },
+  Wäsche: { image: "/chore-waesche.webp", tone: "rose" },
+  Aufräumen: { image: "/chores/chore-aufraeumen.webp", tone: "peach" },
+  Müll: { image: "/chores/chore-muell.webp", tone: "sage" },
 };
 const priorityLabel = (priority: number) => priority >= 3 ? "Wichtig" : priority === 2 ? "Normal" : "Optional";
 const growthLabel = (stage: number) => ["Keimling", "Blattpaar", "Kleiner Spross", "Jungpflanze", "Neue Triebe", "Gut verwurzelt", "Wird buschig", "Kräftiges Grün", "Fast ausgewachsen", "Üppig", "Knospenzeit", "Prachtstück"][stage - 1] ?? "Prachtstück";
@@ -145,7 +146,7 @@ export default function Home() {
   const [reminderShortcutUrl, setReminderShortcutUrl] = useState('');
   const [showReminderCard, setShowReminderCard] = useState(false);
   const [plantsOpen, setPlantsOpen] = useState(false);
-  const [mobileView, setMobileView] = useState<'today'|'chores'|'plants'|'level'|'profile'>('today');
+  const [mobileView, setMobileView] = useState<MobileView>('today');
   const [splashVisible, setSplashVisible] = useState(true);
   const emptyScores = { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} };
   const [stats, setStats] = useState<Stats>({ streak: 0, loginStreak: 0, loginDays: 0, todayTasks:0, nextTaskBonus:0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
@@ -156,7 +157,7 @@ export default function Home() {
   const [gardenRoom, setGardenRoom] = useState('Wohnzimmer');
   const [gardenPanel, setGardenPanel] = useState<'plants'|'flauschi'>('plants');
   const [flauschiAvailable,setFlauschiAvailable]=useState(0);
-  function openMobileScreen(view:'today'|'chores'|'plants'|'level'|'profile',panel?:'plants'|'flauschi') {
+  function openMobileScreen(view:MobileView,panel?:'plants'|'flauschi') {
     if(panel)setGardenPanel(panel);
     if(view==='plants')setPlantsOpen(true);
     if(view==='level')setProgressOpen(false);
@@ -204,7 +205,11 @@ export default function Home() {
       setShowReminderCard(localStorage.getItem("reminder-card-dismissed") !== "yes");
       void refresh();
     }, 0);
-    const splashTimer = window.setTimeout(() => setSplashVisible(false), 3000);
+    const splashSeen=sessionStorage.getItem('cozyflat-splash-seen')==='yes';
+    const splashTimer = window.setTimeout(() => {
+      setSplashVisible(false);
+      sessionStorage.setItem('cozyflat-splash-seen','yes');
+    }, splashSeen?850:2800);
     let removeServiceWorkerListeners = () => undefined;
     if ("serviceWorker" in navigator) {
       let hadController = Boolean(navigator.serviceWorker.controller);
@@ -340,10 +345,12 @@ export default function Home() {
         setTimeout(() => setUndoInfo(null),12000);
       }
       const [s,g,f] = await Promise.all([fetch('/api/stats'),fetch('/api/garden'),fetch('/api/flauschi')]);
-      if (s.ok) setStats(await s.json());
+      let nextStats:Stats|null=null;
+      if (s.ok) { nextStats=await s.json() as Stats; setStats(nextStats); }
       if (g.ok) setGarden(await g.json());
       if (f.ok) setFlauschiAvailable((await f.json() as {availableCare:number}).availableCare);
-      setCompletionReward({label:chore.name,person:completionName,points:awarded,bonus});
+      const nextWeeklyPoints=nextStats?nextStats.scores.Johannes.points+nextStats.scores.Sonja.points:weeklyTeamPoints+awarded*(together?2:1);
+      setCompletionReward({label:chore.name,person:completionName,points:awarded,bonus,weeklyRemaining:Math.max(0,200-nextWeeklyPoints),weeklyUnlocked:nextWeeklyPoints>=200});
     } catch {
       setCelebration(null);
       setToast(`${chore.name} konnte gerade nicht gespeichert werden. Bitte noch einmal tippen.`);
@@ -451,7 +458,7 @@ export default function Home() {
       </section>}
       <header className="topbar">
         <a className="brand" href="#top">
-          <span className="brandmark"><img src="/app-icon.png" alt="" /></span>
+          <span className="brandmark"><img src="/icon-192.png" alt="" /></span>
           <span>CozyFlat</span>
         </a>
         <div className="person-switch" aria-label="Wer benutzt die App?">
@@ -536,7 +543,7 @@ export default function Home() {
         <div className="team-quest">
           <div className="quest-heading"><span>🔥</span><div><p className="eyebrow">WOCHENMISSION</p><strong>{stats.streak} {stats.streak === 1 ? "Tag" : "Tage"} gemeinsam dran</strong></div><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></div>
           <div className="quest-track" aria-label={`${weeklyProgress} Prozent der Wochenmission geschafft`}><i style={{width:`${weeklyProgress}%`}} /></div>
-          <small>{weeklyProgress >= 100 ? "Mission geschafft. Ihr dürft euch feiern!" : `Noch ${weeklyGoal - weeklyTeamPoints} XP bis zum Wochenziel.`}</small>
+          <div className={`quest-reward ${weeklyProgress>=100?'is-unlocked':''}`}><span><small>WOCHEN-ABZEICHEN</small><b>{weeklyProgress>=100?'Freigeschaltet':'Cozy-Zuhause'}</b></span><em>{weeklyProgress>=100?'Diese Woche gehört euch.':`Noch ${weeklyGoal-weeklyTeamPoints} XP`}</em></div>
         </div>
         <div className="level-people">
           {(["Johannes", "Sonja"] as const).map((name) => { const level = levelFor(stats.totalScores[name].points); return <article className={person === name ? "is-active" : ""} key={name}>
@@ -575,17 +582,17 @@ export default function Home() {
         <p>Um Mitternacht startet eine neue Wochenmission. Eure gesammelten XP bleiben in euren Leveln erhalten.</p>
       </section>}
       <section className="chores-section" id="aufgaben">
-        <div className="section-head cozy-screen-head chores-screen-head" style={{backgroundImage:'linear-gradient(90deg,rgba(247,244,231,.98) 0%,rgba(247,244,231,.9) 48%,rgba(18,48,35,.18) 100%), url(/chores/chore-aufraeumen.png)'}}><div><p className="eyebrow">EURE AUFGABEN</p><h2>Was möchtet ihr anpacken?</h2><p>Spontan oder geplant: Jede erledigte Aufgabe schenkt eurem Pflanzenzimmer einen Lichtfunken.</p></div><button className="add-hausi" onClick={()=>{setEditingChore(null);setChoreModal(true)}} aria-label="Aufgabe hinzufügen"><span aria-hidden="true">＋</span> Aufgabe</button></div>
+        <div className="section-head cozy-screen-head chores-screen-head" style={{backgroundImage:'linear-gradient(90deg,rgba(247,244,231,.98) 0%,rgba(247,244,231,.9) 48%,rgba(18,48,35,.18) 100%), url(/chores/chore-aufraeumen.webp)'}}><div><p className="eyebrow">EURE AUFGABEN</p><h2>Was möchtet ihr anpacken?</h2><p>Spontan oder geplant: Jede erledigte Aufgabe schenkt eurem Pflanzenzimmer einen Lichtfunken.</p></div><button className="add-hausi" onClick={()=>{setEditingChore(null);setChoreModal(true)}} aria-label="Aufgabe hinzufügen"><span aria-hidden="true">＋</span> Aufgabe</button></div>
         {todayChores.length > 0 && <section className="today-chores" aria-labelledby="today-chores-title">
           <div className="today-chores-head"><div><p className="eyebrow">HEUTE WICHTIG</p><h3 id="today-chores-title">Eure kleine Tagesauswahl</h3><small className="bonus-preview">{Math.min(stats.todayTasks, garden?.dailyTaskGoal ?? 3)} von {garden?.dailyTaskGoal ?? 3} Aufgaben bis zum nächsten Keim · +{stats.nextTaskBonus} Bonus-XP</small></div><span>{todayChores.length} für heute</span></div>
           <div className="task-seed-progress" aria-label={`${Math.min(stats.todayTasks, garden?.dailyTaskGoal ?? 3)} von ${garden?.dailyTaskGoal ?? 3} Aufgaben für den heutigen Keim erledigt`}><i style={{width:`${Math.min(100, stats.todayTasks / (garden?.dailyTaskGoal ?? 3) * 100)}%`}} /></div>
-          <div>{todayChores.slice(0,5).map((chore) => { const art = choreCategoryArt[chore.category] ?? { image: '/chores/chore-aufraeumen.png', tone: 'sage' }; return <article className="quick-chore" key={chore.id}><span className="quick-chore-art" style={{backgroundImage:`url(${art.image})`}} aria-hidden="true" /><div><b>{chore.name}</b><small>{chore.scheduleMode === 'flexible' ? 'Heute empfohlen' : choreTiming(chore,now)} · {priorityLabel(chore.priority)} · +{chore.points} XP</small></div><div className="completion-choices"><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}><img src={avatarFor[person]} alt="" />{choreBusy === chore.id ? '…' : `Ich`}</button><button className="together-button" onClick={() => finishChore(chore,true)} disabled={choreBusy === chore.id}><span className="duo-avatars"><img src={avatarFor.Johannes} alt=""/><img src={avatarFor.Sonja} alt=""/></span>Gemeinsam</button></div></article>})}</div>{todayChores.length > 5 && <small className="today-more">Danach sind noch {todayChores.length - 5} fest eingeplant – eins nach dem anderen.</small>}
+          <div>{todayChores.slice(0,5).map((chore) => { const art = choreCategoryArt[chore.category] ?? { image: '/chores/chore-aufraeumen.webp', tone: 'sage' }; return <article className="quick-chore" key={chore.id}><span className="quick-chore-art" style={{backgroundImage:`url(${art.image})`}} aria-hidden="true" /><div><b>{chore.name}</b><small>{chore.scheduleMode === 'flexible' ? 'Heute empfohlen' : choreTiming(chore,now)} · {priorityLabel(chore.priority)} · +{chore.points} XP</small></div><div className="completion-choices"><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}><img src={avatarFor[person]} alt="" />{choreBusy === chore.id ? '…' : `Ich`}</button><button className="together-button" onClick={() => finishChore(chore,true)} disabled={choreBusy === chore.id}><span className="duo-avatars"><img src={avatarFor.Johannes} alt=""/><img src={avatarFor.Sonja} alt=""/></span>Gemeinsam</button></div></article>})}</div>{todayChores.length > 5 && <small className="today-more">Danach sind noch {todayChores.length - 5} fest eingeplant – eins nach dem anderen.</small>}
         </section>}
         <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
           const categoryChores = chores.filter((chore) => chore.category === category);
           const dueChores = categoryChores.filter((chore) => !chore.paused && chore.scheduleMode === 'scheduled' && calendarDayDiff(choreNext(chore)!,now) <= 0);
           const laterChores = categoryChores.filter((chore) => !dueChores.includes(chore));
-          const art = choreCategoryArt[category] ?? { image: '/chore-putzen.png', tone: 'sage' };
+          const art = choreCategoryArt[category] ?? { image: '/chore-putzen.webp', tone: 'sage' };
           const renderChore = (chore: Chore) => { const next = choreNext(chore); const isDue = Boolean(next && calendarDayDiff(next,now) <= 0);
             return <article className={`chore-card ${isDue ? 'is-due' : ''} priority-${chore.priority} ${chore.paused ? 'is-paused' : ''}`} key={chore.id}><span className="chore-icon chore-art-thumb" style={{backgroundImage:`url(${art.image})`}} aria-hidden="true" /><div><b>{chore.name}</b><small>{choreTiming(chore,now)} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch nie abgehakt'}</small></div><strong><span className={`priority-chip priority-${chore.priority}`}>{priorityLabel(chore.priority)}</span> +{chore.points} XP</strong><button className="edit-chore" onClick={()=>{setEditingChore(chore);setChoreModal(true)}} aria-label={`${chore.name} bearbeiten`}>✎</button><div className="completion-choices"><button className="finish-chore" onClick={() => finishChore(chore)} disabled={chore.paused || choreBusy === chore.id}>{chore.paused ? 'Pausiert' : choreBusy === chore.id ? '…' : <><img src={avatarFor[person]} alt="" />Ich</>}</button><button className="finish-chore together-button" onClick={() => finishChore(chore,true)} disabled={chore.paused || choreBusy === chore.id}><span className="duo-avatars"><img src={avatarFor.Johannes} alt=""/><img src={avatarFor.Sonja} alt=""/></span>Gemeinsam</button></div></article>;
           };
@@ -770,32 +777,8 @@ export default function Home() {
         <div className="water-burst" aria-hidden="true"><span className="celebration-symbol">{celebration.icon}</span><i></i><i></i><i></i><i></i><i></i></div>
         <strong>Aufgabe geschafft!</strong><p>{celebration.person} hat „{celebration.label}“ erledigt. Das Zuhause atmet auf.</p><b>+{celebration.points} XP</b>
       </div>}
-      {completionReward && <div className="reward-sheet-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget)setCompletionReward(null)}}>
-        <section className="reward-sheet" role="dialog" aria-modal="true" aria-labelledby="reward-title">
-          <button type="button" className="reward-sheet-close" aria-label="Belohnung schließen" onClick={()=>setCompletionReward(null)}>×</button>
-          <div className="reward-sheet-flare" aria-hidden="true"><i/><i/><i/></div>
-          <p>AUFGABE GESCHAFFT</p>
-          <h2 id="reward-title">Das fühlt sich gut an.</h2>
-          <span className="reward-task-name">{completionReward.person}: „{completionReward.label}“</span>
-          <div className="reward-earned">
-            <article><small>PERSÖNLICH</small><b>+{completionReward.points} XP</b>{completionReward.bonus>0&&<em>inkl. {completionReward.bonus} Bonus</em>}</article>
-            <article><small>GEMEINSAM</small><b>1 Sonnenfunke</b><em>für euer Regal</em></article>
-            <article><small>FLAUSCHI</small><b>1 Spielmoment</b><em>wartet im Nest</em></article>
-          </div>
-          <div className="reward-destinations">
-            <button type="button" onClick={()=>{setCompletionReward(null);openMobileScreen('level','plants')}}><span>JETZT WACHSEN LASSEN</span><b>Zum Pflanzenregal</b></button>
-            <button type="button" onClick={()=>{setCompletionReward(null);openMobileScreen('level','flauschi')}}><span>JETZT BELOHNEN</span><b>Zu Flauschi</b></button>
-          </div>
-          <div className="reward-sheet-footer"><button type="button" onClick={()=>setCompletionReward(null)}>Später</button>{undoInfo&&<button type="button" onClick={undoChore}>Rückgängig</button>}</div>
-        </section>
-      </div>}
-      <nav className="mobile-nav" aria-label="Hauptnavigation">
-        <button className={mobileView==='today'?'active':''} aria-current={mobileView==='today'?'page':undefined} onClick={()=>openMobileScreen('today')}><span aria-hidden="true">⌂</span>Heute</button>
-        <button className={mobileView==='chores'?'active':''} aria-current={mobileView==='chores'?'page':undefined} onClick={()=>openMobileScreen('chores')}><span aria-hidden="true">✓</span>{choreCountToday>0&&<em className="nav-badge">{Math.min(9,choreCountToday)}</em>}Aufgaben</button>
-        <button className={mobileView==='plants'?'active':''} aria-current={mobileView==='plants'?'page':undefined} onClick={()=>openMobileScreen('plants')}><span aria-hidden="true">☘</span>Pflanzen</button>
-        <button className={mobileView==='level'?'active':''} aria-current={mobileView==='level'?'page':undefined} onClick={()=>openMobileScreen('level')}><span aria-hidden="true">◇</span>{gardenRewardCount>0&&<em className="nav-badge is-reward">{Math.min(9,gardenRewardCount)}</em>}Garten</button>
-        <button className={mobileView==='profile'?'active':''} aria-current={mobileView==='profile'?'page':undefined} onClick={()=>openMobileScreen('profile')}><img className="mobile-nav-avatar" src={avatarFor[person]} alt="" />Level</button>
-      </nav>
+      {completionReward && <RewardSheet reward={completionReward} onClose={()=>setCompletionReward(null)} onOpenGarden={()=>{setCompletionReward(null);openMobileScreen('level','plants')}} onOpenFlauschi={()=>{setCompletionReward(null);openMobileScreen('level','flauschi')}} onUndo={undoInfo?undoChore:undefined}/>}
+      <MobileNav view={mobileView} choreCount={choreCountToday} rewardCount={gardenRewardCount} avatarSrc={avatarFor[person]} onNavigate={openMobileScreen}/>
     </main>
   );
 }
