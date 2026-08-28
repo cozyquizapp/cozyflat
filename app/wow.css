@@ -329,6 +329,82 @@
   * { scroll-behavior:auto!important; }
 }
 
+/* Today is intentional: only real due items, one thought, one personal note. */
+.daily-thought {
+  min-height:82px;
+  padding:13px 15px;
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr);
+  align-items:center;
+  gap:11px;
+  border:1px solid color-mix(in srgb,var(--profile-accent) 18%,transparent);
+  border-radius:22px;
+  background:linear-gradient(145deg,rgba(255,255,255,.86),color-mix(in srgb,var(--profile-wash) 62%,white));
+}
+.daily-thought p,.daily-thought small,.daily-thought b { display:block; margin:0; }
+.daily-thought small { color:#718077; font-size:8px; font-weight:900; letter-spacing:.12em; }
+.daily-thought b { margin-top:4px; font-family:Georgia,serif; font-size:16px; line-height:1.24; font-weight:400; }
+.gratitude-card {
+  padding:13px 14px;
+  border:1px solid color-mix(in srgb,var(--profile-accent) 22%,transparent);
+  border-radius:22px;
+  background:rgba(255,253,247,.86);
+  box-shadow:0 10px 26px color-mix(in srgb,var(--profile-accent) 10%,transparent);
+}
+.gratitude-card label { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.gratitude-card label span { font-family:Georgia,serif; font-size:15px; }
+.gratitude-card label small { color:#758078; font-size:8px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
+.gratitude-card textarea { width:100%; min-height:52px; margin:8px 0; padding:10px 11px; resize:none; border:1px solid rgba(23,60,45,.11); border-radius:14px; outline:0; background:#fffdf8; color:var(--ink); font:inherit; font-size:12px; line-height:1.35; }
+.gratitude-card textarea:focus { border-color:var(--profile-accent-deep); box-shadow:0 0 0 3px color-mix(in srgb,var(--profile-accent) 16%,transparent); }
+.gratitude-card>div { display:flex; gap:7px; }
+.gratitude-card button { min-height:38px; padding:0 13px; border:0; border-radius:12px; background:var(--profile-accent-deep); color:white; font-size:10px; font-weight:850; }
+.gratitude-card button:disabled { opacity:.65; }
+.gratitude-card .today-due-link { margin-left:auto; background:var(--profile-wash); color:var(--profile-accent-deep); }
+.gratitude-card.is-saved { background:linear-gradient(145deg,rgba(255,253,247,.9),color-mix(in srgb,var(--profile-wash) 54%,white)); }
+
+@media(max-width:900px) {
+  .shell.view-today,.shell.view-level,.shell.view-flauschi { padding-bottom:0; }
+  .shell.view-today>.chores-section { display:none; }
+  .shell.view-today>.hero { min-height:calc(100dvh - 62px - 94px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  .shell.view-today .daily-bottom { gap:9px; }
+  .shell.view-today .daily-thought { min-height:64px; padding:9px 11px; border-radius:17px; }
+  .shell.view-today .daily-thought b { font-size:14px; }
+  .shell.view-today .gratitude-card { padding:11px; border-radius:18px; }
+  .shell.view-today .gratitude-card textarea { min-height:clamp(82px,14dvh,116px); margin:7px 0; }
+
+  .shell.view-flauschi .hero,.shell.view-flauschi .summary,.shell.view-flauschi .personal-level-screen,.shell.view-flauschi .chores-section,.shell.view-flauschi .plant-section,.shell.view-flauschi .bottom-reminder,.shell.view-flauschi footer { display:none; }
+  .shell.view-flauschi .mobile-progress { display:block; min-height:calc(100dvh - 62px - 82px); margin:0; padding:10px 10px 18px; }
+  .shell.view-flauschi .progress-toggle,.shell.view-flauschi .mobile-progress>.level-hub { display:none; }
+  .shell.view-flauschi .plant-room-game { margin:0; padding:10px; border-radius:25px; box-shadow:none; }
+  .shell.view-flauschi .garden-game-head,.shell.view-flauschi .garden-mode-switch,.shell.view-flauschi .next-plant,.shell.view-flauschi .daily-plant-reward,.shell.view-level .garden-mode-switch { display:none; }
+  .shell.view-flauschi .flauschi-nest-v2 { padding:9px; border-radius:24px; box-shadow:0 14px 34px rgba(43,61,38,.12); }
+  .shell.view-flauschi .flauschi-nest-v2-head { min-height:42px; }
+  .shell.view-flauschi .flauschi-nest-v2-head strong { font-size:20px; }
+  .shell.view-flauschi .flauschi-loop-card { display:none; }
+  .shell.view-flauschi .flauschi-daily-ritual { margin-bottom:6px; }
+  .shell.view-flauschi .flauschi-room-v2 { aspect-ratio:720/660; border-radius:21px; background-position:center 64%; }
+  .shell.view-flauschi .flauschi-character-button { bottom:17%; width:29%; }
+  .shell.view-flauschi .flauschi-speech-v2 { bottom:3%; padding:8px 10px; }
+  .shell.view-flauschi .flauschi-task-cta-v2 { min-height:58px; margin-top:6px; padding:9px 13px; }
+  .shell.view-flauschi .flauschi-task-cta-v2 small { display:none; }
+  .shell.view-flauschi .flauschi-nest-progress { margin-top:7px; }
+
+  .shell.view-level .garden-scene-tip,.shell.view-level .next-plant { display:none; }
+  .shell.view-level .mobile-progress { min-height:calc(100dvh - 62px - 82px); }
+  .shell.view-level .garden-scene-host { height:calc(100dvh - 221px - env(safe-area-inset-bottom)); aspect-ratio:auto; }
+
+  .mobile-nav { grid-template-columns:repeat(6,1fr); }
+  .mobile-nav-flauschi { width:24px; height:24px; object-fit:contain; filter:drop-shadow(0 2px 3px rgba(23,60,45,.16)); }
+}
+
+@media(max-width:390px), (max-height:760px) and (max-width:900px) {
+  .shell.view-today .daily-hero h1 { margin:8px 0 9px; font-size:30px; }
+  .shell.view-today .daily-kicker .greeting-avatar { width:46px!important; height:46px!important; }
+  .shell.view-flauschi .flauschi-daily-ritual { padding:7px 8px; }
+  .shell.view-flauschi .flauschi-room-v2 { aspect-ratio:720/575; }
+  .shell.view-flauschi .flauschi-speech-v2 span { display:none; }
+}
+
 /* Private, one-time device access */
 .access-gate {
   min-height:100dvh;

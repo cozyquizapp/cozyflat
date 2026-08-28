@@ -43,6 +43,15 @@ const choreCategoryArt: Record<string, { image: string; tone: string }> = {
   Aufräumen: { image: "/chores/chore-aufraeumen.webp", tone: "peach" },
   Müll: { image: "/chores/chore-muell.webp", tone: "sage" },
 };
+const dailyThoughts = [
+  "Ein Zuhause muss nicht fertig sein, um sich gut anzufühlen.",
+  "Kleine Handgriffe machen zusammen einen großen Unterschied.",
+  "Heute zählt nicht perfekt – heute zählt gemeinsam.",
+  "Ein bisschen erledigt ist immer besser als alles vorgenommen.",
+  "Macht es euch schön. Der Rest darf Schritt für Schritt kommen.",
+  "Euer Zuhause ist kein Projektplan, sondern euer Lieblingsort.",
+  "Was heute leicht geht, ist genau richtig für heute.",
+];
 const priorityLabel = (priority: number) => priority >= 3 ? "Wichtig" : priority === 2 ? "Normal" : "Optional";
 const growthLabel = (stage: number) => ["Keimling", "Blattpaar", "Kleiner Spross", "Jungpflanze", "Neue Triebe", "Gut verwurzelt", "Wird buschig", "Kräftiges Grün", "Fast ausgewachsen", "Üppig", "Knospenzeit", "Prachtstück"][stage - 1] ?? "Prachtstück";
 const growthSpriteStep = (stage: number) => Math.max(1, Math.min(5, Math.ceil(Math.min(12, stage) * 5 / 12)));
@@ -107,15 +116,6 @@ function localDayKey(date: Date) {
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 }
 
-function dailyFlexiblePicks(chores: Chore[], now: Date) {
-  const seed = Number(localDayKey(now).replaceAll('-', ''));
-  return chores
-    .filter((chore) => !chore.paused && chore.scheduleMode === 'flexible')
-    .map((chore) => ({ chore, rank: ((chore.id * 9301 + seed * 49297) % 233280) / 233280 - chore.priority * 0.08 }))
-    .sort((a, b) => a.rank - b.rank)
-    .slice(0, 3)
-    .map(({ chore }) => chore);
-}
 function getInitialPerson(): "Johannes" | "Sonja" {
   if (typeof window === "undefined") return "Johannes";
   const linkedPerson = new URLSearchParams(location.search).get("person");
@@ -157,10 +157,15 @@ export default function Home() {
   const [gardenRoom, setGardenRoom] = useState('Wohnzimmer');
   const [gardenPanel, setGardenPanel] = useState<'plants'|'flauschi'>('plants');
   const [flauschiAvailable,setFlauschiAvailable]=useState(0);
+  const [gratitudeText,setGratitudeText]=useState('');
+  const [gratitudeSaved,setGratitudeSaved]=useState(false);
+  const [gratitudeBusy,setGratitudeBusy]=useState(false);
   function openMobileScreen(view:MobileView,panel?:'plants'|'flauschi') {
     if(panel)setGardenPanel(panel);
+    else if(view==='level')setGardenPanel('plants');
+    else if(view==='flauschi')setGardenPanel('flauschi');
     if(view==='plants')setPlantsOpen(true);
-    if(view==='level')setProgressOpen(false);
+    if(view==='level'||view==='flauschi')setProgressOpen(false);
     setMobileView(view);
     window.requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'auto'}));
   }
@@ -262,7 +267,24 @@ export default function Home() {
   useEffect(() => {
     const day = localDayKey(new Date()).split('-').map((part, index) => index ? part.padStart(2,'0') : part).join('-');
     fetch('/api/stats',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({person,day})}).then(async (response)=>{if(response.ok)setStats(await response.json())}).catch(()=>undefined);
+    fetch(`/api/gratitude?person=${encodeURIComponent(person)}`,{cache:'no-store'}).then(async(response)=>{if(response.ok){const entry=await response.json() as {text:string};setGratitudeText(entry.text);setGratitudeSaved(Boolean(entry.text));}}).catch(()=>undefined);
   }, [person]);
+  async function saveGratitude() {
+    setGratitudeBusy(true);
+    try {
+      const response=await fetch('/api/gratitude',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({person,text:gratitudeText})});
+      if(!response.ok)throw new Error('gratitude-save-failed');
+      const entry=await response.json() as {text:string};
+      setGratitudeText(entry.text);
+      setGratitudeSaved(true);
+      setToast(entry.text?'Dein Gedanke ist für heute festgehalten.':'Dein Eintrag ist wieder leer.');
+    } catch {
+      setToast('Der Gedanke konnte gerade nicht gespeichert werden.');
+    } finally {
+      setGratitudeBusy(false);
+      window.setTimeout(()=>setToast(''),2200);
+    }
+  }
   const openGardenAfterTask = useCallback(() => {
     window.setTimeout(() => {
       setGardenPanel('plants');
@@ -421,12 +443,8 @@ export default function Home() {
     return diff>0&&diff<=3;
   }).length;
   const soonCount=soonPlantCount+soonChoreCount;
-  const flexiblePicks = dailyFlexiblePicks(chores, now);
-  const flexiblePicksOpen = flexiblePicks.filter((chore) => !chore.lastCompletedAt || localDayKey(new Date(chore.lastCompletedAt)) !== localDayKey(now));
-  const todayChores = [...dueChoresToday, ...flexiblePicksOpen];
-  const choreCountToday = todayChores.length;
+  const choreCountToday = dueChoresToday.length;
   const openCount = todayCount + choreCountToday;
-  const gardenRewardCount=(garden?.availableSun??0)+flauschiAvailable;
   const weeklyTeamPoints = stats.scores.Johannes.points + stats.scores.Sonja.points;
   const gardenXp = stats.totalScores.Johannes.points + stats.totalScores.Sonja.points;
   const gardenLevel = Math.floor(gardenXp / 100) + 1;
@@ -450,6 +468,7 @@ export default function Home() {
     })
     .toUpperCase();
   const showWeeklyRecap = now.getDay() === 0 && now.getHours() >= 18;
+  const dailyThought=dailyThoughts[(Number(localDayKey(now).replaceAll('-',''))+(person==='Sonja'?3:0))%dailyThoughts.length];
   return (
     <main className={`shell person-${person.toLowerCase()} view-${mobileView}`}>
       {splashVisible && <section className="app-splash" aria-label="CozyFlat wird geladen" aria-live="polite">
@@ -465,7 +484,7 @@ export default function Home() {
           {(["Johannes", "Sonja"] as const).map((p) => (
             <button
               key={p}
-              onClick={() => { setPerson(p); localStorage.setItem("cozyflat-person", p); }}
+              onClick={() => { setGratitudeText(''); setGratitudeSaved(false); setPerson(p); localStorage.setItem("cozyflat-person", p); }}
               className={person === p ? "active" : ""}
               aria-label={`${p} auswählen`}
               aria-pressed={person === p}
@@ -483,10 +502,10 @@ export default function Home() {
             <h1>
               Hallo {person},
               <em>
-                {loading
-                  ? "ich schaue kurz nach."
-                  : openCount === 0
-                  ? "Alles ist versorgt."
+                 {loading
+                   ? "ich schaue kurz nach."
+                   : openCount === 0
+                   ? "Heute ist nichts fällig."
                   : openCount === 1
                     ? todayCount === 1
                       ? "Eine Pflanze hat Durst."
@@ -496,9 +515,16 @@ export default function Home() {
                       : todayCount > 0
                         ? `${todayCount} Pflanzen möchten Wasser.`
                         : `${choreCountToday} Aufgaben für heute stehen an.`}
-              </em>
-            </h1>
-            <div className="daily-bottom"><div className="staubi-greeting"><span className="daily-spark" aria-hidden="true">✦</span><p><b>{loading?'Euer Tag wird sortiert:':openCount ? 'Euer nächster kleiner Gewinn:' : 'Feierabendmodus:'}</b> {loading?'Gleich ist eure Tagesauswahl da.':openCount ? `Ein Haken schenkt XP, Sonne und einen Spielmoment mit Flauschi.` : "Nichts drängt. Macht es euch gemütlich."}</p></div>{!loading&&openCount > 0 && <button type="button" className="round-start" onClick={()=>openMobileScreen('chores')}><span>Direkt loslegen</span><b>Aufgabe wählen <i>→</i></b></button>}</div>
+               </em>
+             </h1>
+            <div className="daily-bottom">
+              <div className="daily-thought"><span className="daily-spark" aria-hidden="true">✦</span><p><small>GEDANKE FÜR HEUTE</small><b>{dailyThought}</b></p></div>
+              <form className={`gratitude-card ${gratitudeSaved?'is-saved':''}`} onSubmit={(event)=>{event.preventDefault();void saveGratitude();}}>
+                <label htmlFor="gratitude-today"><span>Heute bin ich dankbar für …</span><small>{person==='Johannes'?'Johannes’':'Sonjas'} Tagesnotiz</small></label>
+                <textarea id="gratitude-today" maxLength={280} rows={2} value={gratitudeText} onChange={(event)=>{setGratitudeText(event.target.value);setGratitudeSaved(false);}} placeholder="Einen kleinen schönen Moment …" />
+                <div><button type="submit" disabled={gratitudeBusy}>{gratitudeBusy?'Speichert …':gratitudeSaved?'Gespeichert ✓':'Festhalten'}</button>{!loading&&openCount>0&&<button type="button" className="today-due-link" onClick={()=>openMobileScreen(choreCountToday?'chores':'plants')}>{openCount} {openCount===1?'Sache':'Sachen'} fällig →</button>}</div>
+              </form>
+            </div>
           </div>
         </div>
       </section>
@@ -525,7 +551,7 @@ export default function Home() {
       <div className={`mobile-progress ${progressOpen ? "is-open" : ""}`} id="fortschritt">
         <button className="progress-toggle" onClick={() => setProgressOpen((open) => !open)} aria-expanded={progressOpen}><span>★ Level & Wochenmission</span><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></button>
         <section className="plant-room-game" aria-label="Euer gemeinsamer Gartenbereich">
-          <div className="garden-game-head"><div><p className="eyebrow">EUER KLEINES COZY-SPIEL</p><h2>Euer Zuhause wächst.</h2><p>Aufgaben schenken Sonne fürs Regal und Pflegemomente für Flauschis Nest.</p></div><button type="button" className="garden-level-pill" onClick={()=>setProgressOpen((open)=>!open)} aria-expanded={progressOpen}><span>Cozy-Level {gardenLevel}</span><b>{gardenProgress}/100 XP {progressOpen?'↑':'↓'}</b></button></div>
+          <div className="garden-game-head"><div><p className="eyebrow">EUER KLEINES COZY-SPIEL</p><h2>Euer Zuhause wächst.</h2><p>Aufgaben schenken Sonne fürs Regal und Pflegemomente für Flauschis Nest.</p></div><button type="button" className="garden-level-pill" onClick={()=>mobileView==='level'||mobileView==='flauschi'?openMobileScreen('profile'):setProgressOpen((open)=>!open)} aria-expanded={progressOpen}><span>Cozy-Level {gardenLevel}</span><b>{gardenProgress}/100 XP {progressOpen?'↑':'→'}</b></button></div>
           <nav className="garden-mode-switch" aria-label="Gartenbereich auswählen"><button type="button" className={gardenPanel==='plants'?'active':''} aria-pressed={gardenPanel==='plants'} onClick={()=>setGardenPanel('plants')}><small>WACHSEN</small><b>Pflanzenregal</b>{Boolean(garden?.availableSun)&&<em>{garden?.availableSun}</em>}</button><button type="button" className={gardenPanel==='flauschi'?'active':''} aria-pressed={gardenPanel==='flauschi'} onClick={()=>setGardenPanel('flauschi')}><small>SPIELEN</small><b>Flauschis Nest</b>{Boolean(flauschiAvailable)&&<em>{flauschiAvailable}</em>}</button></nav>
           {!PROTOTYPE_GARDEN_MODE && <nav className="garden-room-tabs" aria-label="Pflanzenräume">{garden?.rooms.map((room)=><button key={room.name} disabled={!room.unlocked} className={gardenRoom===room.name?'active':''} onClick={()=>room.unlocked&&setGardenRoom(room.name)}><span>{room.unlocked?room.name:'🔒 '+room.name}</span><small>{room.count}/{room.capacity}</small></button>)}</nav>}
           {gardenPanel==='plants' ? <><div className="garden-scene-shell">
@@ -583,11 +609,6 @@ export default function Home() {
       </section>}
       <section className="chores-section" id="aufgaben">
         <div className="section-head cozy-screen-head chores-screen-head" style={{backgroundImage:'linear-gradient(90deg,rgba(247,244,231,.98) 0%,rgba(247,244,231,.9) 48%,rgba(18,48,35,.18) 100%), url(/chores/chore-aufraeumen.webp)'}}><div><p className="eyebrow">EURE AUFGABEN</p><h2>Was möchtet ihr anpacken?</h2><p>Spontan oder geplant: Jede erledigte Aufgabe schenkt eurem Pflanzenzimmer einen Lichtfunken.</p></div><button className="add-hausi" onClick={()=>{setEditingChore(null);setChoreModal(true)}} aria-label="Aufgabe hinzufügen"><span aria-hidden="true">＋</span> Aufgabe</button></div>
-        {todayChores.length > 0 && <section className="today-chores" aria-labelledby="today-chores-title">
-          <div className="today-chores-head"><div><p className="eyebrow">HEUTE WICHTIG</p><h3 id="today-chores-title">Eure kleine Tagesauswahl</h3><small className="bonus-preview">{Math.min(stats.todayTasks, garden?.dailyTaskGoal ?? 3)} von {garden?.dailyTaskGoal ?? 3} Aufgaben bis zum nächsten Keim · +{stats.nextTaskBonus} Bonus-XP</small></div><span>{todayChores.length} für heute</span></div>
-          <div className="task-seed-progress" aria-label={`${Math.min(stats.todayTasks, garden?.dailyTaskGoal ?? 3)} von ${garden?.dailyTaskGoal ?? 3} Aufgaben für den heutigen Keim erledigt`}><i style={{width:`${Math.min(100, stats.todayTasks / (garden?.dailyTaskGoal ?? 3) * 100)}%`}} /></div>
-          <div>{todayChores.slice(0,5).map((chore) => { const art = choreCategoryArt[chore.category] ?? { image: '/chores/chore-aufraeumen.webp', tone: 'sage' }; return <article className="quick-chore" key={chore.id}><span className="quick-chore-art" style={{backgroundImage:`url(${art.image})`}} aria-hidden="true" /><div><b>{chore.name}</b><small>{chore.scheduleMode === 'flexible' ? 'Heute empfohlen' : choreTiming(chore,now)} · {priorityLabel(chore.priority)} · +{chore.points} XP</small></div><div className="completion-choices"><button onClick={() => finishChore(chore)} disabled={choreBusy === chore.id}><img src={avatarFor[person]} alt="" />{choreBusy === chore.id ? '…' : `Ich`}</button><button className="together-button" onClick={() => finishChore(chore,true)} disabled={choreBusy === chore.id}><span className="duo-avatars"><img src={avatarFor.Johannes} alt=""/><img src={avatarFor.Sonja} alt=""/></span>Gemeinsam</button></div></article>})}</div>{todayChores.length > 5 && <small className="today-more">Danach sind noch {todayChores.length - 5} fest eingeplant – eins nach dem anderen.</small>}
-        </section>}
         <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
           const categoryChores = chores.filter((chore) => chore.category === category);
           const dueChores = categoryChores.filter((chore) => !chore.paused && chore.scheduleMode === 'scheduled' && calendarDayDiff(choreNext(chore)!,now) <= 0);
@@ -777,8 +798,8 @@ export default function Home() {
         <div className="water-burst" aria-hidden="true"><span className="celebration-symbol">{celebration.icon}</span><i></i><i></i><i></i><i></i><i></i></div>
         <strong>Aufgabe geschafft!</strong><p>{celebration.person} hat „{celebration.label}“ erledigt. Das Zuhause atmet auf.</p><b>+{celebration.points} XP</b>
       </div>}
-      {completionReward && <RewardSheet reward={completionReward} onClose={()=>setCompletionReward(null)} onOpenGarden={()=>{setCompletionReward(null);openMobileScreen('level','plants')}} onOpenFlauschi={()=>{setCompletionReward(null);openMobileScreen('level','flauschi')}} onUndo={undoInfo?undoChore:undefined}/>}
-      <MobileNav view={mobileView} choreCount={choreCountToday} rewardCount={gardenRewardCount} avatarSrc={avatarFor[person]} onNavigate={openMobileScreen}/>
+      {completionReward && <RewardSheet reward={completionReward} onClose={()=>setCompletionReward(null)} onOpenGarden={()=>{setCompletionReward(null);openMobileScreen('level','plants')}} onOpenFlauschi={()=>{setCompletionReward(null);openMobileScreen('flauschi','flauschi')}} onUndo={undoInfo?undoChore:undefined}/>}
+      <MobileNav view={mobileView} choreCount={choreCountToday} rewardCount={garden?.availableSun??0} flauschiCount={flauschiAvailable} avatarSrc={avatarFor[person]} onNavigate={openMobileScreen}/>
     </main>
   );
 }

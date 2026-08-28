@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const plants = sqliteTable('plants', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -54,3 +54,18 @@ export const gardenWateringEvents = sqliteTable('garden_watering_events', {
   sourceEventAt: text('source_event_at').notNull().unique(),
   wateredAt: text('watered_at').notNull(),
 });
+
+export const flauschiEvents = sqliteTable('flauschi_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  day: text('day').notNull(),
+  person: text('person').notNull(),
+  action: text('action').notNull(),
+  createdAt: text('created_at').notNull(),
+});
+
+export const gratitudeEntries = sqliteTable('gratitude_entries', {
+  day: text('day').notNull(),
+  person: text('person').notNull(),
+  text: text('text').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, (table) => [primaryKey({ columns: [table.day, table.person] })]);

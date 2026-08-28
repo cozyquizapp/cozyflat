@@ -1,6 +1,6 @@
 # CozyFlat – offene Arbeiten
 
-Stand: 26. August 2026
+Stand: 28. August 2026
 
 ## Priorität 1 – konsistente Vorschaubilder
 
@@ -25,8 +25,17 @@ Stand: 26. August 2026
 ## Priorität 2 – Rückkehrmechanik und Flauschi
 
 - Den vorhandenen Login-Streak sichtbarer mit dem Pflanzenwachstum verknüpfen.
-- Später: Flauschi nach erledigten Aufgaben füttern, putzen oder beschäftigen können.
-- Später: Schlaf-, Hunger- und Freudenreaktionen von Flauschi als kleine Zustände ergänzen.
+- Für Flauschi ein konsistentes transparentes Animationsset erstellen: schlafen, aufwachen, hüpfen, snacken, bürsten, spielen und jubeln.
+- Tageszeit, Stimmung und kleine zufällige Nestfunde als sichtbare Zustände ergänzen.
+- Den bestehenden Loop ausbauen: eine echte Aufgabe schaltet genau eine Interaktion frei; drei unterschiedliche Tagesaktionen ergeben einen besonderen Fund.
+- Flauschi bewusst nur im eigenen Nest zeigen, damit das Pflanzenregal ruhig und klar bleibt.
+
+## Optional – bewusst gewählte Tagesziele
+
+- Keine Aufgaben automatisch als Tagesvorschlag ausgeben.
+- Falls sich die Funktion im Alltag wirklich lohnt: morgens selbst ein bis drei Aufgaben als „vorgenommen“ markieren.
+- Nur diese bewusst gewählten Aufgaben erhalten beim Erledigen einen kleinen „vorgenommen → durchgezogen“-Bonus.
+- Auswahl muss jederzeit änderbar sein und darf spontane Aufgaben nie blockieren.
 
 ## Bereits erledigt
 
@@ -40,10 +49,12 @@ Stand: 26. August 2026
 - Lichtfunken entstehen durch echte erledigte Aufgaben oder gegossene Pflanzen.
 - Das Pflanzenzimmer hat acht echte Sammelplätze; der Kaktus-Platzhalter ist entfernt.
 - Der tägliche Keim, einsammelbare Lichtfunken und Flauschis Jubelanimation bilden den ersten spielbaren Loop.
-- Tagesaufgaben zeigen passende Bildausschnitte, lesbare Prioritätsnamen und den Fortschritt bis zum nächsten Keim.
+- Aufgabengruppen zeigen passende Bildausschnitte und lesbare Prioritätsnamen; flexible Aufgaben werden nicht künstlich als heute fällig dargestellt.
 - Aufräumen und Müll verwenden ihre eigenen Motive; jede Aufgabengruppe führt ihre Bildfarben beim Aufklappen weiter.
 - Pflanzenräume verwenden die echten Pflanzenfotos als Vorschaubild und fallen sonst auf passende Raummotive zurück.
 - Die Pflanzenansicht öffnet auf dem iPhone direkt; der zusätzliche „Menü schließen“-Schritt ist dort entfernt.
 - Calathea und Keim haben einen sauberen Topf-/Erdanker; der Keimfortschritt sitzt nicht mehr wie „Füße“ unter dem Topf.
 - App-Symbol, Custom Domain und öffentliche Installation funktionieren.
 - Buttons zeigen Aufgabe/Gießen ab dem ersten Tap sofort an; die Speicherung läuft anschließend im Hintergrund.
+- „Heute“ zählt nur tatsächlich fällige Pflanzen und Aufgaben und bietet stattdessen einen Tagesgedanken sowie eine persönliche Dankbarkeitsnotiz.
+- Garten, Flauschi und persönliche Level sind auf dem iPhone getrennte Ansichten statt langer gestapelter Bereiche.

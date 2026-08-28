@@ -39,6 +39,7 @@ async function ready() {
     db.prepare('CREATE INDEX IF NOT EXISTS idx_garden_watering_events_collection ON garden_watering_events(collection_key)'),
     db.prepare('CREATE TABLE IF NOT EXISTS flauschi_events (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT NOT NULL, person TEXT NOT NULL, action TEXT NOT NULL, created_at TEXT NOT NULL)'),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_flauschi_events_day ON flauschi_events(day)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS gratitude_entries (day TEXT NOT NULL, person TEXT NOT NULL, text TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(day, person))'),
   ]);
   try { await db.prepare('ALTER TABLE chores ADD COLUMN paused INTEGER NOT NULL DEFAULT 0').run(); } catch {}
   try { await db.prepare("ALTER TABLE chores ADD COLUMN schedule_mode TEXT NOT NULL DEFAULT 'flexible'").run(); } catch {}
@@ -164,6 +165,22 @@ const gardenTimeZone='Europe/Berlin';
 function dayKeyInBerlin(date=new Date()) { const parts=new Intl.DateTimeFormat('en-CA',{timeZone:gardenTimeZone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date); const part=(type:string)=>parts.find((item)=>item.type===type)?.value??''; return `${part('year')}-${part('month')}-${part('day')}`; }
 function berlinMidnightUtc(dayKey:string) { const [year,month,day]=dayKey.split('-').map(Number); const target=Date.UTC(year,month-1,day); let instant=target; for(let pass=0;pass<2;pass++){const parts=new Intl.DateTimeFormat('en-GB',{timeZone:gardenTimeZone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(instant)); const value=(type:string)=>Number(parts.find((item)=>item.type===type)?.value??0); const represented=Date.UTC(value('year'),value('month')-1,value('day'),value('hour'),value('minute'),value('second')); instant=target-(represented-instant)} return new Date(instant); }
 function currentDayKey() { return dayKeyInBerlin(); }
+
+export async function getGratitude(person:string) {
+  const db=await ready();
+  const day=currentDayKey();
+  const entry=await db.prepare('SELECT text, updated_at AS updatedAt FROM gratitude_entries WHERE day = ? AND person = ?').bind(day,person).first<{text:string;updatedAt:string}>();
+  return {day,person,text:entry?.text??'',updatedAt:entry?.updatedAt??null};
+}
+
+export async function saveGratitude(person:string,text:string) {
+  const db=await ready();
+  const day=currentDayKey();
+  const clean=text.trim().slice(0,280);
+  const updatedAt=new Date().toISOString();
+  await db.prepare('INSERT INTO gratitude_entries (day, person, text, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(day, person) DO UPDATE SET text = excluded.text, updated_at = excluded.updated_at').bind(day,person,clean,updatedAt).run();
+  return {day,person,text:clean,updatedAt};
+}
 function dailyCandidates(dayKey:string) { const collectablePlants=gardenPlants.filter((plant)=>plant.key!=='cactus'); const seed=Number(dayKey.replaceAll('-','')); const start=seed%collectablePlants.length; return [0,4,8].map((n)=>collectablePlants[(start+n)%collectablePlants.length]); }
 async function totalHouseXp(db:Awaited<ReturnType<typeof ready>>) { const row=await db.prepare(`SELECT COALESCE(SUM(points),0) AS xp FROM (SELECT points FROM watering_events UNION ALL SELECT points FROM chore_events)`).first<{xp:number}>(); return Number(row?.xp??0); }
 const gardenRooms=['Wohnzimmer','Schlafzimmer','Küche','Bad'] as const;
