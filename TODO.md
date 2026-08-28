@@ -25,9 +25,8 @@ Stand: 28. August 2026
 ## Priorität 2 – Rückkehrmechanik und Flauschi
 
 - Den vorhandenen Login-Streak sichtbarer mit dem Pflanzenwachstum verknüpfen.
-- Für Flauschi ein konsistentes transparentes Animationsset erstellen: schlafen, aufwachen, hüpfen, snacken, bürsten, spielen und jubeln.
-- Tageszeit, Stimmung und kleine zufällige Nestfunde als sichtbare Zustände ergänzen.
-- Den bestehenden Loop ausbauen: eine echte Aufgabe schaltet genau eine Interaktion frei; drei unterschiedliche Tagesaktionen ergeben einen besonderen Fund.
+- Optional als nächste Ausbaustufe: eigene transparente Sprite-Sequenzen für noch größere Reaktionen erstellen; die schnelle CSS-Version deckt Schlafen, Aufwachen, Hüpfen, Snacken, Bürsten, Spielen und Jubeln bereits ab.
+- Gefundene Spielsachen und Nest-Deko später nicht nur benennen, sondern dauerhaft sichtbar im Zimmer platzieren.
 - Flauschi bewusst nur im eigenen Nest zeigen, damit das Pflanzenregal ruhig und klar bleibt.
 
 ## Optional – bewusst gewählte Tagesziele
@@ -58,3 +57,7 @@ Stand: 28. August 2026
 - Buttons zeigen Aufgabe/Gießen ab dem ersten Tap sofort an; die Speicherung läuft anschließend im Hintergrund.
 - „Heute“ zählt nur tatsächlich fällige Pflanzen und Aufgaben und bietet stattdessen einen Tagesgedanken sowie eine persönliche Dankbarkeitsnotiz.
 - Garten, Flauschi und persönliche Level sind auf dem iPhone getrennte Ansichten statt langer gestapelter Bereiche.
+- Die sechs mobilen Ansichten sind auf eine klare Seitenhöhe reduziert: Heute, Aufgaben, Garten, Flauschi und Level funktionieren ohne Seitenscroll; Pflanzen scrollt nur nach dem Öffnen eines Raums.
+- Aufgaben lassen sich direkt über das Plus ihrer Kategorie anlegen; Pflanzen direkt über die Plus-Kachel des geöffneten Raums.
+- Jeder Personenlink bindet auf dem iPhone nur noch das eigene Profil im Kopf; die Navigation nutzt einheitliche echte Icons.
+- Flauschi reagiert auf freigeschaltete Pflegemomente, bietet Snack/Bürsten/Spielen, wechselt Stimmung und Tageslicht und entdeckt regelmäßig Nestfunde.

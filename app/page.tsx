@@ -4,6 +4,7 @@ import FlauschiNest from "./FlauschiNest";
 import GardenScene from "./GardenScene";
 import MobileNav, { type MobileView } from './MobileNav';
 import RewardSheet, { type CompletionReward } from './RewardSheet';
+import { Plus } from 'lucide-react';
 
 type Plant = {
   id: number;
@@ -138,6 +139,8 @@ export default function Home() {
   const [choreBusy, setChoreBusy] = useState<number | null>(null);
   const [choreModal, setChoreModal] = useState(false);
   const [editingChore, setEditingChore] = useState<Chore | null>(null);
+  const [newChoreCategory, setNewChoreCategory] = useState('Sonstiges');
+  const [newPlantRoom, setNewPlantRoom] = useState('');
   const [undoInfo, setUndoInfo] = useState<{chore:Chore;eventIds:number[]}|null>(null);
   const [toast, setToast] = useState("");
   const [reminderGuide, setReminderGuide] = useState(false);
@@ -168,6 +171,24 @@ export default function Home() {
     if(view==='level'||view==='flauschi')setProgressOpen(false);
     setMobileView(view);
     window.requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'auto'}));
+  }
+  function openNewChore(category='Sonstiges') {
+    setEditingChore(null);
+    setNewChoreCategory(category);
+    setChoreModal(true);
+  }
+  function closeChoreModal() {
+    setChoreModal(false);
+    setEditingChore(null);
+    setNewChoreCategory('Sonstiges');
+  }
+  function openNewPlant(room='') {
+    setNewPlantRoom(room);
+    setModal(true);
+  }
+  function closePlantModal() {
+    setModal(false);
+    setNewPlantRoom('');
   }
   async function loadReminderUrl(targetPerson:'Johannes'|'Sonja') {
     setReminderPerson(targetPerson);
@@ -347,7 +368,7 @@ export default function Home() {
     data.set("person", person);
     const r = await fetch("/api/plants", { method: "POST", body: data });
     if (r.ok) setPlants(await r.json());
-    setModal(false);
+    closePlantModal();
   }
   async function finishChore(chore: Chore, together=false) {
     setChoreBusy(chore.id);
@@ -428,7 +449,7 @@ export default function Home() {
   async function saveChoreForm(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); const data = new FormData(e.currentTarget);
     const payload = {action:'save',id:editingChore?.id,name:data.get('name'),category:data.get('category'),icon:data.get('icon'),cadenceHours:Number(data.get('cadenceHours')),priority:Number(data.get('priority')),dueTime:data.get('dueTime'),scheduleMode:data.get('scheduleMode'),points:Number(data.get('points')),paused:data.get('paused') === 'on'};
-    const r = await fetch('/api/chores',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)}); if (r.ok) { const result = await r.json() as {chores:Chore[]}; setChores(result.chores); setChoreModal(false); setEditingChore(null); setToast(editingChore ? 'Aufgabe aktualisiert.' : 'Neue Aufgabe angelegt.'); setTimeout(()=>setToast(''),2200); }
+    const r = await fetch('/api/chores',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)}); if (r.ok) { const result = await r.json() as {chores:Chore[]}; setChores(result.chores); closeChoreModal(); setToast(editingChore ? 'Aufgabe aktualisiert.' : 'Neue Aufgabe angelegt.'); setTimeout(()=>setToast(''),2200); }
   }
   const todayCount = plants.filter((p) => dateInfo(p).diff <= 0).length;
   const soonPlantCount = plants.filter((p) => {
@@ -460,6 +481,8 @@ export default function Home() {
   const personalWeek = stats.scores[person];
   const personalPreviousWeek = stats.previousWeek[person];
   const personalWeekDifference = personalWeek.points - personalPreviousWeek.points;
+  const otherPerson = person === 'Johannes' ? 'Sonja' : 'Johannes';
+  const otherLevel = levelFor(stats.totalScores[otherPerson].points);
   const dateLabel = now
     .toLocaleDateString("de-DE", {
       weekday: "long",
@@ -522,7 +545,7 @@ export default function Home() {
               <form className={`gratitude-card ${gratitudeSaved?'is-saved':''}`} onSubmit={(event)=>{event.preventDefault();void saveGratitude();}}>
                 <label htmlFor="gratitude-today"><span>Heute bin ich dankbar für …</span><small>{person==='Johannes'?'Johannes’':'Sonjas'} Tagesnotiz</small></label>
                 <textarea id="gratitude-today" maxLength={280} rows={2} value={gratitudeText} onChange={(event)=>{setGratitudeText(event.target.value);setGratitudeSaved(false);}} placeholder="Einen kleinen schönen Moment …" />
-                <div><button type="submit" disabled={gratitudeBusy}>{gratitudeBusy?'Speichert …':gratitudeSaved?'Gespeichert ✓':'Festhalten'}</button>{!loading&&openCount>0&&<button type="button" className="today-due-link" onClick={()=>openMobileScreen(choreCountToday?'chores':'plants')}>{openCount} {openCount===1?'Sache':'Sachen'} fällig →</button>}</div>
+                <div><button type="submit" disabled={gratitudeBusy}>{gratitudeBusy?'Speichert …':gratitudeSaved?'Gespeichert ✓':'Festhalten'}</button></div>
               </form>
             </div>
           </div>
@@ -601,6 +624,10 @@ export default function Home() {
           <span><small>DEINE WOCHE</small><b>{personalWeekDifference>0?`+${personalWeekDifference} XP`:personalWeekDifference<0?`${personalWeekDifference} XP`:'Gleichauf'}</b></span>
           <p>{personalPreviousWeek.points===0?'Deine erste Vergleichswoche läuft – jeder Haken zählt.':personalWeekDifference>0?'Du liegst vor deiner letzten Woche. Stark!':personalWeekDifference===0?'Genau auf dem Stand der letzten Woche.':'Noch ein paar Aufgaben und du holst die letzte Woche ein.'}</p>
         </div>
+        <div className="level-duo-card">
+          <div><img src={avatarFor[otherPerson]} alt="" /><span><small>DEIN COZY-GEGENÜBER</small><b>{otherPerson} · Level {otherLevel.level}</b><em>{otherLevel.title}</em></span></div>
+          <div className="level-duo-team"><span><small>GEMEINSAM DIESE WOCHE</small><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></span><div aria-label={`${weeklyProgress} Prozent des gemeinsamen Wochenziels`}><i style={{width:`${weeklyProgress}%`}} /></div></div>
+        </div>
       </section>
       {showWeeklyRecap && <section className="weekly-recap">
         <p className="eyebrow">SONNTAGS-RÜCKBLICK</p><h2>Ihr wart fleißig.</h2>
@@ -608,7 +635,7 @@ export default function Home() {
         <p>Um Mitternacht startet eine neue Wochenmission. Eure gesammelten XP bleiben in euren Leveln erhalten.</p>
       </section>}
       <section className="chores-section" id="aufgaben">
-        <div className="section-head cozy-screen-head chores-screen-head" style={{backgroundImage:'linear-gradient(90deg,rgba(247,244,231,.98) 0%,rgba(247,244,231,.9) 48%,rgba(18,48,35,.18) 100%), url(/chores/chore-aufraeumen.webp)'}}><div><p className="eyebrow">EURE AUFGABEN</p><h2>Was möchtet ihr anpacken?</h2><p>Spontan oder geplant: Jede erledigte Aufgabe schenkt eurem Pflanzenzimmer einen Lichtfunken.</p></div><button className="add-hausi" onClick={()=>{setEditingChore(null);setChoreModal(true)}} aria-label="Aufgabe hinzufügen"><span aria-hidden="true">＋</span> Aufgabe</button></div>
+        <div className="section-head cozy-screen-head chores-screen-head" style={{backgroundImage:'linear-gradient(90deg,rgba(247,244,231,.98) 0%,rgba(247,244,231,.9) 48%,rgba(18,48,35,.18) 100%), url(/chores/chore-aufraeumen.webp)'}}><div><p className="eyebrow">EURE AUFGABEN</p><h2>Was möchtet ihr anpacken?</h2><p>Spontan oder geplant: Jede erledigte Aufgabe schenkt eurem Pflanzenzimmer einen Lichtfunken.</p></div><button className="add-hausi" onClick={()=>openNewChore()} aria-label="Aufgabe hinzufügen"><span aria-hidden="true">＋</span> Aufgabe</button></div>
         <div className="chore-groups">{[...new Set(chores.map((chore) => chore.category))].map((category) => {
           const categoryChores = chores.filter((chore) => chore.category === category);
           const dueChores = categoryChores.filter((chore) => !chore.paused && chore.scheduleMode === 'scheduled' && calendarDayDiff(choreNext(chore)!,now) <= 0);
@@ -617,7 +644,7 @@ export default function Home() {
           const renderChore = (chore: Chore) => { const next = choreNext(chore); const isDue = Boolean(next && calendarDayDiff(next,now) <= 0);
             return <article className={`chore-card ${isDue ? 'is-due' : ''} priority-${chore.priority} ${chore.paused ? 'is-paused' : ''}`} key={chore.id}><span className="chore-icon chore-art-thumb" style={{backgroundImage:`url(${art.image})`}} aria-hidden="true" /><div><b>{chore.name}</b><small>{choreTiming(chore,now)} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch nie abgehakt'}</small></div><strong><span className={`priority-chip priority-${chore.priority}`}>{priorityLabel(chore.priority)}</span> +{chore.points} XP</strong><button className="edit-chore" onClick={()=>{setEditingChore(chore);setChoreModal(true)}} aria-label={`${chore.name} bearbeiten`}>✎</button><div className="completion-choices"><button className="finish-chore" onClick={() => finishChore(chore)} disabled={chore.paused || choreBusy === chore.id}>{chore.paused ? 'Pausiert' : choreBusy === chore.id ? '…' : <><img src={avatarFor[person]} alt="" />Ich</>}</button><button className="finish-chore together-button" onClick={() => finishChore(chore,true)} disabled={chore.paused || choreBusy === chore.id}><span className="duo-avatars"><img src={avatarFor.Johannes} alt=""/><img src={avatarFor.Sonja} alt=""/></span>Gemeinsam</button></div></article>;
           };
-          return <details className={`chore-group tone-${art.tone}`} key={category}><summary className="chore-group-preview" style={{backgroundImage:`linear-gradient(90deg,rgba(18,48,35,.9) 0%,rgba(18,48,35,.58) 54%,rgba(18,48,35,.12) 100%), url(${art.image})`}}><span><small>{dueChores.length ? `${dueChores.length} jetzt wichtig` : 'Flexibel einplanbar'}</small><b>{category}</b></span><em>{categoryChores.length} {categoryChores.length === 1 ? 'Aufgabe' : 'Aufgaben'}</em><strong>⌄</strong></summary><div className="chore-group-content"><div>{[...dueChores,...laterChores].map(renderChore)}</div></div></details>;
+          return <details className={`chore-group tone-${art.tone}`} key={category}><summary className="chore-group-preview" style={{backgroundImage:`linear-gradient(90deg,rgba(18,48,35,.9) 0%,rgba(18,48,35,.58) 54%,rgba(18,48,35,.12) 100%), url(${art.image})`}}><span><small>{dueChores.length ? `${dueChores.length} jetzt wichtig` : 'Flexibel einplanbar'}</small><b>{category}</b></span><em>{categoryChores.length} {categoryChores.length === 1 ? 'Aufgabe' : 'Aufgaben'}</em><button type="button" className="category-add-button" aria-label={`Neue Aufgabe in ${category}`} onClick={(event)=>{event.preventDefault();event.stopPropagation();openNewChore(category)}}><Plus size={19} strokeWidth={2.4} aria-hidden="true" /></button><strong>⌄</strong></summary><div className="chore-group-content"><div>{[...dueChores,...laterChores].map(renderChore)}</div></div></details>;
         })}</div>
       </section>
       <section className={`plant-section plant-menu ${plantsOpen || mobileView === 'plants' ? 'is-open' : ''}`} id="pflanzen">
@@ -626,7 +653,7 @@ export default function Home() {
             <p className="eyebrow">PFLANZENPLAN</p>
             <h2>Eure Pflanzen</h2><p>{todayCount ? `${todayCount} ${todayCount === 1 ? 'möchte' : 'möchten'} heute Wasser.` : `Alles versorgt – Zeit, das Pflanzenzimmer wachsen zu lassen.`}</p>
           </div>
-          <div className="plant-menu-actions"><button className="plant-menu-toggle" onClick={()=>setPlantsOpen(open=>!open)} aria-expanded={plantsOpen}>{plantsOpen ? 'Menü schließen ↑' : 'Pflanzen öffnen ↓'}</button><button className="add-button" onClick={() => setModal(true)} aria-label="Pflanze hinzufügen"><span aria-hidden="true">＋</span> Pflanze</button></div>
+          <div className="plant-menu-actions"><button className="plant-menu-toggle" onClick={()=>setPlantsOpen(open=>!open)} aria-expanded={plantsOpen}>{plantsOpen ? 'Menü schließen ↑' : 'Pflanzen öffnen ↓'}</button><button className="add-button" onClick={() => openNewPlant()} aria-label="Pflanze hinzufügen"><span aria-hidden="true">＋</span> Pflanze</button></div>
         </div>
         {(plantsOpen || mobileView === 'plants') && (loading ? (
           <div className="empty">Eure Pflanzen werden geladen …</div>
@@ -680,6 +707,7 @@ export default function Home() {
                     <summary><span><b>{caredPlants.length} versorgt</b><small>{caredPlants.map((plant) => plant.name).join(" · ")}</small></span><i>anzeigen</i></summary>
                     <div className="plant-grid">{caredPlants.map(renderCard)}</div>
                     </details>}
+                    <button type="button" className="room-add-tile" onClick={()=>openNewPlant(room)}><Plus aria-hidden="true" /><span><b>Neue Pflanze</b><small>direkt im {room} anlegen</small></span></button>
                   </div>
                 </details>;
               })}
@@ -705,7 +733,7 @@ export default function Home() {
         <div
           className="modal-backdrop"
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setModal(false);
+            if (e.target === e.currentTarget) closePlantModal();
           }}
         >
           <section
@@ -716,7 +744,7 @@ export default function Home() {
           >
             <button
               className="close"
-              onClick={() => setModal(false)}
+              onClick={closePlantModal}
               aria-label="Schließen"
             >
               ×
@@ -724,7 +752,7 @@ export default function Home() {
             <p className="eyebrow">NEUER MITBEWOHNER</p>
             <h2 id="modal-title">Pflanze hinzufügen</h2>
             <p className="modal-intro">Heute gilt als erstes Gießdatum.</p>
-            <form onSubmit={add}>
+            <form onSubmit={add} key={newPlantRoom || 'new-plant'}>
               <label>
                 Name
                 <input
@@ -740,6 +768,7 @@ export default function Home() {
                 <input
                   name="room"
                   placeholder="z. B. Wohnzimmer"
+                  defaultValue={newPlantRoom}
                   required
                   maxLength={60}
                 />
@@ -788,7 +817,7 @@ export default function Home() {
           </section>
         </div>
       )}
-      {choreModal && <div className="modal-backdrop" onMouseDown={(e)=>{if(e.target===e.currentTarget){setChoreModal(false);setEditingChore(null)}}}><section className="modal" role="dialog" aria-modal="true" aria-labelledby="chore-modal-title"><button className="close" onClick={()=>{setChoreModal(false);setEditingChore(null)}} aria-label="Schließen">×</button><p className="eyebrow">{editingChore ? 'AUFGABE BEARBEITEN' : 'NEUE AUFGABE'}</p><h2 id="chore-modal-title">{editingChore ? editingChore.name : 'Aufgabe hinzufügen'}</h2><form onSubmit={saveChoreForm} className="chore-form"><label>Name<input name="name" required maxLength={60} defaultValue={editingChore?.name ?? ''} placeholder="z. B. Kühlschrank auswischen" /></label><label>Kategorie<input name="category" required maxLength={40} defaultValue={editingChore?.category ?? 'Sonstiges'} placeholder="z. B. Küche" /></label><div className="form-pair"><label>Symbol<input name="icon" maxLength={4} defaultValue={editingChore?.icon ?? '✨'} /></label><label>XP<input name="points" type="number" min="1" max="100" defaultValue={editingChore?.points ?? 10} /></label></div><label>Planung<select name="scheduleMode" defaultValue={editingChore?.scheduleMode ?? 'flexible'}><option value="flexible">Spontan – zählt nicht als fällig</option><option value="scheduled">Mit festem Rhythmus</option></select></label><div className="form-pair"><label>Wie oft?<select name="cadenceHours" defaultValue={editingChore?.cadenceHours ?? 24}><option value="6">Bis zu 4× täglich</option><option value="8">Bis zu 3× täglich</option><option value="12">Bis zu 2× täglich</option><option value="24">Täglich</option><option value="72">Alle 3 Tage</option><option value="168">Wöchentlich</option><option value="336">Alle 2 Wochen</option><option value="672">Alle 4 Wochen</option></select></label><label>Spätestens bis<input name="dueTime" type="time" defaultValue={editingChore?.dueTime ?? ''} /></label></div><label>Priorität<select name="priority" defaultValue={editingChore?.priority ?? 2}><option value="1">Niedrig · !</option><option value="2">Normal · !!</option><option value="3">Wichtig · !!!</option></select></label><p className="schedule-hint">Nur Aufgaben mit festem Rhythmus erscheinen als „heute geplant“. Spontane Aufgaben könnt ihr jederzeit für XP abhaken.</p><label className="pause-check"><input name="paused" type="checkbox" defaultChecked={editingChore?.paused ?? false} /> Aufgabe pausieren</label><button className="submit-button">{editingChore ? 'Änderungen speichern' : 'Aufgabe anlegen'}</button>{editingChore && <button type="button" className="danger-button" onClick={async()=>{if(confirm(`${editingChore.name} wirklich löschen?`)){const r=await fetch('/api/chores',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'delete',id:editingChore.id})});if(r.ok){const result=await r.json() as {chores:Chore[]};setChores(result.chores);setChoreModal(false);setEditingChore(null)}}}}>Aufgabe löschen</button>}</form></section></div>}
+      {choreModal && <div className="modal-backdrop" onMouseDown={(e)=>{if(e.target===e.currentTarget)closeChoreModal()}}><section className="modal" role="dialog" aria-modal="true" aria-labelledby="chore-modal-title"><button className="close" onClick={closeChoreModal} aria-label="Schließen">×</button><p className="eyebrow">{editingChore ? 'AUFGABE BEARBEITEN' : 'NEUE AUFGABE'}</p><h2 id="chore-modal-title">{editingChore ? editingChore.name : `Neue Aufgabe · ${newChoreCategory}`}</h2><form key={editingChore?.id ?? `new-${newChoreCategory}`} onSubmit={saveChoreForm} className="chore-form"><label>Name<input name="name" required maxLength={60} defaultValue={editingChore?.name ?? ''} placeholder="z. B. Kühlschrank auswischen" /></label><label>Kategorie<input name="category" required maxLength={40} defaultValue={editingChore?.category ?? newChoreCategory} placeholder="z. B. Küche" /></label><div className="form-pair"><label>Symbol<input name="icon" maxLength={4} defaultValue={editingChore?.icon ?? '✨'} /></label><label>XP<input name="points" type="number" min="1" max="100" defaultValue={editingChore?.points ?? 10} /></label></div><label>Planung<select name="scheduleMode" defaultValue={editingChore?.scheduleMode ?? 'flexible'}><option value="flexible">Spontan – zählt nicht als fällig</option><option value="scheduled">Mit festem Rhythmus</option></select></label><div className="form-pair"><label>Wie oft?<select name="cadenceHours" defaultValue={editingChore?.cadenceHours ?? 24}><option value="6">Bis zu 4× täglich</option><option value="8">Bis zu 3× täglich</option><option value="12">Bis zu 2× täglich</option><option value="24">Täglich</option><option value="72">Alle 3 Tage</option><option value="168">Wöchentlich</option><option value="336">Alle 2 Wochen</option><option value="672">Alle 4 Wochen</option></select></label><label>Spätestens bis<input name="dueTime" type="time" defaultValue={editingChore?.dueTime ?? ''} /></label></div><label>Priorität<select name="priority" defaultValue={editingChore?.priority ?? 2}><option value="1">Niedrig · !</option><option value="2">Normal · !!</option><option value="3">Wichtig · !!!</option></select></label><p className="schedule-hint">Nur Aufgaben mit festem Rhythmus erscheinen als „heute geplant“. Spontane Aufgaben könnt ihr jederzeit für XP abhaken.</p><label className="pause-check"><input name="paused" type="checkbox" defaultChecked={editingChore?.paused ?? false} /> Aufgabe pausieren</label><button className="submit-button">{editingChore ? 'Änderungen speichern' : 'Aufgabe anlegen'}</button>{editingChore && <button type="button" className="danger-button" onClick={async()=>{if(confirm(`${editingChore.name} wirklich löschen?`)){const r=await fetch('/api/chores',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'delete',id:editingChore.id})});if(r.ok){const result=await r.json() as {chores:Chore[]};setChores(result.chores);closeChoreModal()}}}}>Aufgabe löschen</button>}</form></section></div>}
       {toast && (
         <div className="toast" role="status">
           ✓ {toast} {undoInfo && <button onClick={undoChore}>Rückgängig</button>}
