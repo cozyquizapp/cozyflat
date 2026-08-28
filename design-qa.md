@@ -1,64 +1,47 @@
-# CozyFlat Pflanzenzimmer – Design QA
+# CozyFlat Aufgabenansicht – Design QA v55
 
-- Source visual truth: `C:\Users\hornu\AppData\Local\Temp\codex-clipboard-3b048c90-132e-4a76-841f-a60f95bbb07e.png`
-- Implementation screenshots: `C:\Users\hornu\.codex\.chatgpt-projects\g-p-6a5e249cacd88191ac9dd9b9ee51490e\giessrunde\design-implementation-garden-v2.png` and `C:\Users\hornu\.codex\.chatgpt-projects\g-p-6a5e249cacd88191ac9dd9b9ee51490e\giessrunde\design-implementation-garden-v2-lower.png`
-- Combined comparison: `C:\Users\hornu\.codex\.chatgpt-projects\g-p-6a5e249cacd88191ac9dd9b9ee51490e\giessrunde\design-qa-garden-v2-comparison.png`
-- Intended viewport: 393 × 852 CSS px, iPhone portrait breakpoint
-- Source pixels: 549 × 802
-- Implementation pixels: 378 × 819 per capture; the in-app browser excludes its scrollbar and browser insets from the requested viewport
-- Density normalization: source and both implementation captures were resampled to 852 px content height and placed in one 1417 × 898 comparison image
-- State: source shows two collected plants plus a cactus preview. Local implementation data shows one collected plant, an active zero-of-three seed, seven remaining spaces, and zero waiting light motes. This content-state difference is explicit and was not treated as a layout defect.
+- Referenz 1 (geöffnete Kategorie): `C:\Users\hornu\AppData\Local\Temp\codex-clipboard-7307366d-a6e9-4879-aef5-a1f8ea592703.png`
+- Referenz 2 (geschlossene Kategorien): `C:\Users\hornu\AppData\Local\Temp\codex-clipboard-4af02907-e0b1-4125-9d9f-a7b95b1d0422.png`
+- Implementierungsbilder: `design-qa-v55-chores-open.png` und `design-qa-v55-chores-closed.png`
+- Kombinierter Vergleich: `design-qa-v55-comparison.png`
+- Geprüfter Viewport: 393 × 852 CSS px, iPhone Hochformat
+- Zustände: vollständige Kategorienliste sowie geöffnete längste Kategorie „Wäsche“
 
-## Full-view comparison evidence
+## Sichtprüfung
 
-The combined comparison verifies the same warm cream/wood cabinet, arched frame, two-column niche rhythm, forest-green caption, serif/sans hierarchy, fixed pot anchors, and mobile navigation clearance. The requested changes are visible: Kalle Kaktus is gone, the active free niche is now a seed minigame, the room has eight real collection spaces, and Flauschi floats as a small round companion rather than occupying a plant slot.
+Die Referenzen und die lokale Implementierung wurden im kombinierten Vergleich gemeinsam beurteilt. Die vorhandene CozyFlat-Gestaltung bleibt unverändert; der Patch korrigiert ausschließlich Erreichbarkeit, Scrollverhalten und die vertikale Dichte der Aufgabenkategorien.
 
-## Focused comparison evidence
+- Alle sieben geschlossenen Kategorien sind vollständig oberhalb der fixierten Navigation sichtbar.
+- Die Karten sind inklusive Rand 80 px hoch und behalten Bild, Titel, Zähler, Plus und Pfeil in der bestehenden Hierarchie.
+- Der sichtbare Plus-Button ist 34 × 34 px; eine unsichtbare Erweiterung hält die effektive Touchfläche bei 44 × 44 px.
+- Zwischen der letzten Kategorie und der Navigation verbleiben bei 393 × 852 px 102 px Freiraum.
+- Lange geöffnete Kategorien erzeugen wieder echten Seitenscroll: 1007 px Dokumenthöhe bei 852 px Viewporthöhe.
+- Der geöffnete Kategorienkopf beginnt bei 75 px direkt unter der 66 px hohen App-Leiste. Es gibt weder die vorherige 66-px-Leerzone noch eine Überdeckung.
 
-The upper and lower implementation captures jointly cover the full eight-slot room at readable scale. They verify seed masking, free-slot labels, lower cabinet spacing, Flauschi placement, caption, tip, collection row, and bottom-navigation clearance. A separate pixel crop was unnecessary.
+## Vergleichsverlauf
 
-## Required fidelity surfaces
+### Durchlauf 1 – nicht bestanden
 
-- Fonts and typography: the serif game heading and compact uppercase room labels preserve CozyFlat's hierarchy. Slot labels are distinct and do not truncate.
-- Spacing and layout rhythm: eight niches use a consistent two-by-four grid. The taller cabinet scrolls vertically by design, while fixed navigation remains clear of tappable seed and Flauschi controls.
-- Colors and visual tokens: cream, honey wood, forest green, muted sage, and warm gold remain consistent with the selected screenshot. Ready, sleeping, and free states use saturation and glow rather than unrelated colors.
-- Image quality and asset fidelity: the seed uses `public/garden/seedling-v1.png` in the selected cozy 3D style. A radial mask removes its generated white rectangle at runtime. Existing plant bases stay aligned with soil and pot rims.
-- Copy and content: fake preview naming is removed. The game loop is explicit: one completed task creates a light mote, three tasks wake the seed, and the couple then chooses a new plant.
+- P0: `.shell { overflow: hidden; }` begrenzte die gesamte Aufgabenansicht auf die Viewporthöhe. Untere Karten waren nicht erreichbar.
+- P1: Der Sticky-Kopf einer geöffneten Kategorie klebte innerhalb eines selbst beschneidenden Containers und erzeugte eine große Leerzone.
+- P2: 88-px-Karten ließen die letzte Kategorie hinter der Navigation verschwinden.
 
-## Findings and comparison history
+### Durchlauf 2 – bestanden
 
-### Pass 1 – blocked
+- Die Shell gibt vertikalen Überlauf frei und begrenzt nur noch die horizontale Achse.
+- Geöffnete Aufgaben- und Pflanzenbereiche geben ihren Inhalt frei; Sticky-Köpfe verankern sich unter der App-Leiste.
+- Geschlossene Aufgabenkarten wurden minimal auf 78 px Mindesthöhe verdichtet.
+- `onToggle` setzt geöffnete Detailansichten auf Mobilgeräten zuverlässig an den oberen Rand.
+- Keine verbleibenden P0-, P1- oder P2-Befunde.
 
-- P2: the initial generated seed exposed a pale rectangular image boundary.
-- P2: empty niches repeated a large “4”, reading as duplicate content.
-- P2: an inactive reward card repeated the same zero-of-three progress below the room.
+## Interaktions- und Buildprüfung
 
-Fixes applied:
-
-- Added a soft radial image mask plus staged scale and opacity.
-- Replaced duplicate numbers with distinct slot labels and subdued plus affordances.
-- Hid the chooser until the seed is ready; progress now lives in the interactive room.
-
-### Pass 2 – passed
-
-- The revised comparison shows no hard seed-image boundary, no duplicate slot number, and no redundant inactive progress card.
-- The eight-slot expansion keeps consistent spacing in both upper and lower captures.
-- No actionable P0, P1, or P2 visual or usability finding remains.
-
-## Interaction and runtime checks
-
-- Garden mobile navigation opened the real section at the 393 × 852 breakpoint.
-- Seed tap returned correct remaining-task guidance and a tactile pulse.
-- Flauschi tap returned feedback; the new jump, wiggle, glow, and sparkle animation is wired to the same interaction.
-- Zero-light-mote and zero-of-three seed states rendered correctly.
-- No visible React/runtime error overlay appeared. The selected in-app browser does not expose a console-message capability; that capability check returned unavailable.
-- Production-data task completion was intentionally not triggered during visual QA.
-- `npm run build`: passed.
-- `npx tsc --noEmit`: passed.
-
-## Follow-up polish
-
-- P3: validate Calathea's striped leaves beside the orchid with the live two-plant data state after publishing the preview version.
-- P3: validate one-, two-, and three-task seed states as real tasks are completed.
+- Kategorien öffnen und schließen: geprüft.
+- Längste Kategorie „Wäsche“ öffnen: geprüft; alle Inhalte sind scrollbar erreichbar.
+- Geschlossene Liste: geprüft; alle Kategorien bleiben antippbar.
+- Fixierte untere Navigation: bleibt sichtbar und überdeckt keine Kategorie.
+- `npx tsc --noEmit`: bestanden.
+- `npm run lint`: bestanden, nur 26 bereits vorhandene `<img>`-Hinweise.
+- `npm run build`: bestanden.
 
 final result: passed

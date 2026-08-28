@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, SyntheticEvent, useCallback, useEffect, useMemo, useState } from "react";
 import FlauschiNest from "./FlauschiNest";
 import GardenScene from "./GardenScene";
 import MobileNav, { type MobileView } from './MobileNav';
@@ -170,6 +170,10 @@ export default function Home() {
     if(view==='plants')setPlantsOpen(true);
     if(view==='level'||view==='flauschi')setProgressOpen(false);
     setMobileView(view);
+    window.requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'auto'}));
+  }
+  function alignOpenedMobileDetails(event:SyntheticEvent<HTMLDetailsElement>) {
+    if (!event.currentTarget.open || !window.matchMedia('(max-width: 900px)').matches) return;
     window.requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'auto'}));
   }
   function openNewChore(category='Sonstiges') {
@@ -644,7 +648,7 @@ export default function Home() {
           const renderChore = (chore: Chore) => { const next = choreNext(chore); const isDue = Boolean(next && calendarDayDiff(next,now) <= 0);
             return <article className={`chore-card ${isDue ? 'is-due' : ''} priority-${chore.priority} ${chore.paused ? 'is-paused' : ''}`} key={chore.id}><span className="chore-icon chore-art-thumb" style={{backgroundImage:`url(${art.image})`}} aria-hidden="true" /><div><b>{chore.name}</b><small>{choreTiming(chore,now)} · {chore.lastCompletedBy ? `zuletzt ${chore.lastCompletedBy}` : 'noch nie abgehakt'}</small></div><strong><span className={`priority-chip priority-${chore.priority}`}>{priorityLabel(chore.priority)}</span> +{chore.points} XP</strong><button className="edit-chore" onClick={()=>{setEditingChore(chore);setChoreModal(true)}} aria-label={`${chore.name} bearbeiten`}>✎</button><div className="completion-choices"><button className="finish-chore" onClick={() => finishChore(chore)} disabled={chore.paused || choreBusy === chore.id}>{chore.paused ? 'Pausiert' : choreBusy === chore.id ? '…' : <><img src={avatarFor[person]} alt="" />Ich</>}</button><button className="finish-chore together-button" onClick={() => finishChore(chore,true)} disabled={chore.paused || choreBusy === chore.id}><span className="duo-avatars"><img src={avatarFor.Johannes} alt=""/><img src={avatarFor.Sonja} alt=""/></span>Gemeinsam</button></div></article>;
           };
-          return <details className={`chore-group tone-${art.tone}`} key={category}><summary className="chore-group-preview" style={{backgroundImage:`linear-gradient(90deg,rgba(18,48,35,.9) 0%,rgba(18,48,35,.58) 54%,rgba(18,48,35,.12) 100%), url(${art.image})`}}><span><small>{dueChores.length ? `${dueChores.length} jetzt wichtig` : 'Flexibel einplanbar'}</small><b>{category}</b></span><em>{categoryChores.length} {categoryChores.length === 1 ? 'Aufgabe' : 'Aufgaben'}</em><button type="button" className="category-add-button" aria-label={`Neue Aufgabe in ${category}`} onClick={(event)=>{event.preventDefault();event.stopPropagation();openNewChore(category)}}><Plus size={19} strokeWidth={2.4} aria-hidden="true" /></button><strong>⌄</strong></summary><div className="chore-group-content"><div>{[...dueChores,...laterChores].map(renderChore)}</div></div></details>;
+          return <details className={`chore-group tone-${art.tone}`} key={category} onToggle={alignOpenedMobileDetails}><summary className="chore-group-preview" style={{backgroundImage:`linear-gradient(90deg,rgba(18,48,35,.9) 0%,rgba(18,48,35,.58) 54%,rgba(18,48,35,.12) 100%), url(${art.image})`}}><span><small>{dueChores.length ? `${dueChores.length} jetzt wichtig` : 'Flexibel einplanbar'}</small><b>{category}</b></span><em>{categoryChores.length} {categoryChores.length === 1 ? 'Aufgabe' : 'Aufgaben'}</em><button type="button" className="category-add-button" aria-label={`Neue Aufgabe in ${category}`} onClick={(event)=>{event.preventDefault();event.stopPropagation();openNewChore(category)}}><Plus size={19} strokeWidth={2.4} aria-hidden="true" /></button><strong>⌄</strong></summary><div className="chore-group-content"><div>{[...dueChores,...laterChores].map(renderChore)}</div></div></details>;
         })}</div>
       </section>
       <section className={`plant-section plant-menu ${plantsOpen || mobileView === 'plants' ? 'is-open' : ''}`} id="pflanzen">
@@ -693,7 +697,7 @@ export default function Home() {
                 };
                 const roomPreview = roomPlants.find((plant) => plant.imageKey)?.imageKey;
                 const roomPreviewImage = roomPreview ? `/api/images/${encodeURIComponent(roomPreview)}` : meta.image;
-                return <details className={`room-zone ${meta.className}`} key={room}>
+                return <details className={`room-zone ${meta.className}`} key={room} onToggle={alignOpenedMobileDetails}>
                   <summary className="room-header room-header-art" style={{backgroundImage:`linear-gradient(90deg,rgba(18,48,35,.88) 0%,rgba(18,48,35,.57) 56%,rgba(18,48,35,.14) 100%), url(${roomPreviewImage})`}}>
                     <span className="room-symbol" aria-hidden="true">{meta.icon}</span>
                     <div><p>{meta.line}</p><h3>{room}</h3></div>

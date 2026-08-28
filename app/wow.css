@@ -556,6 +556,41 @@
   .shell.view-flauschi .flauschi-actions-v2 small,.shell.view-flauschi .flauschi-latest-find { display:none; }
 }
 
+/* v55: long detail screens may scroll; collapsed tasks stay fully reachable. */
+@media(max-width:900px) {
+  html,body { overflow-x:hidden; }
+  body { overscroll-behavior-y:auto; }
+  .shell { overflow:visible; }
+
+  .shell.view-chores { padding-bottom:calc(88px + env(safe-area-inset-bottom)); }
+  .shell.view-chores .chores-section { padding:8px 12px calc(88px + env(safe-area-inset-bottom)); }
+  .shell.view-chores .chore-groups { gap:7px; }
+  .shell.view-chores .chore-group-preview {
+    min-height:78px;
+    padding:8px 10px;
+    grid-template-columns:minmax(0,1fr) auto 34px 24px;
+    gap:7px;
+  }
+  .shell.view-chores .chore-group-preview>span:first-child small { font-size:8px; }
+  .shell.view-chores .chore-group-preview>span:first-child b { font-size:20px; }
+  .shell.view-chores .chore-group-preview>em { padding:5px 8px; font-size:9px; }
+  .shell.view-chores .category-add-button { position:relative; width:34px; height:34px; }
+  .shell.view-chores .category-add-button::before { content:""; position:absolute; inset:-5px; }
+  .shell.view-chores .chore-group-preview>strong { font-size:16px; }
+
+  /* Closed cards clip their artwork; opened cards must release the sticky
+     header so it anchors below the app bar instead of inside its own card. */
+  .shell.view-chores .chore-group[open],
+  .shell.view-plants .room-zone[open] { overflow:visible; }
+
+  .shell.view-chores .chore-group[open]>.chore-group-preview,
+  .shell.view-plants .room-zone[open]>.room-header {
+    top:calc(66px + env(safe-area-inset-top));
+  }
+  .shell.view-chores .chore-group[open],
+  .shell.view-plants .room-zone[open] { scroll-margin-top:calc(72px + env(safe-area-inset-top)); }
+}
+
 /* Private, one-time device access */
 .access-gate {
   min-height:100dvh;
