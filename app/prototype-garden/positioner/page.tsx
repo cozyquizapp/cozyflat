@@ -56,15 +56,18 @@ export default function PlantPositioner() {
   const [waterCopied, setWaterCopied] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(PLANT_TUNING_STORAGE_KEY);
-      if (stored) setSaved(JSON.parse(stored) as Record<string, PlantTuning>);
-      const storedWater = window.localStorage.getItem(WATER_TUNING_STORAGE_KEY);
-      if (storedWater) setWaterTuning({...DEFAULT_WATER_TUNING,...JSON.parse(storedWater) as WaterRigTuning});
-    } catch {
-      // A fresh local tool still works when storage is unavailable.
-    }
-    setReady(true);
+    const timer=window.setTimeout(()=>{
+      try {
+        const stored = window.localStorage.getItem(PLANT_TUNING_STORAGE_KEY);
+        if (stored) setSaved(JSON.parse(stored) as Record<string, PlantTuning>);
+        const storedWater = window.localStorage.getItem(WATER_TUNING_STORAGE_KEY);
+        if (storedWater) setWaterTuning({...DEFAULT_WATER_TUNING,...JSON.parse(storedWater) as WaterRigTuning});
+      } catch {
+        // A fresh local tool still works when storage is unavailable.
+      }
+      setReady(true);
+    },0);
+    return ()=>window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {

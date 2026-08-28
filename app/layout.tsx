@@ -11,6 +11,7 @@ import './gamify.css';
 import './mobile.css';
 import './garden-game.css';
 import './cozy-system.css';
+import './wow.css';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',

@@ -257,7 +257,23 @@ export async function addPlant(name:string, room:string, intervalDays:number, pe
 export async function removePlant(id:number) { const db = await ready(); await db.prepare('DELETE FROM plants WHERE id = ?').bind(id).run(); }
 
 export type Chore = { id:number; name:string; category:string; icon:string; intervalDays:number; points:number; lastCompletedAt:string|null; lastCompletedBy:string|null; paused:boolean; scheduleMode:'flexible'|'scheduled'; cadenceHours:number; priority:number; dueTime:string|null };
-export async function listChores() { const db = await ready(); const result = await db.prepare('SELECT id, name, category, icon, interval_days AS intervalDays, points, last_completed_at AS lastCompletedAt, last_completed_by AS lastCompletedBy, paused, schedule_mode AS scheduleMode, cadence_hours AS cadenceHours, priority, due_time AS dueTime FROM chores ORDER BY paused, priority DESC, category, name').all<Omit<Chore,'paused'> & {paused:number}>(); return result.results.map((row) => ({...row, paused:Boolean(row.paused)})); }
+export async function listChores() {
+  const db = await ready();
+  const result = await db.prepare('SELECT id, name, category, icon, interval_days AS intervalDays, points, last_completed_at AS lastCompletedAt, last_completed_by AS lastCompletedBy, paused, schedule_mode AS scheduleMode, cadence_hours AS cadenceHours, priority, due_time AS dueTime FROM chores ORDER BY paused, priority DESC, category, name').all<Omit<Chore,'paused'> & {paused:number}>();
+  const rows=result.results.map((row) => ({...row, paused:Boolean(row.paused)}));
+
+  // Older deployments seeded the same defaults more than once. Keep the database
+  // untouched, but expose one canonical task so counts and lists stay trustworthy.
+  const canonical=new Map<string,Chore>();
+  for(const row of rows){
+    const key=`${row.category.trim().toLocaleLowerCase('de-DE')}\u0000${row.name.trim().toLocaleLowerCase('de-DE')}`;
+    const current=canonical.get(key);
+    const rowCompleted=row.lastCompletedAt ? Date.parse(row.lastCompletedAt) : 0;
+    const currentCompleted=current?.lastCompletedAt ? Date.parse(current.lastCompletedAt) : 0;
+    if(!current || rowCompleted>currentCompleted || (rowCompleted===currentCompleted && row.id<current.id)) canonical.set(key,row);
+  }
+  return [...canonical.values()];
+}
 export async function completeChore(id:number, person:string, together=false) {
   const db = await ready(); const now = new Date().toISOString();
   const chore = await db.prepare('SELECT points FROM chores WHERE id = ? AND paused = 0').bind(id).first<{points:number}>();

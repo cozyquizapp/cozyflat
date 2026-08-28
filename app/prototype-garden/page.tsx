@@ -126,13 +126,16 @@ export function PottedPlant({ plantKey, stage, alt, compact = false, tuning }: {
   const [storedTuning, setStoredTuning] = useState<PlantTuning | undefined>();
   useEffect(() => {
     if (tuning) return;
-    try {
-      const stored = window.localStorage.getItem(PLANT_TUNING_STORAGE_KEY);
-      const parsed = stored ? JSON.parse(stored) as Record<string, PlantTuning> : {};
-      setStoredTuning(parsed[`${plantKey}-${resolvedStage}`]);
-    } catch {
-      setStoredTuning(undefined);
-    }
+    const timer=window.setTimeout(()=>{
+      try {
+        const stored = window.localStorage.getItem(PLANT_TUNING_STORAGE_KEY);
+        const parsed = stored ? JSON.parse(stored) as Record<string, PlantTuning> : {};
+        setStoredTuning(parsed[`${plantKey}-${resolvedStage}`]);
+      } catch {
+        setStoredTuning(undefined);
+      }
+    },0);
+    return ()=>window.clearTimeout(timer);
   }, [plantKey, resolvedStage, tuning]);
   const activeTuning = tuning ?? storedTuning ?? DEFAULT_PLANT_TUNING[`${plantKey}-${resolvedStage}`];
   const potSrc = plantKey === "bonsai"

@@ -19,6 +19,7 @@ type GardenPlant = {key:string;name:string;emoji:string;pot:string};
 type GardenCollectionItem = {weekKey:string;plantKey:string;chosenBy:string;unlockedAt:string;xpAtUnlock:number;room:string;growthBase:number;careCount:number;growthStage:number;plant:GardenPlant};
 type GardenData = {dayKey:string;xp:number;candidates:GardenPlant[];collection:GardenCollectionItem[];rooms:Array<{name:string;unlocked:boolean;count:number;capacity:number}>;activeRoom:string;dailyTaskGoal:number;todayTasks:number;availableSun:number;wateredToday:number;rewardReady:boolean;chosenToday:boolean};
 type GardenWaterResponse = {success:boolean;reason:'grown'|'mature'|'no-sun'|'already-used'|'missing';stageBefore?:number;stageAfter?:number;garden:GardenData};
+type CompletionReward = {label:string;person:string;points:number;bonus:number};
 const icons = ["🌿", "🪴", "🌱", "☘️", "🌵", "🍃"];
 const roomOrder = ["Balkon", "Wohnzimmer", "Küche", "Arbeitszimmer"];
 const avatarFor = { Johannes: "/avatar-johannes.png", Sonja: "/avatar-sonja.png" } as const;
@@ -131,7 +132,7 @@ export default function Home() {
   const [chores, setChores] = useState<Chore[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
-  const [person, setPerson] = useState<"Johannes" | "Sonja">(getInitialPerson);
+  const [person, setPerson] = useState<"Johannes" | "Sonja">("Johannes");
   const [busy, setBusy] = useState<number | null>(null);
   const [choreBusy, setChoreBusy] = useState<number | null>(null);
   const [choreModal, setChoreModal] = useState(false);
@@ -148,15 +149,24 @@ export default function Home() {
   const emptyScores = { Johannes: {points:0,waterings:0}, Sonja: {points:0,waterings:0} };
   const [stats, setStats] = useState<Stats>({ streak: 0, loginStreak: 0, loginDays: 0, todayTasks:0, nextTaskBonus:0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
   const [celebration, setCelebration] = useState<{ label: string; person: string; points: number; icon: string } | null>(null);
+  const [completionReward, setCompletionReward] = useState<CompletionReward|null>(null);
   const [garden, setGarden] = useState<GardenData|null>(null);
   const [gardenBusy, setGardenBusy] = useState(false);
   const [gardenRoom, setGardenRoom] = useState('Wohnzimmer');
   const [gardenPanel, setGardenPanel] = useState<'plants'|'flauschi'>('plants');
+  const [flauschiAvailable,setFlauschiAvailable]=useState(0);
+  function openMobileScreen(view:'today'|'chores'|'plants'|'level'|'profile',panel?:'plants'|'flauschi') {
+    if(panel)setGardenPanel(panel);
+    if(view==='plants')setPlantsOpen(true);
+    if(view==='level')setProgressOpen(false);
+    setMobileView(view);
+    window.requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'auto'}));
+  }
   async function refresh() {
     setLoading(true);
     try {
       const noStore={cache:'no-store' as const};
-      const [r, s, c, g] = await Promise.all([fetch("/api/plants",noStore), fetch("/api/stats",noStore), fetch("/api/chores",noStore), fetch("/api/garden",noStore)]);
+      const [r, s, c, g, f] = await Promise.all([fetch("/api/plants",noStore), fetch("/api/stats",noStore), fetch("/api/chores",noStore), fetch("/api/garden",noStore), fetch("/api/flauschi",noStore)]);
       if (r.ok) setPlants(await r.json());
       if (s.ok) setStats(await s.json());
       if (c.ok) setChores(await c.json());
@@ -169,11 +179,17 @@ export default function Home() {
             : (gardenData.rooms.some((room) => room.name === current && room.unlocked) ? current : gardenData.activeRoom),
         );
       }
+      if(f.ok){const flauschi=await f.json() as {availableCare:number};setFlauschiAvailable(flauschi.availableCare);}
     } finally {
       setLoading(false);
     }
   }
   useEffect(() => {
+    const hydrationTimer = window.setTimeout(() => {
+      setPerson(getInitialPerson());
+      setShowReminderCard(localStorage.getItem("reminder-card-dismissed") !== "yes");
+      void refresh();
+    }, 0);
     const splashTimer = window.setTimeout(() => setSplashVisible(false), 3000);
     let removeServiceWorkerListeners = () => undefined;
     if ("serviceWorker" in navigator) {
@@ -218,9 +234,8 @@ export default function Home() {
         window.removeEventListener("focus", updateServiceWorker);
       };
     }
-    refresh();
-    setShowReminderCard(localStorage.getItem("reminder-card-dismissed") !== "yes");
     return () => {
+      window.clearTimeout(hydrationTimer);
       window.clearTimeout(splashTimer);
       removeServiceWorkerListeners();
     };
@@ -271,9 +286,10 @@ export default function Home() {
     try {
       const watered = await action({ action: "water", id: plant.id, person });
       if (!watered) throw new Error('water-save-failed');
-      const [s,g] = await Promise.all([fetch("/api/stats"),fetch("/api/garden")]);
+      const [s,g,f] = await Promise.all([fetch("/api/stats"),fetch("/api/garden"),fetch('/api/flauschi')]);
       if (s.ok) setStats(await s.json());
       if (g.ok) setGarden(await g.json());
+      if (f.ok) setFlauschiAvailable((await f.json() as {availableCare:number}).availableCare);
       setToast(`${plant.name} wurde von ${person} gegossen. Euer Sonnenfunke wartet im Garten.`);
       openGardenAfterTask();
     } catch {
@@ -295,7 +311,7 @@ export default function Home() {
   async function finishChore(chore: Chore, together=false) {
     setChoreBusy(chore.id);
     const completionName=together?'Sonja & Johannes':person;
-    setToast(`${chore.name} wird gespeichert …`);
+    setToast('');
     if ("vibrate" in navigator) navigator.vibrate([35,45,65]);
     try {
       const r = await fetch('/api/chores', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({id:chore.id,person,together}) });
@@ -307,15 +323,13 @@ export default function Home() {
         awarded=result.completion.pointsEach;
         bonus=result.completion.bonus;
         setUndoInfo({chore,eventIds:result.completion.eventIds});
-        setTimeout(() => setUndoInfo(null),5000);
+        setTimeout(() => setUndoInfo(null),12000);
       }
-      setCelebration({ label: chore.name, person:completionName, points: awarded, icon: chore.icon });
-      setTimeout(() => setCelebration(null), 2400);
-      const [s,g] = await Promise.all([fetch('/api/stats'),fetch('/api/garden')]);
+      const [s,g,f] = await Promise.all([fetch('/api/stats'),fetch('/api/garden'),fetch('/api/flauschi')]);
       if (s.ok) setStats(await s.json());
       if (g.ok) setGarden(await g.json());
-      setToast(`${chore.name}: ${together?'gemeinsam ':''}erledigt. ${together?'Ihr bekommt beide':`${person} bekommt`} ${awarded} XP${bonus?` – inklusive ${bonus} Bonus-XP!`:'.'} Jetzt scheint die Sonne im Garten.`);
-      openGardenAfterTask();
+      if (f.ok) setFlauschiAvailable((await f.json() as {availableCare:number}).availableCare);
+      setCompletionReward({label:chore.name,person:completionName,points:awarded,bonus});
     } catch {
       setCelebration(null);
       setToast(`${chore.name} konnte gerade nicht gespeichert werden. Bitte noch einmal tippen.`);
@@ -327,7 +341,7 @@ export default function Home() {
   async function undoChore() {
     if (!undoInfo) return;
     const r = await fetch('/api/chores',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'undo',id:undoInfo.chore.id,eventIds:undoInfo.eventIds})});
-    if (r.ok) { const result = await r.json() as {chores:Chore[]}; setChores(result.chores); const [s,g] = await Promise.all([fetch('/api/stats'),fetch('/api/garden')]); if (s.ok) setStats(await s.json()); if(g.ok)setGarden(await g.json()); setCelebration(null); setToast(`${undoInfo.chore.name} ist wieder offen.`); }
+    if (r.ok) { const result = await r.json() as {chores:Chore[]}; setChores(result.chores); const [s,g,f] = await Promise.all([fetch('/api/stats'),fetch('/api/garden'),fetch('/api/flauschi')]); if (s.ok) setStats(await s.json()); if(g.ok)setGarden(await g.json()); if(f.ok)setFlauschiAvailable((await f.json() as {availableCare:number}).availableCare); setCelebration(null); setCompletionReward(null); setToast(`${undoInfo.chore.name} ist wieder offen.`); }
     setUndoInfo(null); setTimeout(() => setToast(''),2200);
   }
   async function chooseGardenPlant(plantKey:string) {
@@ -391,6 +405,7 @@ export default function Home() {
   const todayChores = [...dueChoresToday, ...flexiblePicksOpen];
   const choreCountToday = todayChores.length;
   const openCount = todayCount + choreCountToday;
+  const gardenRewardCount=(garden?.availableSun??0)+flauschiAvailable;
   const weeklyTeamPoints = stats.scores.Johannes.points + stats.scores.Sonja.points;
   const gardenXp = stats.totalScores.Johannes.points + stats.totalScores.Sonja.points;
   const gardenLevel = Math.floor(gardenXp / 100) + 1;
@@ -462,7 +477,7 @@ export default function Home() {
                         : `${choreCountToday} Aufgaben für heute stehen an.`}
               </em>
             </h1>
-            <div className="daily-bottom"><div className="staubi-greeting"><span className="daily-spark" aria-hidden="true">✦</span><p><b>{loading?'Euer Tag wird sortiert:':openCount ? 'Heute wartet auf euch:' : 'Feierabendmodus:'}</b> {loading?'Gleich ist eure Tagesauswahl da.':openCount ? `${openCount} ${openCount === 1 ? 'gute Gelegenheit' : 'gute Gelegenheiten'} für XP. Welche schnappt ihr euch?` : "Nichts drängt. Macht es euch gemütlich."}</p></div>{!loading&&openCount > 0 && <a className="round-start" href="#aufgaben"><span>Erste Aufgabe</span><b>Auswählen <i>→</i></b></a>}</div>
+            <div className="daily-bottom"><div className="staubi-greeting"><span className="daily-spark" aria-hidden="true">✦</span><p><b>{loading?'Euer Tag wird sortiert:':openCount ? 'Euer nächster kleiner Gewinn:' : 'Feierabendmodus:'}</b> {loading?'Gleich ist eure Tagesauswahl da.':openCount ? `Ein Haken schenkt XP, Sonne und einen Spielmoment mit Flauschi.` : "Nichts drängt. Macht es euch gemütlich."}</p></div>{!loading&&openCount > 0 && <button type="button" className="round-start" onClick={()=>openMobileScreen('chores')}><span>Direkt loslegen</span><b>Aufgabe wählen <i>→</i></b></button>}</div>
           </div>
         </div>
       </section>
@@ -490,7 +505,7 @@ export default function Home() {
         <button className="progress-toggle" onClick={() => setProgressOpen((open) => !open)} aria-expanded={progressOpen}><span>★ Level & Wochenmission</span><b>{weeklyTeamPoints}/{weeklyGoal} XP</b></button>
         <section className="plant-room-game" aria-label="Euer gemeinsamer Gartenbereich">
           <div className="garden-game-head"><div><p className="eyebrow">EUER KLEINES COZY-SPIEL</p><h2>Euer Zuhause wächst.</h2><p>Aufgaben schenken Sonne fürs Regal und Pflegemomente für Flauschis Nest.</p></div><button type="button" className="garden-level-pill" onClick={()=>setProgressOpen((open)=>!open)} aria-expanded={progressOpen}><span>Cozy-Level {gardenLevel}</span><b>{gardenProgress}/100 XP {progressOpen?'↑':'↓'}</b></button></div>
-          <nav className="garden-mode-switch" aria-label="Gartenbereich auswählen"><button type="button" className={gardenPanel==='plants'?'active':''} aria-pressed={gardenPanel==='plants'} onClick={()=>setGardenPanel('plants')}>🌿 Pflanzenregal</button><button type="button" className={gardenPanel==='flauschi'?'active':''} aria-pressed={gardenPanel==='flauschi'} onClick={()=>setGardenPanel('flauschi')}>☁️ Flauschis Nest</button></nav>
+          <nav className="garden-mode-switch" aria-label="Gartenbereich auswählen"><button type="button" className={gardenPanel==='plants'?'active':''} aria-pressed={gardenPanel==='plants'} onClick={()=>setGardenPanel('plants')}><small>WACHSEN</small><b>Pflanzenregal</b>{Boolean(garden?.availableSun)&&<em>{garden?.availableSun}</em>}</button><button type="button" className={gardenPanel==='flauschi'?'active':''} aria-pressed={gardenPanel==='flauschi'} onClick={()=>setGardenPanel('flauschi')}><small>SPIELEN</small><b>Flauschis Nest</b>{Boolean(flauschiAvailable)&&<em>{flauschiAvailable}</em>}</button></nav>
           {!PROTOTYPE_GARDEN_MODE && <nav className="garden-room-tabs" aria-label="Pflanzenräume">{garden?.rooms.map((room)=><button key={room.name} disabled={!room.unlocked} className={gardenRoom===room.name?'active':''} onClick={()=>room.unlocked&&setGardenRoom(room.name)}><span>{room.unlocked?room.name:'🔒 '+room.name}</span><small>{room.count}/{room.capacity}</small></button>)}</nav>}
           {gardenPanel==='plants' ? <><div className="garden-scene-shell">
             <div className="garden-scene-title"><span><small>{activeGardenRoom.toUpperCase()}</small><b>{activeGardenItems.length ? `${activeGardenItems.length} ${activeGardenItems.length===1?'Pflanze wohnt':'Pflanzen wohnen'} hier` : 'Der erste Keim wartet auf euch'}</b></span><em>{garden?.availableSun ? `${garden.availableSun}× Sonne bereit` : 'Nächste Aufgabe lädt Sonne'}</em></div>
@@ -499,7 +514,7 @@ export default function Home() {
             <ul className="garden-scene-accessible">{gardenScenePlants.map((plant)=><li key={plant.id}>{plant.name}, Stufe {plant.stage} von 12: {growthLabel(plant.stage)}</li>)}</ul>
           </div>
           {garden?.collection.filter((item)=>item.room===activeGardenRoom).length ? <ul className="garden-collection" aria-label={`Pflanzen im ${activeGardenRoom}`}>{garden.collection.filter((item)=>item.room===activeGardenRoom).slice(-8).map((item)=><li key={item.weekKey}><span className="garden-collection-symbol" aria-hidden="true">{item.plant.emoji}</span><span><b>{item.plant.name}</b><small>Stufe {item.growthStage}/12 · {growthLabel(item.growthStage)}</small></span></li>)}</ul> : null}
-          <div className="garden-track"><i style={{width:`${gardenProgress}%`}} /></div><div className="garden-meta"><b>Gemeinsam {gardenXp} XP gesammelt</b><span>Noch {100-gardenProgress} XP bis Raum-Level {gardenLevel+1}</span></div></> : <FlauschiNest person={person} todayTasks={garden?.todayTasks??stats.todayTasks} onGoToTasks={()=>{setMobileView('chores');window.setTimeout(()=>document.getElementById('aufgaben')?.scrollIntoView({behavior:'smooth',block:'start'}),0)}}/>}
+          <div className="garden-track"><i style={{width:`${gardenProgress}%`}} /></div><div className="garden-meta"><b>Gemeinsam {gardenXp} XP gesammelt</b><span>Noch {100-gardenProgress} XP bis Raum-Level {gardenLevel+1}</span></div></> : <FlauschiNest person={person} todayTasks={garden?.todayTasks??stats.todayTasks} onGoToTasks={()=>openMobileScreen('chores')} onAvailableChange={setFlauschiAvailable}/>}
           {garden && !garden.chosenToday && garden.rewardReady && <div id="pflanzenwahl" className="daily-plant-reward is-ready"><span><small>HEUTIGER KEIM · {activeGardenRoom.toUpperCase()}</small><b>Welche Pflanze darf einziehen?</b></span><div>{garden.candidates.map((candidate)=><button disabled={gardenBusy} onClick={()=>chooseGardenPlant(candidate.key)} key={candidate.key}><img className="growth-sprite" src={gardenGrowthSrc(candidate.key,1)} alt=""/><b>{candidate.name}</b><small>Einziehen lassen</small></button>)}</div></div>}
           {garden?.chosenToday && <div className="next-plant"><span>✨</span><p><b>Heutige Pflanze freigeschaltet</b>Morgen könnt ihr mit drei Aufgaben den nächsten Platz begrünen.</p></div>}
         </section>
@@ -741,12 +756,31 @@ export default function Home() {
         <div className="water-burst" aria-hidden="true"><span className="celebration-symbol">{celebration.icon}</span><i></i><i></i><i></i><i></i><i></i></div>
         <strong>Aufgabe geschafft!</strong><p>{celebration.person} hat „{celebration.label}“ erledigt. Das Zuhause atmet auf.</p><b>+{celebration.points} XP</b>
       </div>}
+      {completionReward && <div className="reward-sheet-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget)setCompletionReward(null)}}>
+        <section className="reward-sheet" role="dialog" aria-modal="true" aria-labelledby="reward-title">
+          <button type="button" className="reward-sheet-close" aria-label="Belohnung schließen" onClick={()=>setCompletionReward(null)}>×</button>
+          <div className="reward-sheet-flare" aria-hidden="true"><i/><i/><i/></div>
+          <p>AUFGABE GESCHAFFT</p>
+          <h2 id="reward-title">Das fühlt sich gut an.</h2>
+          <span className="reward-task-name">{completionReward.person}: „{completionReward.label}“</span>
+          <div className="reward-earned">
+            <article><small>PERSÖNLICH</small><b>+{completionReward.points} XP</b>{completionReward.bonus>0&&<em>inkl. {completionReward.bonus} Bonus</em>}</article>
+            <article><small>GEMEINSAM</small><b>1 Sonnenfunke</b><em>für euer Regal</em></article>
+            <article><small>FLAUSCHI</small><b>1 Spielmoment</b><em>wartet im Nest</em></article>
+          </div>
+          <div className="reward-destinations">
+            <button type="button" onClick={()=>{setCompletionReward(null);openMobileScreen('level','plants')}}><span>JETZT WACHSEN LASSEN</span><b>Zum Pflanzenregal</b></button>
+            <button type="button" onClick={()=>{setCompletionReward(null);openMobileScreen('level','flauschi')}}><span>JETZT BELOHNEN</span><b>Zu Flauschi</b></button>
+          </div>
+          <div className="reward-sheet-footer"><button type="button" onClick={()=>setCompletionReward(null)}>Später</button>{undoInfo&&<button type="button" onClick={undoChore}>Rückgängig</button>}</div>
+        </section>
+      </div>}
       <nav className="mobile-nav" aria-label="Hauptnavigation">
-        <button className={mobileView==='today'?'active':''} aria-current={mobileView==='today'?'page':undefined} onClick={()=>{setMobileView('today');window.scrollTo({top:0,behavior:'smooth'})}}><span aria-hidden="true">⌂</span>Heute</button>
-        <button className={mobileView==='chores'?'active':''} aria-current={mobileView==='chores'?'page':undefined} onClick={()=>{setMobileView('chores');window.scrollTo({top:0,behavior:'smooth'})}}><span aria-hidden="true">✓</span>Aufgaben</button>
-        <button className={mobileView==='plants'?'active':''} aria-current={mobileView==='plants'?'page':undefined} onClick={()=>{setMobileView('plants');setPlantsOpen(true);window.scrollTo({top:0,behavior:'smooth'})}}><span aria-hidden="true">☘</span>Pflanzen</button>
-        <button className={mobileView==='level'?'active':''} aria-current={mobileView==='level'?'page':undefined} onClick={()=>{setMobileView('level');setProgressOpen(false);window.scrollTo({top:0,behavior:'smooth'})}}><span aria-hidden="true">🌱</span>Garten</button>
-        <button className={mobileView==='profile'?'active':''} aria-current={mobileView==='profile'?'page':undefined} onClick={()=>{setMobileView('profile');window.scrollTo({top:0,behavior:'smooth'})}}><img className="mobile-nav-avatar" src={avatarFor[person]} alt="" />Level</button>
+        <button className={mobileView==='today'?'active':''} aria-current={mobileView==='today'?'page':undefined} onClick={()=>openMobileScreen('today')}><span aria-hidden="true">⌂</span>Heute</button>
+        <button className={mobileView==='chores'?'active':''} aria-current={mobileView==='chores'?'page':undefined} onClick={()=>openMobileScreen('chores')}><span aria-hidden="true">✓</span>{choreCountToday>0&&<em className="nav-badge">{Math.min(9,choreCountToday)}</em>}Aufgaben</button>
+        <button className={mobileView==='plants'?'active':''} aria-current={mobileView==='plants'?'page':undefined} onClick={()=>openMobileScreen('plants')}><span aria-hidden="true">☘</span>Pflanzen</button>
+        <button className={mobileView==='level'?'active':''} aria-current={mobileView==='level'?'page':undefined} onClick={()=>openMobileScreen('level')}><span aria-hidden="true">◇</span>{gardenRewardCount>0&&<em className="nav-badge is-reward">{Math.min(9,gardenRewardCount)}</em>}Garten</button>
+        <button className={mobileView==='profile'?'active':''} aria-current={mobileView==='profile'?'page':undefined} onClick={()=>openMobileScreen('profile')}><img className="mobile-nav-avatar" src={avatarFor[person]} alt="" />Level</button>
       </nav>
     </main>
   );
