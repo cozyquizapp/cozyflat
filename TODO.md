@@ -1,6 +1,6 @@
 # CozyFlat – offene Arbeiten
 
-Stand: 28. August 2026
+Stand: 29. August 2026
 
 ## Priorität 1 – konsistente Vorschaubilder
 
@@ -61,3 +61,6 @@ Stand: 28. August 2026
 - Aufgaben lassen sich direkt über das Plus ihrer Kategorie anlegen; Pflanzen direkt über die Plus-Kachel des geöffneten Raums.
 - Jeder Personenlink bindet auf dem iPhone nur noch das eigene Profil im Kopf; die Navigation nutzt einheitliche echte Icons.
 - Flauschi reagiert auf freigeschaltete Pflegemomente, bietet Snack/Bürsten/Spielen, wechselt Stimmung und Tageslicht und entdeckt regelmäßig Nestfunde.
+- Flauschis Stöberspiel bietet drei regenerierende Versuche, Bonusversuche aus echten Aufgaben, Tageszeit-Funde, Goldfunken und eine gemeinsame Sammlung mit zwanzig Nestschätzen.
+- Die Stöberfläche ist auf echte iPhone-Höhe verdichtet und bleibt während des Spiels vollständig ohne Seitenscroll erreichbar.
+- Erfolgreiches Gießen löst jetzt einen eigenen Wachstums-Reveal mit sichtbarer Stufe, Pflanzenwechsel, Licht, Blättern, Ton und Haptik aus.

@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BrushCleaning, Cookie, MoonStar, Sparkles, ToyBrick } from "lucide-react";
+import { Cookie, Crown, Flower2, Hand, Leaf, MoonStar, Sparkles, Sun, Sunrise, Sunset, ToyBrick } from "lucide-react";
+import FlauschiSearchGame from "./FlauschiSearchGame";
 
 type Person = "Johannes" | "Sonja";
 type CareAction = "feed" | "brush" | "play";
 type FlauschiState = {
   dayKey:string;
   availableCare:number;
+  careBudget:number;
   todayCare:number;
   todayTasks:number;
+  todayPeople:string[];
+  duoBonusUnlocked:boolean;
   todayActions:CareAction[];
   dailySetProgress:number;
   dailySetComplete:boolean;
@@ -19,24 +23,62 @@ type FlauschiState = {
   levelGoal:number;
   lastAction:CareAction|null;
   lastPerson:string|null;
+  searchEnergy:number;
+  searchCapacity:number;
+  taskSearchBonus:number;
+  availableSearches:number;
+  nextSearchAt:number|null;
+  totalSearches:number;
+  collection:Array<{itemId:string;count:number;firstFoundAt:string;lastFoundAt:string}>;
 };
 
 const ACTIONS:Array<{key:CareAction;step:string;label:string;shortLabel:string;detail:string;reactions:string[]}> = [
   {key:"feed",step:"01",label:"Snack geben",shortLabel:"Snack",detail:"kleiner Energie-Kick",reactions:["Krümelalarm! Flauschi ist sehr zufrieden.","Der Snack ist weg. Niemand hat etwas gesehen.","Flauschi macht das zufriedene Mini-Wackeln."]},
-  {key:"brush",step:"02",label:"Flausch polieren",shortLabel:"Bürsten",detail:"Glanzstufe erhöhen",reactions:["Jetzt ist Flauschi offiziell wolkenweich.","Flauschgrad: beneidenswert.","Einmal durchgebürstet, dreimal aufgeplustert."]},
+  {key:"brush",step:"02",label:"Flauschi kraulen",shortLabel:"Kraulen",detail:"Flausch entspannen",reactions:["Flauschi schmilzt fast in den Teppich.","Kraulstelle getroffen. Maximale Zufriedenheit.","Noch ein kleines bisschen links … genau da!"]},
   {key:"play",step:"03",label:"Ballzeit",shortLabel:"Spielen",detail:"eine Runde herumkugeln",reactions:["Flauschi jagt den Ball mit maximalem Einsatz.","Der Ball verliert. Flauschi gewinnt.","Eine wilde Runde später ist Flauschi sehr stolz."]},
 ];
 
-const NEST_FINDS = ["Goldener Knopf", "Blattkissen", "Glitzerball", "Mini-Gießkanne", "Fensterstern", "Pflanzensamen"];
+const NEST_FINDS = ["Blättergirlande", "Spielkorb", "Fensterlichter", "Sternkissen", "Goldener Knopf", "Pflanzensamen"];
+const LEVEL_TITLES = ["Flauschküken", "Blattfreund", "Kuschelprofi", "Nesthüter", "Cozy-Legende"];
+const ACTION_ANIMATION_MS = 2400;
+
+let flauschiAudioContext:AudioContext|null=null;
+
+function playFlauschiSound(kind:CareAction|'level') {
+  if(typeof window==='undefined')return;
+  const AudioContextClass=window.AudioContext||(window as typeof window & {webkitAudioContext?:typeof AudioContext}).webkitAudioContext;
+  if(!AudioContextClass)return;
+  flauschiAudioContext??=new AudioContextClass();
+  const context=flauschiAudioContext;
+  if(context.state==='suspended')void context.resume();
+  const notes=kind==='feed'?[392,523]:kind==='brush'?[330,392]:kind==='play'?[440,587,659]:[523,659,784];
+  const now=context.currentTime;
+  notes.forEach((frequency,index)=>{
+    const oscillator=context.createOscillator();
+    const gain=context.createGain();
+    oscillator.type=kind==='feed'?'triangle':'sine';
+    oscillator.frequency.setValueAtTime(frequency,now+index*.09);
+    gain.gain.setValueAtTime(.0001,now+index*.09);
+    gain.gain.exponentialRampToValueAtTime(kind==='level' ? .045 : .026,now+index*.09+.018);
+    gain.gain.exponentialRampToValueAtTime(.0001,now+index*.09+.24);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(now+index*.09);
+    oscillator.stop(now+index*.09+.26);
+  });
+}
 
 function ActionIcon({action}:{action:CareAction}) {
-  return action==='feed'?<Cookie aria-hidden="true" />:action==='brush'?<BrushCleaning aria-hidden="true" />:<ToyBrick aria-hidden="true" />;
+  return action==='feed'?<Cookie aria-hidden="true" />:action==='brush'?<Hand aria-hidden="true" />:<ToyBrick aria-hidden="true" />;
 }
 
 export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableChange}:{person:Person;todayTasks:number;onGoToTasks:()=>void;onAvailableChange?:(count:number)=>void}) {
   const [state,setState]=useState<FlauschiState|null>(null);
   const [active,setActive]=useState<CareAction|null>(null);
   const [petting,setPetting]=useState(false);
+  const [levelCelebration,setLevelCelebration]=useState(false);
+  const [returnMoment,setReturnMoment]=useState(false);
+  const [demoLevel,setDemoLevel]=useState<number|null>(null);
+  const [demoDuo,setDemoDuo]=useState(false);
   const [daypart,setDaypart]=useState<'morning'|'day'|'evening'|'night'>('day');
   const [message,setMessage]=useState("Flauschi döst auf dem Lieblingskissen und wartet auf euch.");
 
@@ -49,11 +91,75 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
   },[todayTasks,onAvailableChange]);
 
   useEffect(()=>{
-    const timer=window.setTimeout(()=>{
+    const updateDaypart=()=>{
       const hour=new Date().getHours();
       setDaypart(hour<6?'night':hour<11?'morning':hour<18?'day':hour<22?'evening':'night');
+    };
+    const timer=window.setTimeout(updateDaypart,0);
+    const interval=window.setInterval(updateDaypart,60_000);
+    return ()=>{window.clearTimeout(timer);window.clearInterval(interval)};
+  },[]);
+
+  useEffect(()=>{
+    const storageKey=`cozyflat:flauschi:last-visit:${person}`;
+    const checkReturn=()=>{
+      if(document.visibilityState==='hidden')return;
+      try {
+        const now=Date.now();
+        const previous=Number(window.localStorage.getItem(storageKey)??0);
+        if(previous>0&&now-previous>=4*60*60*1000)setReturnMoment(true);
+        window.localStorage.setItem(storageKey,String(now));
+      } catch {
+        // Private browsing can disable storage; the core care loop still works.
+      }
+    };
+    checkReturn();
+    document.addEventListener('visibilitychange',checkReturn);
+    return ()=>document.removeEventListener('visibilitychange',checkReturn);
+  },[person]);
+
+  useEffect(()=>{
+    if(!state||active||petting||levelCelebration)return;
+    if(state.duoBonusUnlocked&&state.availableCare>0) {
+      setMessage("Ihr habt heute beide angepackt – Flauschi hat einen Extra-Moment für euch aufgehoben.");
+    } else if(state.availableCare>0) {
+      setMessage(`${state.lastPerson??person} hat Flauschi einen neuen Spielmoment mitgebracht.`);
+    } else if(returnMoment) {
+      setMessage("Während ihr weg wart, hat Flauschi einen goldenen Knopf unter dem Kissen entdeckt.");
+    } else if(daypart==='night') {
+      setMessage("Flauschi schläft tief und träumt von Krümeln und Blattkissen.");
+    } else if(daypart==='evening') {
+      setMessage("Flauschi wird langsam müde und kuschelt sich auf sein Lieblingskissen.");
+    } else {
+      setMessage("Flauschi döst auf dem Lieblingskissen und wartet auf eure nächste echte Aufgabe.");
+    }
+  },[active,daypart,levelCelebration,person,petting,returnMoment,state]);
+
+  useEffect(()=>{
+    if(process.env.NODE_ENV!=='development')return;
+    let resetTimer:number|undefined;
+    const previewTimer=window.setTimeout(()=>{
+      const params=new URLSearchParams(window.location.search);
+      const requestedAction=params.get('flauschiDemo');
+      const requestedLevel=Number(params.get('flauschiLevel'));
+      const requestedDaypart=params.get('flauschiTime');
+      const requestedCelebration=params.get('flauschiCelebrate');
+      if(Number.isFinite(requestedLevel)&&requestedLevel>=1)setDemoLevel(Math.min(5,Math.round(requestedLevel)));
+      if(params.get('flauschiDuo')==='1')setDemoDuo(true);
+      if(requestedDaypart==='morning'||requestedDaypart==='day'||requestedDaypart==='evening'||requestedDaypart==='night')setDaypart(requestedDaypart);
+      if(requestedCelebration==='1') {
+        setLevelCelebration(true);
+        resetTimer=window.setTimeout(()=>setLevelCelebration(false),2600);
+      }
+      if(requestedAction!=='feed'&&requestedAction!=='brush'&&requestedAction!=='play')return;
+      setActive(requestedAction);
+      setMessage(requestedAction==='feed'?'Vorschau: Flauschi verputzt den Keks.':requestedAction==='brush'?'Vorschau: Flauschi genießt die Kraulrunde.':'Vorschau: Flauschi jagt seinen Ball.');
+      resetTimer=window.setTimeout(()=>setActive(null),ACTION_ANIMATION_MS);
     },0);
-    return ()=>window.clearTimeout(timer);
+    return ()=>{
+      window.clearTimeout(previewTimer);
+      if(resetTimer!==undefined)window.clearTimeout(resetTimer);
+    };
   },[]);
 
   async function care(action:CareAction) {
@@ -65,16 +171,26 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
       return;
     }
     const previous=state;
+    const animationStartedAt=Date.now();
     const totalCare=state.totalCare+1;
     const todayActions=state.todayActions.includes(action)?state.todayActions:[...state.todayActions,action];
     const dailySetProgress=todayActions.length;
     setActive(action);
+    setReturnMoment(false);
+    playFlauschiSound(action);
     const optimistic={...state,availableCare:state.availableCare-1,todayCare:state.todayCare+1,todayActions,dailySetProgress,dailySetComplete:dailySetProgress===3,totalCare,level:Math.floor(totalCare/state.levelGoal)+1,levelProgress:totalCare%state.levelGoal,lastAction:action,lastPerson:person};
     setState(optimistic);
     onAvailableChange?.(optimistic.availableCare);
     const actionConfig=ACTIONS.find((item)=>item.key===action);
     const reaction=actionConfig?.reactions[Math.floor(Math.random()*(actionConfig.reactions.length||1))]??"Flauschi freut sich.";
     const foundReward=totalCare%state.levelGoal===0;
+    if(foundReward) {
+      window.setTimeout(()=>{
+        setLevelCelebration(true);
+        playFlauschiSound('level');
+      },900);
+      window.setTimeout(()=>setLevelCelebration(false),3100);
+    }
     setMessage(foundReward?`Nestfund! Flauschi hat „${NEST_FINDS[(Math.floor(totalCare/state.levelGoal)-1)%NEST_FINDS.length]}“ entdeckt.`:dailySetProgress===3?"Tagesritual komplett – drei echte Aufgaben, drei schöne Momente.":reaction);
     if('vibrate' in navigator) navigator.vibrate([18,32,26]);
     try {
@@ -88,13 +204,15 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
       onAvailableChange?.(previous.availableCare);
       setMessage("Das hat gerade nicht gespeichert. Versuch es bitte noch einmal.");
     } finally {
-      window.setTimeout(()=>setActive(null),900);
+      const remaining=Math.max(0,ACTION_ANIMATION_MS-(Date.now()-animationStartedAt));
+      window.setTimeout(()=>setActive(null),remaining);
     }
   }
 
   function petFlauschi() {
     if(active||petting) return;
     if(available>0){ void care('brush'); return; }
+    setReturnMoment(false);
     setPetting(true);
     setMessage(`${person}, Flauschi blinzelt zufrieden und rutscht ein Stück näher.`);
     if('vibrate' in navigator) navigator.vibrate(12);
@@ -103,15 +221,19 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
 
   const available=state?.availableCare??0;
   const level=state?.level??1;
+  const levelTier=demoLevel??Math.min(5,Math.max(1,level));
+  const visibleLevel=demoLevel??level;
+  const levelTitle=LEVEL_TITLES[levelTier-1];
   const progress=state?.levelProgress??0;
   const goal=state?.levelGoal??6;
   const nextReward=goal-progress||goal;
   const todayActions=state?.todayActions??[];
+  const duoBonusUnlocked=(state?.duoBonusUnlocked??false)||demoDuo;
   const dailySetProgress=state?.dailySetProgress??0;
   const dailySetComplete=state?.dailySetComplete??false;
   const foundCount=Math.floor((state?.totalCare??0)/goal);
   const latestFind=foundCount>0?NEST_FINDS[(foundCount-1)%NEST_FINDS.length]:null;
-  const moodKey=active?'celebrating':available>0?'curious':dailySetComplete?'happy':daypart==='night'||daypart==='evening'?'sleepy':'calm';
+  const moodKey=active||levelCelebration?'celebrating':available>0||returnMoment?'curious':daypart==='night'||daypart==='evening'?'sleepy':dailySetComplete?'happy':'calm';
   const mood=active
     ? ACTIONS.find((item)=>item.key===active)?.label??"Flauschi freut sich"
     : available>0
@@ -120,17 +242,18 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
         ? "Für heute rundum versorgt"
         : "Noch schläft Flauschi gemütlich";
 
-  const daypartLabel={morning:'Morgenlicht',day:'Sonnenplatz',evening:'Abendruhe',night:'Nachtlicht'}[daypart];
+  const daypartLabel={morning:'Morgenlicht',day:'Sonnenplatz',evening:'Goldene Stunde',night:'Mondruhe'}[daypart];
+  const DaypartIcon=daypart==='morning'?Sunrise:daypart==='day'?Sun:daypart==='evening'?Sunset:MoonStar;
 
-  return <section className={`flauschi-nest-v2 level-${Math.min(4,level)} mood-${moodKey} ${available>0?'has-care':''} ${dailySetComplete?'ritual-complete':''} ${active?`is-${active}`:""} ${petting?'is-petting':''}`} aria-label="Flauschis Nest">
+  return <section className={`flauschi-nest-v2 level-${levelTier} mood-${moodKey} ${available>0?'has-care':''} ${returnMoment?'has-return':''} ${duoBonusUnlocked?'has-duo-bonus':''} ${dailySetComplete?'ritual-complete':''} ${active?`is-${active}`:""} ${petting?'is-petting':''} ${levelCelebration?'is-level-up':''}`} aria-label="Flauschis Nest">
     <header className="flauschi-nest-v2-head">
       <span><small>EUER KLEINER RÜCKKEHR-BONUS</small><strong>Flauschis Nest</strong></span>
-      <b>Level {level}</b>
+      <b><span>Level {visibleLevel}</span><small>{levelTitle}</small></b>
     </header>
 
     <div className="flauschi-loop-card" aria-label={`${available} ${available===1?'Spielmoment':'Spielmomente'} verfügbar`}>
       <span><b>{available}</b><small>{available===1?'Spielmoment':'Spielmomente'}</small></span>
-      <div><strong>1 Aufgabe = 1 Moment mit Flauschi</strong><small>{available>0?'Tippt im Zimmer auf Snackglas, Wollkorb oder Flauschi.':'Der nächste Haken weckt Flauschi wieder auf.'}</small></div>
+      <div><strong>1 Aufgabe = 1 Moment mit Flauschi {duoBonusUnlocked&&<em>DUO +1</em>}</strong><small>{available>0?'Wählt Snack, Kraulen oder Spielen – der Duo-Bonus schenkt einen Extra-Moment.':'Der nächste Haken weckt Flauschi wieder auf.'}</small></div>
     </div>
 
     <div className="flauschi-daily-ritual" aria-label={`Tagesritual ${dailySetProgress} von 3`}>
@@ -140,14 +263,55 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
 
     <div className={`flauschi-room-v2 time-${daypart}`} aria-live="polite">
       <span className="flauschi-daypart">{daypartLabel}</span>
-      <span className="flauschi-room-hint">{available>0?'Flauschi ist wach':'Ruhemodus'}</span>
-      <span className="flauschi-mood-icon" aria-hidden="true">{available>0?<Sparkles />:<MoonStar />}</span>
+      <span className="flauschi-room-hint">{available>0?'Flauschi ist wach':returnMoment?'Kleiner Fund':'Ruhemodus'}</span>
+      <span className="flauschi-time-orb" aria-hidden="true"><DaypartIcon /><i /><i /><i /></span>
+      <span className="flauschi-ambient-scene" aria-hidden="true">
+        {Array.from({length:8},(_,index)=><i key={index} />)}
+      </span>
+      <span className="flauschi-nest-decor" aria-hidden="true">
+        <img className="flauschi-decor flauschi-decor-garland" src="/flauschi-decor-garland-v1.webp" alt="" />
+        <img className="flauschi-decor flauschi-decor-toys" src="/flauschi-decor-toy-basket-v1.webp" alt="" />
+        <img className="flauschi-decor flauschi-decor-lights" src="/flauschi-decor-window-lights-v1.webp" alt="" />
+        <img className="flauschi-decor flauschi-decor-pillow" src="/flauschi-decor-star-pillow-v1.webp" alt="" />
+      </span>
+      {levelCelebration&&<span className="flauschi-level-burst" aria-hidden="true">{Array.from({length:12},(_,index)=><i key={index} />)}</span>}
+      {(available>0||returnMoment)&&<span className="flauschi-mood-icon" aria-hidden="true"><Sparkles /></span>}
       {active && <span className="flauschi-action-label">{ACTIONS.find((item)=>item.key===active)?.label}</span>}
-      {active&&<span className={`flauschi-active-prop prop-${active}`} aria-hidden="true"><ActionIcon action={active} /></span>}
-      <button type="button" className="flauschi-character-button" onClick={petFlauschi} aria-label={available>0?'Flauschi pflegen':'Flauschi streicheln'} disabled={Boolean(active)}><img className="flauschi-character-v2" src="/flauschi-cutout-v2.webp" alt="Flauschi auf seinem Lieblingskissen" /></button>
+      {active&&<span className={`flauschi-action-stage action-${active}`} aria-hidden="true">
+        {active==='feed'?<span className="flauschi-cookie-sequence">
+          <img className="flauschi-cookie-state cookie-whole" src="/flauschi-cookie-whole-v1.webp" alt="" />
+          <img className="flauschi-cookie-state cookie-bite" src="/flauschi-cookie-bite-v1.webp" alt="" />
+          <img className="flauschi-cookie-state cookie-half" src="/flauschi-cookie-half-v1.webp" alt="" />
+          <img className="flauschi-cookie-state cookie-crumbs" src="/flauschi-cookie-crumbs-v1.webp" alt="" />
+        </span>:<i className="flauschi-action-object">
+          <img src={active==='brush'?'/flauschi-petting-hand-v1.webp':'/flauschi-play-ball-v1.webp'} alt="" />
+        </i>}
+        {active==='feed'&&<span className="flauschi-crumbs"><i /><i /><i /><i /><i /></span>}
+        {active==='brush'&&<span className="flauschi-pet-hearts"><i>♥</i><i>♥</i><i>♥</i></span>}
+        {active==='play'&&<span className="flauschi-play-trail"><i /><i /><i /></span>}
+      </span>}
+      <button type="button" className="flauschi-character-button" onClick={petFlauschi} aria-label={available>0?'Flauschi kraulen':'Flauschi streicheln'} disabled={Boolean(active)}>
+        <span className="flauschi-character-stack">
+          <img className="flauschi-character-v2 flauschi-state-idle" src="/flauschi-idle-v2.webp" alt="Flauschi auf seinem Lieblingskissen" />
+          <img className="flauschi-character-v2 flauschi-character-state flauschi-state-blink" src="/flauschi-blink-v2.webp" alt="" />
+          <img className="flauschi-character-v2 flauschi-character-state flauschi-state-sleep" src="/flauschi-sleep-v1.webp" alt="" />
+          <img className="flauschi-character-v2 flauschi-character-state flauschi-state-bite" src="/flauschi-bite-open-v2.webp" alt="" />
+          <img className="flauschi-character-v2 flauschi-character-state flauschi-state-chew" src="/flauschi-chew-v2.webp" alt="" />
+          <img className="flauschi-character-v2 flauschi-character-state flauschi-state-petted" src="/flauschi-petted-v2.webp" alt="" />
+          <img className="flauschi-character-v2 flauschi-character-state flauschi-state-cheer" src="/flauschi-cheer-v1.webp" alt="" />
+          <span className="flauschi-level-wearables" aria-hidden="true">
+            <i className="flauschi-wearable flauschi-leaf"><Leaf /></i>
+            <i className="flauschi-wearable flauschi-flower"><Flower2 /></i>
+            <i className="flauschi-wearable flauschi-crown"><Crown /></i>
+            <i className="flauschi-wearable flauschi-legend"><Sparkles /></i>
+          </span>
+        </span>
+      </button>
     </div>
 
     <div className="flauschi-speech-v2" role="status"><b>{mood}</b><span>{message}</span></div>
+
+    {state&&<FlauschiSearchGame person={person} daypart={daypart} level={visibleLevel} state={state} onStateChange={(next)=>setState(next as FlauschiState)} />}
 
     {available>0&&<div className="flauschi-actions-v2" aria-label="Flauschi pflegen">{ACTIONS.map((item)=>{
       const alreadyDone=!dailySetComplete&&todayActions.includes(item.key);

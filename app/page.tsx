@@ -1,7 +1,7 @@
 "use client";
 import { FormEvent, SyntheticEvent, useCallback, useEffect, useMemo, useState } from "react";
 import FlauschiNest from "./FlauschiNest";
-import GardenScene from "./GardenScene";
+import GardenScene, { type GardenGrowthOutcome } from "./GardenScene";
 import MobileNav, { type MobileView } from './MobileNav';
 import RewardSheet, { type CompletionReward } from './RewardSheet';
 import { Plus } from 'lucide-react';
@@ -155,6 +155,8 @@ export default function Home() {
   const [stats, setStats] = useState<Stats>({ streak: 0, loginStreak: 0, loginDays: 0, todayTasks:0, nextTaskBonus:0, scores: emptyScores, totalScores: emptyScores, previousWeek: emptyScores });
   const [celebration, setCelebration] = useState<{ label: string; person: string; points: number; icon: string } | null>(null);
   const [completionReward, setCompletionReward] = useState<CompletionReward|null>(null);
+  const [completionWillUnlockPlant,setCompletionWillUnlockPlant]=useState(false);
+  const [plantChooserOpen,setPlantChooserOpen]=useState(false);
   const [garden, setGarden] = useState<GardenData|null>(null);
   const [gardenBusy, setGardenBusy] = useState(false);
   const [gardenRoom, setGardenRoom] = useState('Wohnzimmer');
@@ -290,6 +292,18 @@ export default function Home() {
     };
   }, []);
   useEffect(() => {
+    const showTapFeedback = (event: PointerEvent) => {
+      const target = event.target instanceof Element ? event.target.closest('button') : null;
+      if (!(target instanceof HTMLButtonElement) || target.disabled) return;
+      target.classList.remove('cozy-button-tapped');
+      void target.offsetWidth;
+      target.classList.add('cozy-button-tapped');
+      window.setTimeout(() => target.classList.remove('cozy-button-tapped'), 190);
+    };
+    document.addEventListener('pointerdown', showTapFeedback, { passive: true });
+    return () => document.removeEventListener('pointerdown', showTapFeedback);
+  }, []);
+  useEffect(() => {
     const day = localDayKey(new Date()).split('-').map((part, index) => index ? part.padStart(2,'0') : part).join('-');
     fetch('/api/stats',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({person,day})}).then(async (response)=>{if(response.ok)setStats(await response.json())}).catch(()=>undefined);
     fetch(`/api/gratitude?person=${encodeURIComponent(person)}`,{cache:'no-store'}).then(async(response)=>{if(response.ok){const entry=await response.json() as {text:string};setGratitudeText(entry.text);setGratitudeSaved(Boolean(entry.text));}}).catch(()=>undefined);
@@ -320,7 +334,7 @@ export default function Home() {
   },[]);
   const openGardenSeed = useCallback(() => {
     if (garden?.rewardReady && !garden.chosenToday) {
-      document.getElementById('pflanzenwahl')?.scrollIntoView({behavior:'smooth',block:'center'});
+      setPlantChooserOpen(true);
       setToast('Euer Keim ist bereit – sucht euch eine neue Pflanze aus.');
     } else if (garden?.chosenToday) {
       setToast('Die heutige Pflanze ist schon eingezogen. Morgen wächst der nächste Keim.');
@@ -378,6 +392,9 @@ export default function Home() {
     setChoreBusy(chore.id);
     const completionName=together?'Sonja & Johannes':person;
     setToast('');
+    setCompletionWillUnlockPlant(Boolean(garden&&!garden.chosenToday&&(garden.rewardReady||garden.todayTasks+1>=garden.dailyTaskGoal)));
+    const provisionalWeeklyPoints=weeklyTeamPoints+chore.points*(together?2:1);
+    setCompletionReward({label:chore.name,person:completionName,points:chore.points,bonus:0,weeklyRemaining:Math.max(0,200-provisionalWeeklyPoints),weeklyUnlocked:provisionalWeeklyPoints>=200});
     if ("vibrate" in navigator) navigator.vibrate([35,45,65]);
     try {
       const r = await fetch('/api/chores', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({id:chore.id,person,together}) });
@@ -391,15 +408,19 @@ export default function Home() {
         setUndoInfo({chore,eventIds:result.completion.eventIds});
         setTimeout(() => setUndoInfo(null),12000);
       }
-      const [s,g,f] = await Promise.all([fetch('/api/stats'),fetch('/api/garden'),fetch('/api/flauschi')]);
-      let nextStats:Stats|null=null;
-      if (s.ok) { nextStats=await s.json() as Stats; setStats(nextStats); }
-      if (g.ok) setGarden(await g.json());
-      if (f.ok) setFlauschiAvailable((await f.json() as {availableCare:number}).availableCare);
-      const nextWeeklyPoints=nextStats?nextStats.scores.Johannes.points+nextStats.scores.Sonja.points:weeklyTeamPoints+awarded*(together?2:1);
-      setCompletionReward({label:chore.name,person:completionName,points:awarded,bonus,weeklyRemaining:Math.max(0,200-nextWeeklyPoints),weeklyUnlocked:nextWeeklyPoints>=200});
+      setCompletionReward((current)=>current?{...current,points:awarded,bonus}:current);
+      void Promise.all([fetch('/api/stats'),fetch('/api/garden'),fetch('/api/flauschi')]).then(async([s,g,f])=>{
+        let nextStats:Stats|null=null;
+        if(s.ok){nextStats=await s.json() as Stats;setStats(nextStats);}
+        if(g.ok)setGarden(await g.json() as GardenData);
+        if(f.ok)setFlauschiAvailable((await f.json() as {availableCare:number}).availableCare);
+        if(nextStats){const nextWeeklyPoints=nextStats.scores.Johannes.points+nextStats.scores.Sonja.points;setCompletionReward((current)=>current?{...current,weeklyRemaining:Math.max(0,200-nextWeeklyPoints),weeklyUnlocked:nextWeeklyPoints>=200}:current);}
+      }).catch(()=>undefined);
     } catch {
       setCelebration(null);
+      setCompletionReward(null);
+      setCompletionWillUnlockPlant(false);
+      setPlantChooserOpen(false);
       setToast(`${chore.name} konnte gerade nicht gespeichert werden. Bitte noch einmal tippen.`);
     } finally {
       setChoreBusy(null);
@@ -414,40 +435,44 @@ export default function Home() {
   }
   async function chooseGardenPlant(plantKey:string) {
     setGardenBusy(true);
+    setToast('Eure neue Pflanze zieht ein …');
     const targetRoom = PROTOTYPE_GARDEN_MODE ? GARDEN_PROTOTYPE_ROOM : gardenRoom;
-    const response=await fetch('/api/garden',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({plantKey,person,room:targetRoom})});
-    if(response.ok){
+    try {
+      const response=await fetch('/api/garden',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({plantKey,person,room:targetRoom})});
+      if(!response.ok)throw new Error('garden-choice-failed');
       const nextGarden=await response.json() as GardenData;
       setGarden(nextGarden);
+      setPlantChooserOpen(false);
       if (!PROTOTYPE_GARDEN_MODE) {
         const newest=nextGarden.collection.find((item)=>item.weekKey===`daily:${nextGarden.dayKey}`);
         if(newest) setGardenRoom(newest.room);
       }
       setToast(`${person} hat eure heutige Zimmerpflanze freigeschaltet. 🌱`);
       setTimeout(()=>setToast(''),2800);
+    } catch {
+      setToast('Die Pflanze konnte gerade nicht einziehen. Bitte noch einmal tippen.');
+      setTimeout(()=>setToast(''),2800);
+    } finally {
+      setGardenBusy(false);
     }
-    setGardenBusy(false);
   }
-  async function waterGardenPlant(collectionKey:string):Promise<'grown'|'mature'|'no-sun'|'error'> {
+  async function waterGardenPlant(collectionKey:string):Promise<GardenGrowthOutcome> {
     try {
       const response=await fetch('/api/garden',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'water',collectionKey,person})});
       if(!response.ok) throw new Error('garden-water-failed');
       const result=await response.json() as GardenWaterResponse;
       setGarden(result.garden);
       if(result.success){
-        setToast(`Wasser + Sonne: Die Pflanze wächst auf Stufe ${result.stageAfter}. ✨`);
-        window.setTimeout(()=>setToast(''),2400);
-        if('vibrate' in navigator)navigator.vibrate([12,35,22]);
-        return 'grown';
+        return {status:'grown',stageBefore:result.stageBefore,stageAfter:result.stageAfter};
       }
       if(result.reason==='mature') setToast('Diese Pflanze ist schon ein Prachtstück – sucht euch eine andere aus.');
       else setToast('Der nächste Sonnenfunke entsteht durch eine erledigte Aufgabe.');
       window.setTimeout(()=>setToast(''),2400);
-      return result.reason==='mature'?'mature':'no-sun';
+      return {status:result.reason==='mature'?'mature':'no-sun',stageBefore:result.stageBefore,stageAfter:result.stageAfter};
     } catch {
       setToast('Das Wachstum konnte gerade nicht gespeichert werden. Euer Sonnenfunke bleibt erhalten.');
       window.setTimeout(()=>setToast(''),2600);
-      return 'error';
+      return {status:'error'};
     }
   }
   async function saveChoreForm(e: FormEvent<HTMLFormElement>) {
@@ -589,7 +614,6 @@ export default function Home() {
           </div>
           {garden?.collection.filter((item)=>item.room===activeGardenRoom).length ? <ul className="garden-collection" aria-label={`Pflanzen im ${activeGardenRoom}`}>{garden.collection.filter((item)=>item.room===activeGardenRoom).slice(-8).map((item)=><li key={item.weekKey}><span className="garden-collection-symbol" aria-hidden="true">{item.plant.emoji}</span><span><b>{item.plant.name}</b><small>Stufe {item.growthStage}/12 · {growthLabel(item.growthStage)}</small></span></li>)}</ul> : null}
           <div className="garden-track"><i style={{width:`${gardenProgress}%`}} /></div><div className="garden-meta"><b>Gemeinsam {gardenXp} XP gesammelt</b><span>Noch {100-gardenProgress} XP bis Raum-Level {gardenLevel+1}</span></div></> : <FlauschiNest person={person} todayTasks={garden?.todayTasks??stats.todayTasks} onGoToTasks={()=>openMobileScreen('chores')} onAvailableChange={setFlauschiAvailable}/>}
-          {garden && !garden.chosenToday && garden.rewardReady && <div id="pflanzenwahl" className="daily-plant-reward is-ready"><span><small>HEUTIGER KEIM · {activeGardenRoom.toUpperCase()}</small><b>Welche Pflanze darf einziehen?</b></span><div>{garden.candidates.map((candidate)=><button disabled={gardenBusy} onClick={()=>chooseGardenPlant(candidate.key)} key={candidate.key}><img className="growth-sprite" src={gardenGrowthSrc(candidate.key,1)} alt=""/><b>{candidate.name}</b><small>Einziehen lassen</small></button>)}</div></div>}
           {garden?.chosenToday && <div className="next-plant"><span>✨</span><p><b>Heutige Pflanze freigeschaltet</b>Morgen könnt ihr mit drei Aufgaben den nächsten Platz begrünen.</p></div>}
         </section>
         <section className="level-hub" aria-label="Eure Level und Wochenfortschritt">
@@ -831,7 +855,8 @@ export default function Home() {
         <div className="water-burst" aria-hidden="true"><span className="celebration-symbol">{celebration.icon}</span><i></i><i></i><i></i><i></i><i></i></div>
         <strong>Aufgabe geschafft!</strong><p>{celebration.person} hat „{celebration.label}“ erledigt. Das Zuhause atmet auf.</p><b>+{celebration.points} XP</b>
       </div>}
-      {completionReward && <RewardSheet reward={completionReward} onClose={()=>setCompletionReward(null)} onOpenGarden={()=>{setCompletionReward(null);openMobileScreen('level','plants')}} onOpenFlauschi={()=>{setCompletionReward(null);openMobileScreen('flauschi','flauschi')}} onUndo={undoInfo?undoChore:undefined}/>}
+      {plantChooserOpen&&garden&&!garden.chosenToday&&<div className="plant-choice-backdrop" onMouseDown={(event)=>{if(event.target===event.currentTarget)setPlantChooserOpen(false)}}><section className="plant-choice-dialog" role="dialog" aria-modal="true" aria-labelledby="plant-choice-title"><button type="button" className="plant-choice-close" onClick={()=>setPlantChooserOpen(false)} aria-label="Pflanzenauswahl schließen">×</button><div id="pflanzenwahl" className={`daily-plant-reward ${garden.rewardReady?'is-ready':'is-loading'}`}><span><small>HEUTIGER KEIM · {activeGardenRoom.toUpperCase()}</small><b id="plant-choice-title">{garden.rewardReady?'Welche Pflanze darf einziehen?':'Euer Keim wird vorbereitet …'}</b></span>{garden.rewardReady?<div>{garden.candidates.map((candidate)=><button disabled={gardenBusy} onClick={()=>chooseGardenPlant(candidate.key)} key={candidate.key}><img className="growth-sprite" src={gardenGrowthSrc(candidate.key,1)} alt=""/><b>{candidate.name}</b><small>{gardenBusy?'Zieht ein …':'Einziehen lassen'}</small></button>)}</div>:<p className="plant-choice-loading">Eure erledigte Aufgabe lädt gerade Sonne ins Regal.</p>}</div></section></div>}
+      {completionReward && <RewardSheet reward={completionReward} onClose={()=>{setCompletionReward(null);setCompletionWillUnlockPlant(false)}} onOpenGarden={()=>{setCompletionReward(null);setPlantChooserOpen(completionWillUnlockPlant);setCompletionWillUnlockPlant(false);openMobileScreen('level','plants')}} onOpenFlauschi={()=>{setCompletionReward(null);setCompletionWillUnlockPlant(false);openMobileScreen('flauschi','flauschi')}} onUndo={undoInfo?undoChore:undefined}/>}
       <MobileNav view={mobileView} choreCount={choreCountToday} rewardCount={garden?.availableSun??0} flauschiCount={flauschiAvailable} avatarSrc={avatarFor[person]} onNavigate={openMobileScreen}/>
     </main>
   );

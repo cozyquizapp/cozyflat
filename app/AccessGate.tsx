@@ -1,14 +1,18 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 
 type GateState = 'ready' | 'checking' | 'error';
+
+function currentReturnTarget() {
+  return `${window.location.pathname}${window.location.search}` || '/';
+}
 
 export default function AccessGate() {
   const [state, setState] = useState<GateState>('ready');
   const [message, setMessage] = useState('');
 
-  async function unlock(token: string) {
+  const unlock = useCallback(async (token: string, target = currentReturnTarget()) => {
     const cleanToken = token.trim();
     if (!cleanToken) {
       setState('error');
@@ -24,21 +28,22 @@ export default function AccessGate() {
         body: JSON.stringify({ token: cleanToken }),
       });
       if (!response.ok) throw new Error('invalid');
-      window.location.replace('/');
+      window.location.replace(target);
     } catch {
       setState('error');
       setMessage('Der Gerätecode stimmt nicht. Prüft bitte den privaten Link.');
     }
-  }
+  }, []);
 
   useEffect(() => {
     const fragment = new URLSearchParams(window.location.hash.slice(1));
     const token = fragment.get('access');
     if (!token) return;
-    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
-    const timer = window.setTimeout(() => void unlock(token), 0);
+    const target = currentReturnTarget();
+    window.history.replaceState(null, '', target);
+    const timer = window.setTimeout(() => void unlock(token, target), 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [unlock]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

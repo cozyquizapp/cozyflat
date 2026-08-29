@@ -18,8 +18,21 @@ type GardenSceneProps = {
   taskProgress: number;
   taskGoal: number;
   rewardReady: boolean;
-  onWaterPlant: (collectionKey: string) => Promise<"grown" | "mature" | "no-sun" | "error">;
+  onWaterPlant: (collectionKey: string) => Promise<GardenGrowthOutcome>;
   onOpenSeed: () => void;
+};
+
+export type GardenGrowthOutcome = {
+  status: "grown" | "mature" | "no-sun" | "error";
+  stageBefore?: number;
+  stageAfter?: number;
+};
+
+type GrowthReveal = {
+  plantKey: string;
+  name: string;
+  stageBefore: number;
+  stageAfter: number;
 };
 
 const PLANT_FALLBACKS: Record<string, string> = {
@@ -117,22 +130,34 @@ function SeedSlot({ slot, progress, goal, ready, onOpen }: { slot: number; progr
 export default function GardenScene({ room, plants, availableMotes, taskProgress, taskGoal, rewardReady, onWaterPlant, onOpenSeed }: GardenSceneProps) {
   const [wateringSlot, setWateringSlot] = useState<number | null>(null);
   const [reactingSlot, setReactingSlot] = useState<number | null>(null);
+  const [growthReveal, setGrowthReveal] = useState<GrowthReveal | null>(null);
   const shownPlants = plants.slice(0, 8);
   const firstEmptySlot = shownPlants.length + 1;
   const progress = Math.min(taskGoal, taskProgress);
   const hasSun = availableMotes > 0;
 
-  async function waterPlant(slot: number, collectionKey: string) {
-    if (wateringSlot !== null) return;
+  async function waterPlant(slot: number, plant: GardenScenePlant) {
+    if (wateringSlot !== null || growthReveal !== null) return;
     setWateringSlot(slot);
     playGardenChime("water");
     if ("vibrate" in navigator) navigator.vibrate(hasSun ? [18, 35, 24] : 18);
     window.setTimeout(() => setReactingSlot(slot), 560);
-    const outcome = hasSun ? onWaterPlant(collectionKey) : Promise.resolve("no-sun" as const);
+    const outcome = hasSun ? onWaterPlant(plant.id) : Promise.resolve({status:"no-sun" as const});
     const [result] = await Promise.all([outcome,new Promise((resolve)=>window.setTimeout(resolve,1120))]);
     setWateringSlot(null);
+    if(result.status==="grown") {
+      const stageBefore=result.stageBefore??plant.stage;
+      const stageAfter=result.stageAfter??Math.min(12,stageBefore+1);
+      setGrowthReveal({plantKey:visualPlantKey(plant.key),name:plant.name,stageBefore,stageAfter});
+      playGardenChime("grow");
+      if("vibrate" in navigator)navigator.vibrate([14,34,20,30,34]);
+      window.setTimeout(()=>{
+        setGrowthReveal(null);
+        setReactingSlot(null);
+      },2100);
+      return;
+    }
     setReactingSlot(null);
-    if(result==="grown") playGardenChime("grow");
   }
 
   return (
@@ -146,7 +171,7 @@ export default function GardenScene({ room, plants, availableMotes, taskProgress
             key={plant.id}
             type="button"
             className={`css-shelf-slot css-slot-${slot} ${key === "hoya" ? "is-trailing" : ""} ${reactingSlot === slot ? "is-reacting" : ""} ${hasSun && plant.stage < 12 ? "is-sun-target" : ""}`}
-            onClick={() => void waterPlant(slot,plant.id)}
+            onClick={() => void waterPlant(slot,plant)}
             aria-label={`${plant.name} gießen${hasSun && plant.stage < 12 ? " und wachsen lassen" : plant.stage >= 12 ? ", vollständig ausgewachsen" : ""}`}
           >
             <PottedPlant plantKey={key} stage={visualPlantStage(plant.stage)} alt={plant.name} />
@@ -167,6 +192,18 @@ export default function GardenScene({ room, plants, availableMotes, taskProgress
         </span>
         <b>{plants.length}/8</b>
       </div>
+
+      {growthReveal&&<div className="css-growth-reveal" role="status" aria-live="polite">
+        <span className="css-growth-rays" aria-hidden="true" />
+        <div className="css-growth-particles" aria-hidden="true">{Array.from({length:10},(_,index)=><i key={index} />)}</div>
+        <small>GEWACHSEN</small>
+        <div className={`css-growth-plant ${visualPlantStage(growthReveal.stageBefore)===visualPlantStage(growthReveal.stageAfter)?"is-same-visual":"is-new-visual"}`} aria-hidden="true">
+          <span className="is-before"><PottedPlant plantKey={growthReveal.plantKey} stage={visualPlantStage(growthReveal.stageBefore)} alt="" /></span>
+          <span className="is-after"><PottedPlant plantKey={growthReveal.plantKey} stage={visualPlantStage(growthReveal.stageAfter)} alt="" /></span>
+        </div>
+        <strong>Stufe {growthReveal.stageAfter}</strong>
+        <p>{visualPlantStage(growthReveal.stageBefore)===visualPlantStage(growthReveal.stageAfter)?"Die Wurzeln werden kräftiger.":`${growthReveal.name} zeigt neues Grün.`}</p>
+      </div>}
     </div>
   );
 }

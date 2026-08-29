@@ -39,6 +39,10 @@ async function ready() {
     db.prepare('CREATE INDEX IF NOT EXISTS idx_garden_watering_events_collection ON garden_watering_events(collection_key)'),
     db.prepare('CREATE TABLE IF NOT EXISTS flauschi_events (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT NOT NULL, person TEXT NOT NULL, action TEXT NOT NULL, created_at TEXT NOT NULL)'),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_flauschi_events_day ON flauschi_events(day)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS flauschi_search_energy (id INTEGER PRIMARY KEY NOT NULL, energy INTEGER NOT NULL DEFAULT 3, updated_at INTEGER NOT NULL)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS flauschi_search_events (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT NOT NULL, person TEXT NOT NULL, item_id TEXT NOT NULL, rarity TEXT NOT NULL, source TEXT NOT NULL, score INTEGER NOT NULL DEFAULT 0, bonus_caught INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_flauschi_search_events_day ON flauschi_search_events(day)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_flauschi_search_events_item ON flauschi_search_events(item_id)'),
     db.prepare('CREATE TABLE IF NOT EXISTS gratitude_entries (day TEXT NOT NULL, person TEXT NOT NULL, text TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(day, person))'),
   ]);
   try { await db.prepare('ALTER TABLE chores ADD COLUMN paused INTEGER NOT NULL DEFAULT 0').run(); } catch {}
@@ -190,22 +194,92 @@ function dailyTaskWindow(dayKey:string) { const [year,month,day]=dayKey.split('-
 async function dailyTaskCount(db:Awaited<ReturnType<typeof ready>>, dayKey:string) { const {start,end}=dailyTaskWindow(dayKey); const row=await db.prepare(`SELECT COUNT(DISTINCT done_at) AS count FROM (SELECT watered_at AS done_at FROM watering_events UNION ALL SELECT completed_at AS done_at FROM chore_events) WHERE done_at >= ? AND done_at < ?`).bind(start,end).first<{count:number}>(); return Number(row?.count??0); }
 
 export type FlauschiAction = 'feed'|'brush'|'play';
-export type FlauschiState = {dayKey:string;availableCare:number;todayCare:number;todayTasks:number;todayActions:FlauschiAction[];dailySetProgress:number;dailySetComplete:boolean;totalCare:number;level:number;levelProgress:number;levelGoal:number;lastAction:FlauschiAction|null;lastPerson:string|null};
+export type FlauschiFind = {itemId:string;count:number;firstFoundAt:string;lastFoundAt:string};
+export type FlauschiSearchResult = {itemId:string;rarity:'common'|'uncommon'|'rare'|'duo';source:'passive'|'task';score:number;bonusCaught:boolean;isNew:boolean};
+export type FlauschiState = {dayKey:string;availableCare:number;careBudget:number;todayCare:number;todayTasks:number;todayPeople:string[];duoBonusUnlocked:boolean;todayActions:FlauschiAction[];dailySetProgress:number;dailySetComplete:boolean;totalCare:number;level:number;levelProgress:number;levelGoal:number;lastAction:FlauschiAction|null;lastPerson:string|null;searchEnergy:number;searchCapacity:number;taskSearchBonus:number;availableSearches:number;nextSearchAt:number|null;totalSearches:number;collection:FlauschiFind[];lastSearch:FlauschiSearchResult|null};
+
+const searchCapacity=3;
+const searchRechargeMs=3*60*60*1000;
+const findsByDaypart={
+  morning:['feather','sun-button','seed-letter','dew-pearl'],
+  day:['yarn-pompom','tiny-key','leaf-medallion','lucky-pebble'],
+  evening:['amber-bead','tea-star','velvet-ribbon','golden-leaf'],
+  night:['moon-button','glow-pebble','dream-fluff','star-fragment'],
+} as const;
+const duoFinds=['together-acorn','home-charm','leaf-heart','duo-star'] as const;
+const rareFinds=new Set(['seed-letter','tiny-key','golden-leaf','star-fragment']);
+const uncommonFinds=new Set(['dew-pearl','lucky-pebble','amber-bead','glow-pebble']);
+
+function currentBerlinHour() {
+  const value=new Intl.DateTimeFormat('en-GB',{timeZone:gardenTimeZone,hour:'2-digit',hourCycle:'h23'}).format(new Date());
+  return Number(value);
+}
+function currentDaypart():keyof typeof findsByDaypart {
+  const hour=currentBerlinHour();
+  return hour<6?'night':hour<11?'morning':hour<18?'day':hour<22?'evening':'night';
+}
+async function hydrateSearchEnergy(db:Awaited<ReturnType<typeof ready>>) {
+  const now=Date.now();
+  await db.prepare('INSERT OR IGNORE INTO flauschi_search_energy (id, energy, updated_at) VALUES (1, ?, ?)').bind(searchCapacity,now).run();
+  const row=await db.prepare('SELECT energy, updated_at AS updatedAt FROM flauschi_search_energy WHERE id = 1').first<{energy:number;updatedAt:number}>();
+  let energy=Math.max(0,Math.min(searchCapacity,Number(row?.energy??searchCapacity)));
+  let updatedAt=Number(row?.updatedAt??now);
+  if(energy<searchCapacity) {
+    const steps=Math.floor(Math.max(0,now-updatedAt)/searchRechargeMs);
+    if(steps>0) {
+      energy=Math.min(searchCapacity,energy+steps);
+      updatedAt=energy===searchCapacity?now:updatedAt+steps*searchRechargeMs;
+      await db.prepare('UPDATE flauschi_search_energy SET energy = ?, updated_at = ? WHERE id = 1').bind(energy,updatedAt).run();
+    }
+  }
+  return {energy,updatedAt,nextSearchAt:energy>=searchCapacity?null:updatedAt+searchRechargeMs};
+}
+
+async function getFlauschiSearchState(db:Awaited<ReturnType<typeof ready>>,dayKey:string,todayTasks:number) {
+  const energyState=await hydrateSearchEnergy(db);
+  const [taskSearchesRow,totalSearchesRow,collectionRows,lastSearchRow]=await Promise.all([
+    db.prepare("SELECT COUNT(*) AS count FROM flauschi_search_events WHERE day = ? AND source = 'task'").bind(dayKey).first<{count:number}>(),
+    db.prepare('SELECT COUNT(*) AS count FROM flauschi_search_events').first<{count:number}>(),
+    db.prepare('SELECT item_id AS itemId, COUNT(*) AS count, MIN(created_at) AS firstFoundAt, MAX(created_at) AS lastFoundAt FROM flauschi_search_events GROUP BY item_id ORDER BY MAX(created_at) DESC').all<FlauschiFind>(),
+    db.prepare('SELECT item_id AS itemId, rarity, source, score, bonus_caught AS bonusCaught FROM flauschi_search_events ORDER BY id DESC LIMIT 1').first<{itemId:string;rarity:FlauschiSearchResult['rarity'];source:FlauschiSearchResult['source'];score:number;bonusCaught:number}>(),
+  ]);
+  const taskSearchBonus=Math.max(0,todayTasks-Number(taskSearchesRow?.count??0));
+  return {
+    searchEnergy:energyState.energy,
+    searchCapacity,
+    taskSearchBonus,
+    availableSearches:energyState.energy+taskSearchBonus,
+    nextSearchAt:energyState.nextSearchAt,
+    totalSearches:Number(totalSearchesRow?.count??0),
+    collection:collectionRows.results.map((row)=>({...row,count:Number(row.count)})),
+    lastSearch:lastSearchRow?{...lastSearchRow,score:Number(lastSearchRow.score),bonusCaught:Boolean(lastSearchRow.bonusCaught),isNew:false}:null,
+  };
+}
 export async function getFlauschiState():Promise<FlauschiState> {
   const db=await ready();
   const dayKey=currentDayKey();
-  const [todayTasks,todayRow,todayActionsRow,totalRow,lastRow]=await Promise.all([
+  const {start,end}=dailyTaskWindow(dayKey);
+  const [todayTasks,todayRow,todayActionsRow,totalRow,lastRow,todayPeopleRow]=await Promise.all([
     dailyTaskCount(db,dayKey),
     db.prepare('SELECT COUNT(*) AS count FROM flauschi_events WHERE day = ?').bind(dayKey).first<{count:number}>(),
     db.prepare('SELECT action FROM flauschi_events WHERE day = ? GROUP BY action ORDER BY MIN(id)').bind(dayKey).all<{action:FlauschiAction}>(),
     db.prepare('SELECT COUNT(*) AS count FROM flauschi_events').first<{count:number}>(),
     db.prepare('SELECT action, person FROM flauschi_events ORDER BY id DESC LIMIT 1').first<{action:FlauschiAction;person:string}>(),
+    db.prepare(`SELECT person FROM (
+      SELECT person, watered_at AS done_at FROM watering_events
+      UNION ALL
+      SELECT person, completed_at AS done_at FROM chore_events
+    ) WHERE done_at >= ? AND done_at < ? AND person IN ('Johannes','Sonja') GROUP BY person ORDER BY person`).bind(start,end).all<{person:string}>(),
   ]);
   const todayCare=Number(todayRow?.count??0);
   const todayActions=todayActionsRow.results.map((row)=>row.action).filter((action):action is FlauschiAction=>action==='feed'||action==='brush'||action==='play');
+  const todayPeople=todayPeopleRow.results.map((row)=>row.person);
+  const duoBonusUnlocked=todayPeople.includes('Johannes')&&todayPeople.includes('Sonja');
+  const careBudget=todayTasks+(duoBonusUnlocked?1:0);
   const totalCare=Number(totalRow?.count??0);
   const levelGoal=6;
-  return {dayKey,availableCare:Math.max(0,todayTasks-todayCare),todayCare,todayTasks,todayActions,dailySetProgress:todayActions.length,dailySetComplete:todayActions.length===3,totalCare,level:Math.floor(totalCare/levelGoal)+1,levelProgress:totalCare%levelGoal,levelGoal,lastAction:lastRow?.action??null,lastPerson:lastRow?.person??null};
+  const searchState=await getFlauschiSearchState(db,dayKey,todayTasks);
+  return {dayKey,availableCare:Math.max(0,careBudget-todayCare),careBudget,todayCare,todayTasks,todayPeople,duoBonusUnlocked,todayActions,dailySetProgress:todayActions.length,dailySetComplete:todayActions.length===3,totalCare,level:Math.floor(totalCare/levelGoal)+1,levelProgress:totalCare%levelGoal,levelGoal,lastAction:lastRow?.action??null,lastPerson:lastRow?.person??null,...searchState};
 }
 export async function careForFlauschi(action:FlauschiAction,person:string) {
   const allowed:FlauschiAction[]=['feed','brush','play'];
@@ -216,6 +290,44 @@ export async function careForFlauschi(action:FlauschiAction,person:string) {
   const db=await ready();
   await db.prepare('INSERT INTO flauschi_events (day, person, action, created_at) VALUES (?, ?, ?, ?)').bind(current.dayKey,person,action,new Date().toISOString()).run();
   return getFlauschiState();
+}
+
+export async function searchWithFlauschi(person:string,scoreValue:number,bonusCaught:boolean) {
+  const db=await ready();
+  const state=await getFlauschiState();
+  if(state.availableSearches<=0) return {state,searchResult:null};
+  const score=Math.max(0,Math.min(100,Math.round(scoreValue)));
+  const source:FlauschiSearchResult['source']=state.taskSearchBonus>0?'task':'passive';
+  if(source==='passive') {
+    const energy=await hydrateSearchEnergy(db);
+    if(energy.energy<=0) return {state:await getFlauschiState(),searchResult:null};
+    const nextEnergy=energy.energy-1;
+    const nextUpdatedAt=energy.energy===searchCapacity?Date.now():energy.updatedAt;
+    await db.prepare('UPDATE flauschi_search_energy SET energy = ?, updated_at = ? WHERE id = 1 AND energy = ?').bind(nextEnergy,nextUpdatedAt,energy.energy).run();
+  }
+  const existingCount=state.collection.reduce((sum,item)=>sum+item.count,0);
+  const seed=Date.now()+existingCount*37+score*11+(bonusCaught?97:0);
+  let itemId:string;
+  let rarity:FlauschiSearchResult['rarity'];
+  if(state.duoBonusUnlocked&&bonusCaught&&score>=60&&seed%5===0) {
+    itemId=duoFinds[seed%duoFinds.length];
+    rarity='duo';
+  } else {
+    const pool=findsByDaypart[currentDaypart()];
+    const preferred=score>=72||bonusCaught
+      ? pool.filter((item)=>rareFinds.has(item)||uncommonFinds.has(item))
+      : score>=38
+        ? pool.filter((item)=>!rareFinds.has(item))
+        : pool.filter((item)=>!rareFinds.has(item)&&!uncommonFinds.has(item));
+    const selection=preferred.length?preferred:pool;
+    itemId=selection[seed%selection.length];
+    rarity=rareFinds.has(itemId)?'rare':uncommonFinds.has(itemId)?'uncommon':'common';
+  }
+  const previous=state.collection.find((item)=>item.itemId===itemId)?.count??0;
+  const createdAt=new Date().toISOString();
+  await db.prepare('INSERT INTO flauschi_search_events (day, person, item_id, rarity, source, score, bonus_caught, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').bind(state.dayKey,person,itemId,rarity,source,score,bonusCaught?1:0,createdAt).run();
+  const searchResult:FlauschiSearchResult={itemId,rarity,source,score,bonusCaught,isNew:previous===0};
+  return {state:{...(await getFlauschiState()),lastSearch:searchResult},searchResult};
 }
 export async function getGarden() {
   const db=await ready();
