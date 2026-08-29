@@ -2,6 +2,14 @@
 
 Stand: 29. August 2026
 
+## Nächste Sitzung – Flauschi gezielt weiterentwickeln
+
+- Die neue kompakte Nest-Ansicht nach einigen echten Nutzungstagen auf Sonjas und Johannes’ iPhones prüfen und nur reale Verständnishürden nachschärfen.
+- Flauschis Reaktionen als konsistentes Sprite-Set weiter ausbauen, damit Essen, Kraulen, Spielen, Schlafen und Jubeln noch körperlicher wirken.
+- Die sichtbare Entwicklung pro Level als stimmige Kombination aus Flauschi-Aussehen und dauerhaft wachsender Nest-Dekoration fortführen – ohne aufgesetzte Abzeichen im Gesicht.
+- Stöberspiel und Sammlung später um wenige, klar erkennbare Seltenheiten sowie stärkere Fund- und Abschlussmomente erweitern, ohne die Nest-Hauptansicht wieder zu überladen.
+- Sound und Haptik auf echten iPhones fein abstimmen und eine ruhige Option zum vollständigen Abschalten beibehalten.
+
 ## Priorität 1 – konsistente Vorschaubilder
 
 - Für Hausflur und Einkauf noch eigene Motive erstellen; bis dahin nutzen sie die stilistisch passenden Putzen- bzw. Küchenmotive.

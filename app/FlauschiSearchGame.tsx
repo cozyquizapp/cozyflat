@@ -193,7 +193,7 @@ export default function FlauschiSearchGame({person,daypart,level,state,onStateCh
   return <>
     <button type="button" className="flauschi-search-launch" onClick={()=>{setOpen(true);setScreen('intro')}} aria-label={`Mit Flauschi stöbern, ${state.availableSearches} Versuche verfügbar`}>
       <span className="flauschi-search-launch-icon"><Search aria-hidden="true" /></span>
-      <span><small>FLAUSCHIS STÖBERSPIEL</small><b>{state.availableSearches>0?'Eine Spur wartet':`Neue Spürnase in ${countdown}`}</b></span>
+      <span><small>FREIES SPIEL</small><b>{state.availableSearches>0?'Stöbern':'Später stöbern'}</b></span>
       <i aria-label={`${state.searchEnergy} von ${state.searchCapacity} regenerierenden Spürnasen`}>
         {Array.from({length:state.searchCapacity},(_,index)=><PawPrint key={index} className={index<state.searchEnergy?'ready':''} aria-hidden="true" />)}
         {state.taskSearchBonus>0&&<em>+{state.taskSearchBonus}</em>}

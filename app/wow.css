@@ -1013,6 +1013,81 @@ button.cozy-button-tapped { animation:cozy-button-tap .19s ease; }
 .profile-bind-card button i { width:26px; height:26px; display:grid; place-items:center; border-radius:50%; background:#173c2d; color:#fff; font-size:13px; font-style:normal; }
 .profile-bind-card>small { display:block; margin-top:17px; color:#8a938a; font-size:10px; text-align:center; }
 
+/* v59: Flauschis home screen has one obvious action; details open as app sheets. */
+.flauschi-now-card { min-height:68px; margin-top:8px; padding:9px 10px; display:grid; grid-template-columns:38px minmax(0,1fr) auto; align-items:center; gap:9px; border:1px solid color-mix(in srgb,var(--profile-accent) 18%,transparent); border-radius:18px; background:linear-gradient(145deg,#fffdf8,color-mix(in srgb,var(--profile-wash) 62%,white)); box-shadow:0 7px 18px color-mix(in srgb,var(--profile-accent) 9%,transparent); }
+.flauschi-now-card>span { width:38px; height:38px; display:grid; place-items:center; border-radius:13px; background:linear-gradient(145deg,#f6d97f,#dfaa4c); color:#533d1b; font-family:Georgia,serif; font-size:18px; box-shadow:inset 0 1px rgba(255,255,255,.72),0 5px 12px rgba(129,87,29,.12); }
+.flauschi-now-card>div { min-width:0; }
+.flauschi-now-card small,.flauschi-now-card b,.flauschi-now-card p { display:block; margin:0; }
+.flauschi-now-card small { color:#778078; font-size:7px; font-weight:900; letter-spacing:.11em; }
+.flauschi-now-card b { margin-top:2px; overflow:hidden; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+.flauschi-now-card p { margin-top:2px; overflow:hidden; color:#707971; font-size:8px; text-overflow:ellipsis; white-space:nowrap; }
+.flauschi-now-card>button { min-height:38px; padding:0 9px 0 11px; display:flex; align-items:center; gap:3px; border:0; border-radius:12px; background:var(--profile-accent-deep); color:#fff; font-size:9px; font-weight:850; box-shadow:0 5px 12px color-mix(in srgb,var(--profile-accent) 18%,transparent); }
+.flauschi-now-card>button svg { width:13px; height:13px; }
+.flauschi-now-card>button:active { transform:scale(.96); }
+.flauschi-now-card>button:disabled { opacity:.65; }
+.flauschi-quick-menu { margin-top:7px; display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+.flauschi-quick-menu .flauschi-search-launch,.flauschi-overview-launch { min-width:0; min-height:58px; margin:0; padding:7px 8px; grid-template-columns:34px minmax(0,1fr) auto; gap:7px; border-radius:16px; }
+.flauschi-quick-menu .flauschi-search-launch-icon,.flauschi-overview-icon { width:34px; height:34px; display:grid; place-items:center; border-radius:11px; }
+.flauschi-quick-menu .flauschi-search-launch>span:nth-child(2) small,.flauschi-overview-launch small { font-size:6px; }
+.flauschi-quick-menu .flauschi-search-launch>span:nth-child(2) b,.flauschi-overview-launch b { margin-top:2px; overflow:hidden; font-family:inherit; font-size:10px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
+.flauschi-quick-menu .flauschi-search-launch>i { display:none; }
+.flauschi-overview-launch { width:100%; display:grid; align-items:center; border:1px solid rgba(23,60,45,.1); background:rgba(255,255,255,.8); color:#173c2d; text-align:left; box-shadow:0 5px 14px rgba(23,60,45,.055); }
+.flauschi-overview-icon { background:var(--profile-wash); color:var(--profile-accent-deep); }
+.flauschi-overview-icon svg { width:17px; height:17px; }
+.flauschi-overview-launch>span:nth-child(2) { min-width:0; }
+.flauschi-overview-launch small,.flauschi-overview-launch b { display:block; }
+.flauschi-overview-launch>svg { width:15px; height:15px; color:#708077; }
+.flauschi-overview-launch:active { transform:scale(.975); }
+
+.flauschi-menu-backdrop { position:fixed; z-index:60000; inset:0; padding:18px 10px max(10px,env(safe-area-inset-bottom)); display:grid; align-items:end; background:rgba(12,36,28,.55); backdrop-filter:blur(12px); animation:flauschi-modal-in .22s ease-out both; }
+.flauschi-menu-sheet { width:min(100%,440px); max-height:min(82dvh,720px); margin-inline:auto; overflow:auto; overscroll-behavior:contain; padding:12px; border:1px solid rgba(23,60,45,.12); border-radius:27px; background:#f9f7ec; color:#173c2d; box-shadow:0 24px 75px rgba(7,31,24,.32); animation:flauschi-sheet-up .3s cubic-bezier(.18,.78,.22,1) both; }
+.flauschi-menu-sheet>header { min-height:54px; padding:2px 2px 10px 5px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.flauschi-menu-sheet>header span small,.flauschi-menu-sheet>header span strong { display:block; }
+.flauschi-menu-sheet>header span small { color:#7a837b; font-size:7px; font-weight:900; letter-spacing:.13em; }
+.flauschi-menu-sheet>header span strong { margin-top:3px; font-family:Georgia,serif; font-size:22px; font-weight:400; }
+.flauschi-menu-sheet>header>button { width:42px; height:42px; padding:0; display:grid; place-items:center; border:1px solid rgba(23,60,45,.11); border-radius:14px; background:#fffdf7; color:#173c2d; }
+.flauschi-menu-sheet>header>button svg { width:18px; height:18px; }
+.flauschi-menu-explainer { margin:0 0 10px; padding:11px 12px; border-radius:16px; background:linear-gradient(145deg,#fff5cf,#edf3e5); color:#657067; font-size:10px; line-height:1.45; }
+.flauschi-menu-explainer b { color:#173c2d; }
+.flauschi-sheet-actions { display:grid; gap:7px; }
+.flauschi-sheet-actions>button { min-height:64px; padding:8px 10px; display:grid; grid-template-columns:40px minmax(0,1fr) 18px; grid-template-rows:auto auto; align-items:center; column-gap:10px; border:1px solid rgba(23,60,45,.1); border-radius:17px; background:#fffdf8; color:#173c2d; text-align:left; box-shadow:0 5px 15px rgba(23,60,45,.055); }
+.flauschi-sheet-actions>button>span { grid-row:1/3; width:40px; height:40px; display:grid; place-items:center; border-radius:13px; background:var(--profile-wash); color:var(--profile-accent-deep); }
+.flauschi-sheet-actions>button>span svg { width:19px; height:19px; }
+.flauschi-sheet-actions>button b { align-self:end; font-size:12px; }
+.flauschi-sheet-actions>button small { align-self:start; color:#7a827a; font-size:8px; }
+.flauschi-sheet-actions>button>svg { grid-column:3; grid-row:1/3; width:16px; height:16px; }
+.flauschi-sheet-actions>button:active { transform:scale(.98); }
+.flauschi-sheet-actions>button:disabled { opacity:.48; }
+.flauschi-how-it-works { margin-bottom:10px; padding:12px; border:1px solid rgba(23,60,45,.09); border-radius:18px; background:#fffdf8; }
+.flauschi-how-it-works>small { color:#778078; font-size:7px; font-weight:900; letter-spacing:.12em; }
+.flauschi-how-it-works ol { margin:9px 0 0; padding:0; display:grid; gap:8px; list-style:none; }
+.flauschi-how-it-works li { display:grid; grid-template-columns:28px 1fr; align-items:center; gap:9px; }
+.flauschi-how-it-works li>i { width:28px; height:28px; display:grid; place-items:center; border-radius:9px; background:var(--profile-wash); color:var(--profile-accent-deep); font-size:9px; font-style:normal; font-weight:900; }
+.flauschi-how-it-works li span b,.flauschi-how-it-works li span small { display:block; }
+.flauschi-how-it-works li span b { font-size:10px; }
+.flauschi-how-it-works li span small { margin-top:1px; color:#7a827a; font-size:8px; }
+.flauschi-menu-sheet .flauschi-daily-ritual { margin-bottom:9px; }
+.flauschi-menu-sheet .flauschi-nest-progress { margin:11px 3px 4px; }
+@keyframes flauschi-sheet-up { from{opacity:0;transform:translateY(34px) scale(.98)} to{opacity:1;transform:none} }
+
+@media(max-width:900px) {
+  .shell.view-flauschi .mobile-progress { height:calc(100dvh - 62px - 82px); min-height:0; overflow:hidden; }
+  .shell.view-flauschi .plant-room-game { height:100%; overflow:hidden; }
+  .shell.view-flauschi .flauschi-nest-v2 { height:100%; display:flex; flex-direction:column; }
+  .shell.view-flauschi .flauschi-room-v2 { min-height:0; flex:1 1 auto; aspect-ratio:auto; background-position:center 64%; }
+  .shell.view-flauschi .flauschi-character-button { bottom:5%; }
+  .shell.view-flauschi .flauschi-now-card,.shell.view-flauschi .flauschi-quick-menu { flex:0 0 auto; }
+}
+
+@media(max-width:390px), (max-height:760px) and (max-width:900px) {
+  .shell.view-flauschi .flauschi-nest-v2-head { min-height:38px; padding-bottom:6px; }
+  .shell.view-flauschi .flauschi-nest-v2-head strong { font-size:18px; }
+  .shell.view-flauschi .flauschi-now-card { min-height:61px; margin-top:6px; padding:7px 8px; }
+  .shell.view-flauschi .flauschi-now-card p { display:none; }
+  .shell.view-flauschi .flauschi-quick-menu { margin-top:5px; gap:5px; }
+  .shell.view-flauschi .flauschi-quick-menu .flauschi-search-launch,.shell.view-flauschi .flauschi-overview-launch { min-height:52px; }
+}
+
 @media(max-width:700px) {
   .access-gate { padding:0; place-items:stretch; }
   .access-gate-card { min-height:100dvh; grid-template-columns:1fr; grid-template-rows:minmax(220px,38dvh) 1fr; border:0; border-radius:0; box-shadow:none; }

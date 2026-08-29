@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Cookie, Crown, Flower2, Hand, Leaf, MoonStar, Sparkles, Sun, Sunrise, Sunset, ToyBrick } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ChevronRight, Cookie, Hand, MoonStar, Sparkles, Sun, Sunrise, Sunset, ToyBrick, X } from "lucide-react";
 import FlauschiSearchGame from "./FlauschiSearchGame";
 
 type Person = "Johannes" | "Sonja";
@@ -81,6 +82,7 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
   const [demoDuo,setDemoDuo]=useState(false);
   const [daypart,setDaypart]=useState<'morning'|'day'|'evening'|'night'>('day');
   const [message,setMessage]=useState("Flauschi döst auf dem Lieblingskissen und wartet auf euch.");
+  const [openMenu,setOpenMenu]=useState<'care'|'progress'|null>(null);
 
   useEffect(()=>{
     let cancelled=false;
@@ -161,6 +163,18 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
       if(resetTimer!==undefined)window.clearTimeout(resetTimer);
     };
   },[]);
+
+  useEffect(()=>{
+    if(!openMenu)return;
+    const previousOverflow=document.body.style.overflow;
+    const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpenMenu(null)};
+    document.body.style.overflow='hidden';
+    window.addEventListener('keydown',closeOnEscape);
+    return ()=>{
+      document.body.style.overflow=previousOverflow;
+      window.removeEventListener('keydown',closeOnEscape);
+    };
+  },[openMenu]);
 
   async function care(action:CareAction) {
     if(!state||state.availableCare<=0||active) return;
@@ -245,21 +259,11 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
   const daypartLabel={morning:'Morgenlicht',day:'Sonnenplatz',evening:'Goldene Stunde',night:'Mondruhe'}[daypart];
   const DaypartIcon=daypart==='morning'?Sunrise:daypart==='day'?Sun:daypart==='evening'?Sunset:MoonStar;
 
-  return <section className={`flauschi-nest-v2 level-${levelTier} mood-${moodKey} ${available>0?'has-care':''} ${returnMoment?'has-return':''} ${duoBonusUnlocked?'has-duo-bonus':''} ${dailySetComplete?'ritual-complete':''} ${active?`is-${active}`:""} ${petting?'is-petting':''} ${levelCelebration?'is-level-up':''}`} aria-label="Flauschis Nest">
+  return <><section className={`flauschi-nest-v2 level-${levelTier} mood-${moodKey} ${available>0?'has-care':''} ${returnMoment?'has-return':''} ${duoBonusUnlocked?'has-duo-bonus':''} ${dailySetComplete?'ritual-complete':''} ${active?`is-${active}`:""} ${petting?'is-petting':''} ${levelCelebration?'is-level-up':''}`} aria-label="Flauschis Nest">
     <header className="flauschi-nest-v2-head">
       <span><small>EUER KLEINER RÜCKKEHR-BONUS</small><strong>Flauschis Nest</strong></span>
       <b><span>Level {visibleLevel}</span><small>{levelTitle}</small></b>
     </header>
-
-    <div className="flauschi-loop-card" aria-label={`${available} ${available===1?'Spielmoment':'Spielmomente'} verfügbar`}>
-      <span><b>{available}</b><small>{available===1?'Spielmoment':'Spielmomente'}</small></span>
-      <div><strong>1 Aufgabe = 1 Moment mit Flauschi {duoBonusUnlocked&&<em>DUO +1</em>}</strong><small>{available>0?'Wählt Snack, Kraulen oder Spielen – der Duo-Bonus schenkt einen Extra-Moment.':'Der nächste Haken weckt Flauschi wieder auf.'}</small></div>
-    </div>
-
-    <div className="flauschi-daily-ritual" aria-label={`Tagesritual ${dailySetProgress} von 3`}>
-      <span><small>HEUTIGES RITUAL</small><b>{dailySetComplete?'Komplett versorgt':`${dailySetProgress}/3 kleine Momente`}</b></span>
-      <ol>{ACTIONS.map((item)=><li className={todayActions.includes(item.key)?'done':''} key={item.key}><i aria-hidden="true">{todayActions.includes(item.key)?'✓':item.step}</i><span>{item.shortLabel}</span></li>)}</ol>
-    </div>
 
     <div className={`flauschi-room-v2 time-${daypart}`} aria-live="polite">
       <span className="flauschi-daypart">{daypartLabel}</span>
@@ -299,33 +303,42 @@ export default function FlauschiNest({person,todayTasks,onGoToTasks,onAvailableC
           <img className="flauschi-character-v2 flauschi-character-state flauschi-state-chew" src="/flauschi-chew-v2.webp" alt="" />
           <img className="flauschi-character-v2 flauschi-character-state flauschi-state-petted" src="/flauschi-petted-v2.webp" alt="" />
           <img className="flauschi-character-v2 flauschi-character-state flauschi-state-cheer" src="/flauschi-cheer-v1.webp" alt="" />
-          <span className="flauschi-level-wearables" aria-hidden="true">
-            <i className="flauschi-wearable flauschi-leaf"><Leaf /></i>
-            <i className="flauschi-wearable flauschi-flower"><Flower2 /></i>
-            <i className="flauschi-wearable flauschi-crown"><Crown /></i>
-            <i className="flauschi-wearable flauschi-legend"><Sparkles /></i>
-          </span>
         </span>
       </button>
     </div>
 
-    <div className="flauschi-speech-v2" role="status"><b>{mood}</b><span>{message}</span></div>
-
-    {state&&<FlauschiSearchGame person={person} daypart={daypart} level={visibleLevel} state={state} onStateChange={(next)=>setState(next as FlauschiState)} />}
-
-    {available>0&&<div className="flauschi-actions-v2" aria-label="Flauschi pflegen">{ACTIONS.map((item)=>{
-      const alreadyDone=!dailySetComplete&&todayActions.includes(item.key);
-      return <button type="button" key={item.key} onClick={()=>care(item.key)} disabled={Boolean(active)||alreadyDone}><span><ActionIcon action={item.key} /></span><b>{item.label}</b><small>{alreadyDone?'heute schon gemacht':item.detail}</small></button>;
-    })}</div>}
-
-    {available<=0 && <button type="button" className="flauschi-task-cta-v2" onClick={onGoToTasks}>
-      <span>NEUER SPIELMOMENT</span><b>Eine Aufgabe erledigen</b><small>Danach könnt ihr direkt zu Flauschi zurückkehren.</small>
-    </button>}
-
-    <div className="flauschi-nest-progress">
-      <span><small>NÄCHSTER NESTFUND</small><b>Noch {nextReward} {nextReward===1?'Moment':'Momente'}</b></span>
-      <div aria-label={`${Math.round(Math.min(100,progress/goal*100))} Prozent bis zum nächsten Nestfund`}><i style={{width:`${Math.min(100,progress/goal*100)}%`}} /></div>
+    <div className="flauschi-now-card" role="status">
+      <span aria-hidden="true">{available>0?available:'✓'}</span>
+      <div><small>{available>0?'JETZT MÖGLICH':'SO GEHT ES WEITER'}</small><b>{active?mood:available>0?`${available} ${available===1?'Spielmoment wartet':'Spielmomente warten'}`:'Flauschi macht Pause'}</b><p>{active||levelCelebration?message:available>0?'Snack, Kraulen oder Ballzeit – du entscheidest.':'Eine erledigte Aufgabe schenkt einen neuen Spielmoment.'}</p></div>
+      <button type="button" disabled={Boolean(active)} onClick={()=>available>0?setOpenMenu('care'):onGoToTasks()}>{available>0?'Wählen':'Aufgaben'}<ChevronRight aria-hidden="true" /></button>
     </div>
-    {latestFind&&<div className="flauschi-latest-find"><Sparkles aria-hidden="true" /><span><small>ZULETZT GEFUNDEN</small><b>{latestFind}</b></span></div>}
-  </section>;
+
+    <div className="flauschi-quick-menu">
+      {state&&<FlauschiSearchGame person={person} daypart={daypart} level={visibleLevel} state={state} onStateChange={(next)=>setState(next as FlauschiState)} />}
+      <button type="button" className="flauschi-overview-launch" onClick={()=>setOpenMenu('progress')}>
+        <span className="flauschi-overview-icon"><Sparkles aria-hidden="true" /></span>
+        <span><small>RITUAL &amp; FUNDE</small><b>{dailySetProgress}/3 heute</b></span>
+        <ChevronRight aria-hidden="true" />
+      </button>
+    </div>
+  </section>
+
+  {openMenu&&typeof document!=='undefined'&&createPortal(<div className="flauschi-menu-backdrop" onMouseDown={(event)=>{if(event.target===event.currentTarget)setOpenMenu(null)}}>
+    <section className="flauschi-menu-sheet" role="dialog" aria-modal="true" aria-labelledby="flauschi-menu-title">
+      <header><span><small>{openMenu==='care'?'JETZT MIT FLAUSCHI':'DEIN ÜBERBLICK'}</small><strong id="flauschi-menu-title">{openMenu==='care'?'Was möchtest du machen?':'Ritual & Nestfunde'}</strong></span><button type="button" onClick={()=>setOpenMenu(null)} aria-label="Menü schließen"><X /></button></header>
+      {openMenu==='care'?<>
+        <p className="flauschi-menu-explainer"><b>{available} {available===1?'Spielmoment ist':'Spielmomente sind'} bereit.</b> Jede erledigte Haushaltsaufgabe schenkt einen Moment. Drei verschiedene Aktionen vervollständigen das Tagesritual.</p>
+        <div className="flauschi-sheet-actions" aria-label="Flauschi pflegen">{ACTIONS.map((item)=>{
+          const alreadyDone=!dailySetComplete&&todayActions.includes(item.key);
+          return <button type="button" key={item.key} onClick={()=>{setOpenMenu(null);void care(item.key)}} disabled={Boolean(active)||alreadyDone}><span><ActionIcon action={item.key} /></span><b>{item.label}</b><small>{alreadyDone?'Heute schon gemacht':item.detail}</small><ChevronRight aria-hidden="true" /></button>;
+        })}</div>
+      </>:<>
+        <div className="flauschi-how-it-works"><small>SO FUNKTIONIERT ES</small><ol><li><i>1</i><span><b>Aufgabe erledigen</b><small>Sie schenkt einen Spielmoment.</small></span></li><li><i>2</i><span><b>Flauschi pflegen</b><small>Snack, Kraulen oder Spielen wählen.</small></span></li><li><i>3</i><span><b>Nest wachsen lassen</b><small>Momente schalten neue Funde frei.</small></span></li></ol></div>
+        <div className="flauschi-daily-ritual" aria-label={`Tagesritual ${dailySetProgress} von 3`}><span><small>HEUTIGES RITUAL</small><b>{dailySetComplete?'Komplett versorgt':`${dailySetProgress}/3 kleine Momente`}</b></span><ol>{ACTIONS.map((item)=><li className={todayActions.includes(item.key)?'done':''} key={item.key}><i aria-hidden="true">{todayActions.includes(item.key)?'✓':item.step}</i><span>{item.shortLabel}</span></li>)}</ol></div>
+        <div className="flauschi-nest-progress"><span><small>NÄCHSTER NESTFUND</small><b>Noch {nextReward} {nextReward===1?'Moment':'Momente'}</b></span><div aria-label={`${Math.round(Math.min(100,progress/goal*100))} Prozent bis zum nächsten Nestfund`}><i style={{width:`${Math.min(100,progress/goal*100)}%`}} /></div></div>
+        {latestFind&&<div className="flauschi-latest-find"><Sparkles aria-hidden="true" /><span><small>ZULETZT GEFUNDEN</small><b>{latestFind}</b></span></div>}
+      </>}
+    </section>
+  </div>,document.body)}
+  </>;
 }
