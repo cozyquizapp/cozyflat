@@ -48,6 +48,7 @@ export default function AccessGate() {
       });
       if (!response.ok) throw new Error('invalid');
       localStorage.setItem('cozyflat-person', activePerson);
+      localStorage.setItem('cozyflat-profile-bound', 'v2');
       window.location.replace(targetForPerson(target, activePerson));
     } catch {
       setState('error');

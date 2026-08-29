@@ -122,11 +122,17 @@ function getInitialPerson(): "Johannes" | "Sonja" {
   const linkedPerson = new URLSearchParams(location.search).get("person");
   if (linkedPerson === "Sonja" || linkedPerson === "Johannes") {
     localStorage.setItem("cozyflat-person", linkedPerson);
+    localStorage.setItem("cozyflat-profile-bound", "v2");
     return linkedPerson;
   }
   const savedPerson = localStorage.getItem("cozyflat-person");
   if (savedPerson === "Sonja" || savedPerson === "Johannes") return savedPerson;
   return "Johannes";
+}
+
+function isInstalledWebApp() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
 }
 
 export default function Home() {
@@ -135,6 +141,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
   const [person, setPerson] = useState<"Johannes" | "Sonja">("Johannes");
+  const [profileSetupRequired, setProfileSetupRequired] = useState(false);
   const [busy, setBusy] = useState<number | null>(null);
   const [choreBusy, setChoreBusy] = useState<number | null>(null);
   const [choreModal, setChoreModal] = useState(false);
@@ -233,7 +240,9 @@ export default function Home() {
   }
   useEffect(() => {
     const hydrationTimer = window.setTimeout(() => {
-      setPerson(getInitialPerson());
+      const initialPerson = getInitialPerson();
+      setPerson(initialPerson);
+      setProfileSetupRequired(isInstalledWebApp() && localStorage.getItem("cozyflat-profile-bound") !== "v2");
       setShowReminderCard(localStorage.getItem("reminder-card-dismissed") !== "yes");
       void refresh();
     }, 0);
@@ -521,8 +530,35 @@ export default function Home() {
     .toUpperCase();
   const showWeeklyRecap = now.getDay() === 0 && now.getHours() >= 18;
   const dailyThought=dailyThoughts[(Number(localDayKey(now).replaceAll('-',''))+(person==='Sonja'?3:0))%dailyThoughts.length];
+  function bindProfile(nextPerson:"Johannes"|"Sonja") {
+    setGratitudeText('');
+    setGratitudeSaved(false);
+    setPerson(nextPerson);
+    localStorage.setItem("cozyflat-person", nextPerson);
+    localStorage.setItem("cozyflat-profile-bound", "v2");
+    setProfileSetupRequired(false);
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set('person', nextPerson);
+    window.history.replaceState(null, '', `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+  }
   return (
     <main className={`shell person-${person.toLowerCase()} view-${mobileView}`}>
+      {profileSetupRequired && <section className="profile-bind-gate" role="dialog" aria-modal="true" aria-labelledby="profile-bind-title">
+        <div className="profile-bind-card">
+          <img src="/icon-192.png" alt="" />
+          <p className="eyebrow">EINMAL FÜR DIESES IPHONE</p>
+          <h1 id="profile-bind-title">Wer kommt hier nach Hause?</h1>
+          <p>Damit Aufgaben, XP und Ansprache richtig landen, verbindet ihr dieses App-Symbol einmal mit der richtigen Person.</p>
+          <div>
+            {(["Johannes", "Sonja"] as const).map((option)=><button key={option} onClick={()=>bindProfile(option)}>
+              <img src={avatarFor[option]} alt="" />
+              <span><b>{option}</b><small>{option === 'Johannes' ? 'Johannes’' : 'Sonjas'} CozyFlat öffnen</small></span>
+              <i aria-hidden="true">→</i>
+            </button>)}
+          </div>
+          <small>Diese Wahl gilt nur für dieses Home‑Screen-Symbol.</small>
+        </div>
+      </section>}
       {splashVisible && <section className="app-splash" aria-label="CozyFlat wird geladen" aria-live="polite">
         <picture><source media="(max-width: 900px)" srcSet="/loading-mobile-clean.webp" /><img src="/og.png" alt="CozyFlat – Sonja und Johannes packen gemeinsam zuhause an" /></picture>
         <div><span>✨ Euer Zuhause wird gemütlich</span><i></i><i></i><i></i></div>
@@ -536,7 +572,7 @@ export default function Home() {
           {(["Johannes", "Sonja"] as const).map((p) => (
             <button
               key={p}
-              onClick={() => { setGratitudeText(''); setGratitudeSaved(false); setPerson(p); localStorage.setItem("cozyflat-person", p); }}
+              onClick={() => bindProfile(p)}
               className={person === p ? "active" : ""}
               aria-label={`${p} auswählen`}
               aria-pressed={person === p}
