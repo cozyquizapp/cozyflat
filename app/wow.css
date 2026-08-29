@@ -980,6 +980,18 @@ button.cozy-button-tapped { animation:cozy-button-tap .19s ease; }
 .access-gate-copy input:focus-visible { border-color:#315d49; box-shadow:0 0 0 4px rgba(49,93,73,.14); }
 .access-gate-copy button { padding:0 18px; border:0; background:#173c2d; color:#fff; font-size:12px; font-weight:850; cursor:pointer; box-shadow:0 9px 20px rgba(23,60,45,.2); }
 .access-gate-copy button:disabled { opacity:.7; cursor:wait; }
+.access-person-picker { margin:0 0 18px; padding:0; border:0; }
+.access-person-picker legend { margin-bottom:8px; font-size:11px; font-weight:850; letter-spacing:.04em; }
+.access-person-picker>div { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.access-gate-copy .access-person-picker button { min-width:0; min-height:68px; padding:7px 9px; display:grid; grid-template-columns:42px minmax(0,1fr) 22px; align-items:center; gap:9px; border:1px solid #d7ddcf; border-radius:17px; background:#fff; color:#173c2d; text-align:left; box-shadow:none; transition:border-color .18s ease,background .18s ease,transform .18s ease,box-shadow .18s ease; }
+.access-gate-copy .access-person-picker button:active { transform:scale(.98); }
+.access-gate-copy .access-person-picker button.active { border-color:#63805e; background:#eef3e7; box-shadow:0 0 0 3px rgba(99,128,94,.12); }
+.access-person-picker img { width:42px; height:42px; border-radius:50%; object-fit:cover; box-shadow:0 4px 12px rgba(23,60,45,.16); }
+.access-person-picker span { min-width:0; display:grid; gap:2px; }
+.access-person-picker b { overflow:hidden; font-size:13px; text-overflow:ellipsis; }
+.access-person-picker span small { overflow:hidden; color:#7c887d; font-size:9px; font-weight:650; text-overflow:ellipsis; white-space:nowrap; }
+.access-person-picker i { width:20px; height:20px; display:grid; place-items:center; border:1px solid #ccd5c7; border-radius:50%; color:#fff; font-size:11px; font-style:normal; }
+.access-person-picker button.active i { border-color:#315d49; background:#315d49; }
 .access-gate-status { margin:14px 0 0; padding:11px 13px; border-radius:12px; background:#edf3e9; color:#315d49; font-size:12px; font-weight:750; }
 .access-gate-status.error { background:#f8e8df; color:#823f2f; }
 .access-gate-copy>small { display:block; margin-top:18px; color:#879087; font-size:10px; line-height:1.5; }
